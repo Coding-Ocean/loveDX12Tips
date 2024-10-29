@@ -4,9 +4,13 @@
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BIN_FILE12.h" />
-    <ClInclude Include="stb_image.h" />
     <ClInclude Include="model.h" />
+    <ClInclude Include="BIN_FILE12.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>utility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">
@@ -19,6 +23,9 @@
   <ItemGroup>
     <Filter Include="hlsl">
       <UniqueIdentifier>{4fe1e937-cda2-41f5-b8c0-12131b0eeea9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utility">
+      <UniqueIdentifier>{e6a8d2fb-5a7e-44bd-bf85-95f30edd2c1a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
