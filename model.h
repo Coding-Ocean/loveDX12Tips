@@ -1,11 +1,13 @@
 #pragma once
+const float ClearColor[] = {0.25f, 0.5f, 0.9f, 1.0f};
 
 unsigned NumVertexElements = 5;
 float Vertices[] = {
-	-0.5f, -0.5f,  0.0f,  0.0f,  1.0f, //ç∂â∫
+	//position            texcoord
 	-0.5f,  0.5f,  0.0f,  0.0f,  0.0f, //ç∂è„
-	 0.5f, -0.5f,  0.0f,  1.0f,  1.0f, //âEâ∫
+	-0.5f, -0.5f,  0.0f,  0.0f,  1.0f, //ç∂â∫
 	 0.5f,  0.5f,  0.0f,  1.0f,  0.0f, //âEè„
+	 0.5f, -0.5f,  0.0f,  1.0f,  1.0f, //âEâ∫
 };
 
 unsigned short Indices[] = {
@@ -13,6 +15,6 @@ unsigned short Indices[] = {
 	2,1,3,
 };
 
-float Diffuse[] = {1.0f, 1.0f, 0.0f, 1.0f};
+float Diffuse[] = {1.0f, 0.5f, 1.0f, 1.0f};
 
 const char* TextureFilename = "assets\\penguin1.png";
