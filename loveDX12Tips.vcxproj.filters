@@ -2,6 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
+    <ClCompile Include="graphic.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="model.h" />
@@ -11,6 +12,7 @@
     <ClInclude Include="stb_image.h">
       <Filter>utility</Filter>
     </ClInclude>
+    <ClInclude Include="graphic.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">

@@ -127,10 +127,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="graphic.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h" />
+    <ClInclude Include="graphic.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
