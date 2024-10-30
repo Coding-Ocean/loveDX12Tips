@@ -244,6 +244,7 @@ void CreateRenderTarget()
 }
 void CreatePipeline()
 {
+	//ルートシグネチャ
 	{
 		//ディスクリプタレンジ。ディスクリプタヒープとシェーダを紐づける役割をもつ。
 		D3D12_DESCRIPTOR_RANGE  range[3] = {};
@@ -315,7 +316,8 @@ void CreatePipeline()
 	UINT slot0 = 0;
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, slot0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    slot0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, slot0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    slot0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 
 	D3D12_RASTERIZER_DESC rasterDesc = {};

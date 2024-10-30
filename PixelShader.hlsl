@@ -1,13 +1,9 @@
 #include<Header.hlsli>
-void main(
-    in float4 i_pos : SV_POSITION,
-    in float2 i_uv : TEXCOORD,
-    out float4 o_col : SV_TARGET)
+float4 main(
+    float4 i_pos : SV_POSITION,
+    float4 i_diffuse : COLOR,
+    float2 i_uv : TEXCOORD
+    ) : SV_TARGET
 {
-    o_col = float4(Texture.Sample(Sampler, i_uv)) * Diffuse;
+    return float4(Texture.Sample(Sampler, i_uv)) * i_diffuse;
 }
-
-//float4 main() : SV_TARGET
-//{
-//	return Diffuse;
-//}

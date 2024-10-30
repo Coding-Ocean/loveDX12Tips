@@ -13,8 +13,11 @@ D3D12_INDEX_BUFFER_VIEW	IndexBufferView;
 //コンスタントバッファ
 struct CONST_BUF0 {
 	XMMATRIX worldViewProj;
+	XMMATRIX world;
+	XMFLOAT4 lightDir;
 };
 struct CONST_BUF1 {
+	XMFLOAT4 ambient;
 	XMFLOAT4 diffuse;
 };
 CONST_BUF0* CB0 = nullptr;
@@ -30,7 +33,7 @@ UINT CbvTbvIncSize = 0;
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Graphic Functions", 1280, 720);
+	window(L"Lambert", 1280, 720);
 
 	HRESULT Hr;
 
@@ -83,7 +86,8 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			Hr = mapBuffer(ConstBuffer1, (void**)&CB1);
 			assert(SUCCEEDED(Hr));
 			//データを入れる
-			CB1->diffuse = {Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3]};
+			CB1->ambient = { Ambient[0],Ambient[1],Ambient[2],Ambient[3] };
+			CB1->diffuse = { Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3] };
 		}
 		//テクスチャバッファ
 		{
@@ -117,15 +121,18 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//更新------------------------------------------------------------------
 		//回転用ラジアン
 		static float r = 0;
-		r += 0.01f;
+		r += 0.02f;
 		//ワールドマトリックス
-		XMMATRIX world = XMMatrixRotationY(r);
+		XMMATRIX world = XMMatrixIdentity();
 		//ビューマトリックス
 		XMFLOAT3 eye = { 0, 0, -2 }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
 		XMMATRIX view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&focus), XMLoadFloat3(&up));
 		//プロジェクションマトリックス
 		XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
+
 		CB0->worldViewProj = world * view * proj;
+		CB0->world = world;
+		CB0->lightDir = { sinf(r),0,-cosf(r),0 };//原点からライトへの方向
 
 		//描画------------------------------------------------------------------
 		//バックバッファクリア

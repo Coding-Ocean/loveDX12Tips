@@ -1,0 +1,22 @@
+Header.hlsli
+　b0にWorld,Lightを追加
+　b1にAmbientを追加
+
+VertexShader.hlsl
+　i_normal,o_diffuse
+　ランバート処理をする
+
+PixelShader.hlsl
+　i_diffuse
+
+model.h
+　頂点に法線データを追加
+　ambientデータを追加
+
+winMain.cpp
+　D3D12_INPUT_ELEMENT_DESCにNORMALを追加
+　CONST_BUF0のメンバにworld,lightを追加
+　CONST_BUF1のメンバにambientを追加
+　更新処理
+　CB0->world = world; 
+　CB->light = light;
