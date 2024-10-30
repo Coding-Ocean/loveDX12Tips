@@ -34,13 +34,13 @@ UINT64 FenceValue;
 HRESULT Hr;
 // バックバッファ
 ComPtr<IDXGISwapChain4> SwapChain;
-ComPtr<ID3D12Resource> BackBufs[2];
+ComPtr<ID3D12Resource> BackBuffers[2];
 UINT BackBufIdx;
 ComPtr<ID3D12DescriptorHeap> BbvHeap;//"Bbv"は"BackBufView"の略
 UINT BbvIncSize;
 // デプスステンシルバッファ
-ComPtr<ID3D12Resource> DepthStencilBuf;
-ComPtr<ID3D12DescriptorHeap> DsvHeap;//"Dsv"は"DepthStencilBufView"の略
+ComPtr<ID3D12Resource> DepthStencilBuffer;
+ComPtr<ID3D12DescriptorHeap> DsvHeap;//"Dsv"は"DepthStencilBufferView"の略
 // パイプライン
 ComPtr<ID3D12RootSignature> RootSignature;
 ComPtr<ID3D12PipelineState> PipelineState;
@@ -52,7 +52,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
 	switch (msg) {
 	case WM_DESTROY:
-		CloseHandle(FenceEvent);
 		PostQuitMessage(0);
 		return 0;
 	default:
@@ -186,11 +185,11 @@ void CreateRenderTarget()
 
 		for (UINT idx = 0; idx < 2; idx++) {
 			//バックバッファを取り出す
-			Hr = SwapChain->GetBuffer(idx, IID_PPV_ARGS(BackBufs[idx].GetAddressOf()));
+			Hr = SwapChain->GetBuffer(idx, IID_PPV_ARGS(BackBuffers[idx].GetAddressOf()));
 			assert(SUCCEEDED(Hr));
 			//バックバッファのビューをヒープにつくる
 			hBbvHeap.ptr += BbvIncSize * idx;
-			Device->CreateRenderTargetView(BackBufs[idx].Get(), nullptr, hBbvHeap);
+			Device->CreateRenderTargetView(BackBuffers[idx].Get(), nullptr, hBbvHeap);
 		}
 	}
 	//デプスステンシルバッファをつくる
@@ -220,7 +219,7 @@ void CreateRenderTarget()
 			&desc,
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, //デプス書き込みに使用
 			&depthClearValue,
-			IID_PPV_ARGS(DepthStencilBuf.GetAddressOf()));
+			IID_PPV_ARGS(DepthStencilBuffer.GetAddressOf()));
 		assert(SUCCEEDED(Hr));
 	}
 	//デプスステンシルバッファ「ビュー」の入れ物である「デスクリプタヒープ」をつくる
@@ -240,7 +239,7 @@ void CreateRenderTarget()
 		desc.Flags = D3D12_DSV_FLAG_NONE;//フラグは特になし
 		D3D12_CPU_DESCRIPTOR_HANDLE hDsvHeap
 			= DsvHeap->GetCPUDescriptorHandleForHeapStart();
-		Device->CreateDepthStencilView(DepthStencilBuf.Get(), &desc, hDsvHeap);
+		Device->CreateDepthStencilView(DepthStencilBuffer.Get(), &desc, hDsvHeap);
 	}
 }
 void CreatePipeline()
@@ -413,10 +412,11 @@ bool quit()
 {
 	MSG msg = { 0 };
 	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+		if(msg.message == WM_QUIT)return true;
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
-	return msg.message == WM_QUIT;
+	return false;
 }
 void clear(const float* clearColor)
 {
@@ -427,7 +427,7 @@ void clear(const float* clearColor)
 	D3D12_RESOURCE_BARRIER barrier;
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;//このバリアは状態遷移タイプ
 	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = BackBufs[BackBufIdx].Get();//リソースはバックバッファ
+	barrier.Transition.pResource = BackBuffers[BackBufIdx].Get();//リソースはバックバッファ
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;//遷移前はPresent
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;//遷移後は描画ターゲット
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -464,7 +464,7 @@ void present()
 	D3D12_RESOURCE_BARRIER barrier;
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;//このバリアは状態遷移タイプ
 	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = BackBufs[BackBufIdx].Get();//リソースはバックバッファ
+	barrier.Transition.pResource = BackBuffers[BackBufIdx].Get();//リソースはバックバッファ
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;//遷移前は描画ターゲット
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;//遷移後はPresent
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -503,6 +503,10 @@ void waitGPU()
 		//イベントが発生するまで待つ
 		WaitForSingleObject(FenceEvent, INFINITE);
 	}
+}
+void closeEventHandle()
+{
+	CloseHandle(FenceEvent);
 }
 //バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer)

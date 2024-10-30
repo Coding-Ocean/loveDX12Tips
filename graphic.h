@@ -13,7 +13,8 @@ bool quit();
 void clear(const float* clearColor);
 void present();
 void waitGPU();
-//バッファ作成系
+void closeEventHandle();
+//リソースバッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT mapBuffer(ComPtr<ID3D12Resource>& buffer, void** mappedBuffer);

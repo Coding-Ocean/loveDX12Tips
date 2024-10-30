@@ -1,14 +1,14 @@
 #include"graphic.h"
 #include"model.h"
 
-//リソース----------------------------------------------------------------------
+//Grobal variables
 //頂点バッファ
 UINT NumVertices = 0;
-ComPtr<ID3D12Resource> VertexBuffer = nullptr;
+ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
 D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
 //頂点インデックスバッファ
 UINT NumIndices = 0;
-ComPtr<ID3D12Resource> IndexBuffer = nullptr;
+ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
 D3D12_INDEX_BUFFER_VIEW	IndexBufferView;
 //コンスタントバッファ
 struct CONST_BUF0 {
@@ -27,15 +27,14 @@ ComPtr<ID3D12Resource> TextureBuffer = nullptr;
 ComPtr<ID3D12DescriptorHeap> CbvTbvHeap = nullptr;
 UINT CbvTbvIncSize = 0;
 
-//エントリーポイント
+//Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Graphic Functions", 1280, 720);
 
 	HRESULT Hr;
-	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
 
-	//リソース
+	//リソース初期化
 	{
 		//頂点バッファ
 		{
@@ -93,21 +92,24 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		}
 		//ディスクリプタヒープ
 		{
-			//ディスクリプタ３つ分のヒープをつくる
+			//ディスクリプタ(ビュー)３つ分のヒープをつくる
 			Hr = createDescriptorHeap(3, CbvTbvHeap);
 			assert(SUCCEEDED(Hr));
 			CbvTbvIncSize = cbvTbvIncSize();
-			//１つめのディスクリプタをヒープにつくる
+			//１つめのディスクリプタ(ビュー)をヒープにつくる
 			auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
 			createConstantBufferView(ConstBuffer0, hCbvTbvHeap);
-			//２つめのディスクリプタをヒープにつくる
+			//２つめのディスクリプタ(ビュー)をヒープにつくる
 			hCbvTbvHeap.ptr += CbvTbvIncSize;
 			createConstantBufferView(ConstBuffer1, hCbvTbvHeap);
-			//３つめのディスクリプタをヒープにつくる
+			//３つめのディスクリプタ(ビュー)をヒープにつくる
 			hCbvTbvHeap.ptr += CbvTbvIncSize;
 			createTextureBufferView(TextureBuffer, hCbvTbvHeap);
 		}
 	}
+	
+	//描画用にクローンしておく
+	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
 
 	//メインループ
 	while (!quit())
@@ -141,9 +143,11 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//バックバッファ表示
 		present();
 	}
-	//解放
+	
+	//後始末
 	{
 		waitGPU();
+		closeEventHandle();
 		ConstBuffer1->Unmap(0, nullptr);
 		ConstBuffer0->Unmap(0, nullptr);
 	}
