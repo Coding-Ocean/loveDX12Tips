@@ -10,8 +10,10 @@ void main(
     o_pos = mul(WorldViewProj, i_pos);
     
     i_normal.w = 0;
-    float4 normal = mul(World, i_normal);
-    float brightness = max(0, dot(normal, LightDir));
+    float4 normal = normalize(mul(World, i_normal));
+    i_pos.w = 0;
+    float4 lightDir = normalize(LightPos - i_pos);
+    float brightness = max(0, dot(normal, lightDir));
     o_diffuse = Ambient + Diffuse * brightness;
     o_diffuse.a = Diffuse.a;
     

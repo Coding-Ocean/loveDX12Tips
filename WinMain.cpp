@@ -14,7 +14,7 @@ D3D12_INDEX_BUFFER_VIEW	IndexBufferView;
 struct CONST_BUF0 {
 	XMMATRIX worldViewProj;
 	XMMATRIX world;
-	XMFLOAT4 lightDir;
+	XMFLOAT4 lightPos;
 };
 struct CONST_BUF1 {
 	XMFLOAT4 ambient;
@@ -120,8 +120,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	{
 		//更新------------------------------------------------------------------
 		//回転用ラジアン
-		static float r = 0;
-		r += 0.02f;
+		static float r = -0.5f;
+		r += 0.01f;
+		if (r > 3.64f)r = -0.5f;
 		//ワールドマトリックス
 		XMMATRIX world = XMMatrixIdentity();
 		//ビューマトリックス
@@ -132,7 +133,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 		CB0->worldViewProj = world * view * proj;
 		CB0->world = world;
-		CB0->lightDir = { sinf(r),0,-cosf(r),0 };//原点からライトへの方向
+		CB0->lightPos = { cosf(r)*2,0,-sinf(r),0 };
 
 		//描画------------------------------------------------------------------
 		//バックバッファクリア

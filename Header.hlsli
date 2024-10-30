@@ -2,7 +2,7 @@ cbuffer b0 : register(b0)
 {
     matrix WorldViewProj;
     matrix World;
-    float4 LightDir;//Œ´“_‚©‚çƒ‰ƒCƒg‚Ö‚Ì•ûŒü
+    float4 LightPos;
 }
 cbuffer b1 : register(b1)
 {

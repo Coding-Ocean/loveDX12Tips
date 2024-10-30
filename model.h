@@ -1,5 +1,5 @@
 #pragma once
-const float ClearColor[] = { 0.3f, 0.3f, 0.3f, 1.0f };
+const float ClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 unsigned NumVertexElements = 8;
 float Vertices[] = {
@@ -18,4 +18,4 @@ unsigned short Indices[] = {
 float Ambient[] = { 0.3f, 0.3f, 0.3f, 0.0f };
 float Diffuse[] = { 0.7f, 0.7f, 0.7f, 1.0f };
 
-const char* TextureFilename = "assets\\penguin1.png";
+const char* TextureFilename = "assets\\wall.png";
