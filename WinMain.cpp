@@ -33,7 +33,7 @@ UINT CbvTbvIncSize = 0;
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Lambert", 1280, 720);
+	window(L"Lambert Vertex", 1280, 720);
 
 	HRESULT Hr;
 
@@ -133,7 +133,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 		CB0->worldViewProj = world * view * proj;
 		CB0->world = world;
-		CB0->lightPos = { cosf(r)*2,0,-sinf(r),0 };
+		CB0->lightPos = { cos(r),0,-sin(r),0 };
 
 		//描画------------------------------------------------------------------
 		//バックバッファクリア

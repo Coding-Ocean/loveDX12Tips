@@ -11,9 +11,7 @@ void main(
     
     i_normal.w = 0;
     float4 normal = normalize(mul(World, i_normal));
-    i_pos.w = 0;
-    float4 lightDir = normalize(LightPos - i_pos);
-    float brightness = max(0, dot(normal, lightDir));
+    float brightness = max(0, dot(normal, LightPos));
     o_diffuse = Ambient + Diffuse * brightness;
     o_diffuse.a = Diffuse.a;
     
