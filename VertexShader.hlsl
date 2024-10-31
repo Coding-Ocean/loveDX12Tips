@@ -1,21 +1,20 @@
 #include<Header.hlsli>
 void main(
-    in float4 i_pos : POSITION,
-    in float4 i_normal : NORMAL,
-    in float2 i_uv : TEXCOORD,
-    out float4 o_pos : SV_POSITION,
-    out float4 o_diffuse : COLOR,
-    out float2 o_uv : TEXCOORD)
+    in float4 i_pos     : POSITION,
+    in float4 i_normal  : NORMAL,
+    in float2 i_uv      : TEXCOORD,
+    out float4 o_sv_pos : SV_POSITION,
+    out float4 o_pos    : TEXCOORD0,
+    out float4 o_normal : TEXCOORD1,
+    out float2 o_uv     : TEXCOORD2
+)
 {
-    o_pos = mul(WorldViewProj, i_pos);
+    o_sv_pos = mul(WorldViewProj, i_pos);
+    
+    o_pos = mul(World, i_pos);
     
     i_normal.w = 0;
-    float4 normal = normalize(mul(World, i_normal));
-    i_pos.w = 0;
-    float4 lightDir = normalize(LightPos - i_pos);
-    float brightness = max(0, dot(normal, lightDir));
-    o_diffuse = Ambient + Diffuse * brightness;
-    o_diffuse.a = Diffuse.a;
+    o_normal = normalize(mul(World, i_normal));
     
     o_uv = i_uv;
 }
