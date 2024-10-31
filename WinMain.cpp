@@ -33,7 +33,7 @@ UINT CbvTbvIncSize = 0;
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Lambert", 1280, 720);
+	window(L"Lambert Pixel", 1280, 720);
 
 	HRESULT Hr;
 

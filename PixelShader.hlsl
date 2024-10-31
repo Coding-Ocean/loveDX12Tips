@@ -12,6 +12,5 @@ float4 main(
     float4 d_col = Ambient + Diffuse * max(0, dot(lightDir, i_normal.xyz));
     d_col.w = Diffuse.w;
     
-    //return d_col;
     return t_col * d_col;
 }
