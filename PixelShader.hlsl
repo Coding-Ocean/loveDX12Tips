@@ -12,5 +12,10 @@ float4 main(
     float4 d_col = Ambient + Diffuse * max(0, dot(lightDir, i_normal.xyz));
     d_col.w = Diffuse.w;
     
-    return t_col * d_col;
+    float3 eyeDir = normalize(EyePos.xyz - i_pos.xyz);
+    float3 halfDir = normalize(lightDir + eyeDir);
+    float4 s_col = Specular * pow(max(0, dot(halfDir, i_normal.xyz)), Specular.w);
+    s_col.w = 0;
+
+    return saturate(t_col * d_col + s_col);
 }

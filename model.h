@@ -17,5 +17,6 @@ unsigned short Indices[] = {
 
 float Ambient[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 float Diffuse[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+float Specular[] = { 1.0f, 1.0f, 1.0f, 50.0f };
 
 const char* TextureFilename = "assets\\wall.png";

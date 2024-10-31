@@ -15,10 +15,12 @@ struct CONST_BUF0 {
 	XMMATRIX worldViewProj;
 	XMMATRIX world;
 	XMFLOAT4 lightPos;
+	XMFLOAT4 eyePos;
 };
 struct CONST_BUF1 {
 	XMFLOAT4 ambient;
 	XMFLOAT4 diffuse;
+	XMFLOAT4 specular;
 };
 CONST_BUF0* CB0 = nullptr;
 CONST_BUF1* CB1 = nullptr;
@@ -88,6 +90,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//データを入れる
 			CB1->ambient = { Ambient[0],Ambient[1],Ambient[2],Ambient[3] };
 			CB1->diffuse = { Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3] };
+			CB1->specular = { Specular[0],Specular[1],Specular[2],Specular[3] };
 		}
 		//テクスチャバッファ
 		{
@@ -132,7 +135,8 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 		CB0->worldViewProj = world * view * proj;
 		CB0->world = world;
-		CB0->lightPos = { cosf(r),0,-0.3f,0 };
+		CB0->lightPos = { cosf(r),0,-0.5f,0 };
+		CB0->eyePos = { eye.x,eye.y,eye.z,0 };
 
 		//描画------------------------------------------------------------------
 		//バックバッファクリア
