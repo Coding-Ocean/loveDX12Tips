@@ -267,11 +267,15 @@ void CreatePipeline()
 		range[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 		//ルートパラメタをディスクリプタテーブルとして使用
-		D3D12_ROOT_PARAMETER rootParam[1] = {};
+		D3D12_ROOT_PARAMETER rootParam[2] = {};
 		rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-		rootParam[0].DescriptorTable.pDescriptorRanges = range;
-		rootParam[0].DescriptorTable.NumDescriptorRanges = _countof(range);
+		rootParam[0].DescriptorTable.pDescriptorRanges = &range[0];
+		rootParam[0].DescriptorTable.NumDescriptorRanges = 2;
 		rootParam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+		rootParam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParam[1].DescriptorTable.pDescriptorRanges = &range[2];
+		rootParam[1].DescriptorTable.NumDescriptorRanges = 1;
+		rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 		//サンプラの記述。このサンプラがシェーダーの s0 にセットされる
 		D3D12_STATIC_SAMPLER_DESC samplerDesc[1] = {};

@@ -1,3 +1,4 @@
+#include<sstream>
 #include"graphic.h"
 #include"model.h"
 
@@ -21,16 +22,19 @@ CONST_BUF0* CB0 = nullptr;
 CONST_BUF1* CB1 = nullptr;
 ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
 ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
+constexpr UINT NumConstBuffers = 2;//これも用意しておこう
 //テクスチャバッファ
-ComPtr<ID3D12Resource> TextureBuffer = nullptr;
+constexpr UINT NumTextureBuffers = 8;//複数のバッファを用意する
+ComPtr<ID3D12Resource> TextureBuffers[NumTextureBuffers];//配列にします
 //ディスクリプタヒープ
 ComPtr<ID3D12DescriptorHeap> CbvTbvHeap = nullptr;
 UINT CbvTbvIncSize = 0;
+int TbvIdx = 0;//これでディスクリプタヒープの場所を指す
 
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Graphic Functions", 1280, 720);
+	window(L"Texture Animation", 1280, 720);
 
 	HRESULT Hr;
 
@@ -87,24 +91,30 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		}
 		//テクスチャバッファ
 		{
-			Hr = createTextureBuffer(TextureFilename, TextureBuffer);
-			assert(SUCCEEDED(Hr));
+			//ファイルを読み込み、テクスチャバッファをつくる
+			for (int i = 0; i < NumTextureBuffers; ++i) {
+				std::ostringstream filename;
+				filename << "assets\\lady\\a" << i << ".png";
+				createTextureBuffer(filename.str().c_str(), TextureBuffers[i]);
+			}
 		}
 		//ディスクリプタヒープ
 		{
-			//ディスクリプタ(ビュー)３つ分のヒープをつくる
-			Hr = createDescriptorHeap(3, CbvTbvHeap);
+			//ディスクリプタ(ビュー)のヒープをつくる
+			Hr = createDescriptorHeap(NumConstBuffers + NumTextureBuffers, CbvTbvHeap);
 			assert(SUCCEEDED(Hr));
 			CbvTbvIncSize = cbvTbvIncSize();
-			//１つめのディスクリプタ(ビュー)をヒープにつくる
+			//コンスタントバッファ０のディスクリプタ(ビュー)をヒープにつくる
 			auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
 			createConstantBufferView(ConstBuffer0, hCbvTbvHeap);
-			//２つめのディスクリプタ(ビュー)をヒープにつくる
+			//コンスタントバッファ１のディスクリプタ(ビュー)をヒープにつくる
 			hCbvTbvHeap.ptr += CbvTbvIncSize;
 			createConstantBufferView(ConstBuffer1, hCbvTbvHeap);
-			//３つめのディスクリプタ(ビュー)をヒープにつくる
-			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createTextureBufferView(TextureBuffer, hCbvTbvHeap);
+			//テクスチャバッファ配列のディスクリプタ(ビュー)をヒープにつくる
+			for (int i = 0; i < NumTextureBuffers; ++i) {
+				hCbvTbvHeap.ptr += CbvTbvIncSize;
+				createTextureBufferView(TextureBuffers[i], hCbvTbvHeap);
+			}
 		}
 	}
 	
@@ -119,13 +129,23 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		static float r = 0;
 		r += 0.01f;
 		//ワールドマトリックス
-		XMMATRIX world = XMMatrixRotationY(r);
+		XMMATRIX world = XMMatrixRotationY(r)*XMMatrixTranslation(-sin(r),0,-cos(r));
 		//ビューマトリックス
-		XMFLOAT3 eye = { 0, 0, -2 }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
+		XMFLOAT3 eye = { 0, 0, -2.1f }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
 		XMMATRIX view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&focus), XMLoadFloat3(&up));
 		//プロジェクションマトリックス
 		XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
 		CB0->worldViewProj = world * view * proj;
+
+		//一定間隔でテクスチャインデックスをカウントアップする
+		{
+			static UINT64 count = 0;
+			int interval = 7;
+			//countがintervalで割り切れた時にTbvIdxをカウントアップする
+			if (++count % interval == 0) {
+				TbvIdx = count / interval % NumTextureBuffers;
+			}
+		}
 
 		//描画------------------------------------------------------------------
 		//バックバッファクリア
@@ -135,9 +155,15 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		CommandList->IASetIndexBuffer(&IndexBufferView);
 		//ディスクリプタヒープをＧＰＵにセット
 		CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
-		//ディスクリプタヒープをディスクリプタテーブルにセット
-		auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-		CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+		//ディスクリプタヒープをディスクリプタテーブルにセットする
+		{
+			//コンスタントバッファビューヒープをディスクリプタテーブル０にセット
+			auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+			CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+			//テクスチャバッファビューヒープの１つをディスクリプタテーブル１にセット
+			hCbvTbvHeap.ptr += CbvTbvIncSize * (NumConstBuffers + TbvIdx);
+			CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
+		}
 		//描画
 		CommandList->DrawIndexedInstanced(NumIndices, 1, 0, 0, 0);
 		//バックバッファ表示
