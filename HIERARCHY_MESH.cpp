@@ -1,11 +1,11 @@
-#include "MESH.h"
+#include "HIERARCHY_MESH.h"
 #include "model.h"
 
-MESH::MESH()
+HIERARCHY_MESH::HIERARCHY_MESH()
 {
 }
 
-MESH::~MESH()
+HIERARCHY_MESH::~HIERARCHY_MESH()
 {
 	for (auto& parts : Parts) {
 		parts.ConstBuffer0->Unmap(0, nullptr);
@@ -13,7 +13,7 @@ MESH::~MESH()
 	}
 }
 
-void MESH::create()
+void HIERARCHY_MESH::create()
 {
 	//パーツ配列をつくる
 	for (int i = 0; i < NumParts; ++i) {
@@ -67,8 +67,8 @@ void MESH::create()
 			Hr = mapBuffer(parts.ConstBuffer1, (void**)&parts.CB1);
 			assert(SUCCEEDED(Hr));
 			//データを入れる
-			parts.CB1->ambient = { Ambient[0],Ambient[1],Ambient[2],Ambient[3] };
-			parts.CB1->diffuse = { Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3] };
+			parts.CB1->ambient = { Ambient[i][0],Ambient[i][1],Ambient[i][2],Ambient[i][3] };
+			parts.CB1->diffuse = { Diffuse[i][0],Diffuse[i][1],Diffuse[i][2],Diffuse[i][3] };
 		}
 		//テクスチャバッファ
 		{
@@ -129,11 +129,8 @@ void MESH::create()
 }
 
 //2つの行列の間の線形補間を計算し、結果の行列を返す 
-// クォータニオン→回転行列＝XMMatrixRotationQuaternion    
-// 回転行列→クォータニオン＝XMQuaternionRotationMatrix
-XMMATRIX MESH::LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t)
+XMMATRIX HIERARCHY_MESH::LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t)
 {
-
 	//それぞれの行列から平行移動成分を、それぞれベクトルに取り出す
 	XMFLOAT3 vA, vB;
 	vA.x = a._41;
@@ -185,20 +182,20 @@ XMMATRIX MESH::LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t)
 	b._11 /= Sbx; b._12 /= Sbx;	b._13 /= Sbx;
 	b._21 /= Sby; b._22 /= Sby;	b._23 /= Sby;
 	b._31 /= Sbz; b._32 /= Sbz;	b._33 /= Sbz;
-
+	
+	//回転行列 → クォータニオン
 	XMVECTOR qA = XMQuaternionRotationMatrix(a);
 	XMVECTOR qB = XMQuaternionRotationMatrix(b);
+	//クォータニオン線形補完
+	XMVECTOR qR = XMQuaternionSlerp(qA, qB, t);
+	//クォータニオン → 回転行列
+	XMMATRIX ret = XMMatrixRotationQuaternion(qR);
 
-	//それぞれを、ｔの比率で線形補間する
+	//移動成分を線形補間
 	XMVECTOR vvA = XMLoadFloat3(&vA);
 	XMVECTOR vvB = XMLoadFloat3(&vB);
 	XMVECTOR vR = (1.0 - t) * vvA + t * vvB;
-
-	XMVECTOR qR = XMQuaternionSlerp(qA, qB, t);
-
-	//ベクトルとクォータニオンを行列に戻す
-	XMMATRIX ret = XMMatrixRotationQuaternion(qR);
-
+	//移動成分を行列に戻す
 	ret._41 = XMVectorGetX(vR);
 	ret._42 = XMVectorGetY(vR);
 	ret._43 = XMVectorGetZ(vR);
@@ -207,7 +204,7 @@ XMMATRIX MESH::LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t)
 	return ret;
 }
 
-void MESH::update(int frameCount, int interval, XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos)
+void HIERARCHY_MESH::update(int frameCount, int interval, XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos)
 {
 	int keyFrameIdx = frameCount / interval;
 	if (keyFrameIdx + 1 >= Parts[0].keyframeWorlds.size())
@@ -235,7 +232,7 @@ void MESH::update(int frameCount, int interval, XMMATRIX& world, XMMATRIX& view,
 		parts.CB0->lightPos = lightPos;
 	}
 }
-void MESH::UpdateFinalWorld(PARTS& parts, XMMATRIX& parentWorld)
+void HIERARCHY_MESH::UpdateFinalWorld(PARTS& parts, XMMATRIX& parentWorld)
 {
 	parts.finalWorld = parts.currentFrameWorld * parts.bindWorld * parentWorld;
 
@@ -245,7 +242,7 @@ void MESH::UpdateFinalWorld(PARTS& parts, XMMATRIX& parentWorld)
 	}
 }
 
-void MESH::draw()
+void HIERARCHY_MESH::draw()
 {
 	for (auto& parts : Parts) {
 		//頂点をセット

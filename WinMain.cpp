@@ -1,14 +1,14 @@
 #include"graphic.h"
-#include"MESH.h"
+#include"HIERARCHY_MESH.h"
 
-const float ClearColor[] = { 0.25f, 0.5f, 0.8f, 1.0f };
+const float ClearColor[] = { 0.5f, 0.7f, 0.9f, 1.0f };
 
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Hierarchy Mesh", 1280, 720);
 
 	//‚Â‚­‚é--------------------------------------------------------------
-	MESH mesh;
+	HIERARCHY_MESH mesh;
 	mesh.create();
 
 	while (!quit())

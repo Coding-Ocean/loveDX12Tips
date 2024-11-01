@@ -481,7 +481,7 @@ void present()
 	waitGPU();
 
 	//バックバッファを表示
-	SwapChain->Present(1, 0);
+	SwapChain->Present(0, 0);
 
 	//コマンドアロケータをリセット
 	Hr = CommandAllocator->Reset();

@@ -51,7 +51,7 @@ struct PARTS
 	std::vector<int> childIdxs;
 };
 
-class MESH
+class HIERARCHY_MESH
 {
 private:
 	std::vector<PARTS> Parts;
@@ -59,8 +59,8 @@ private:
 	HRESULT Hr;
 	ComPtr<ID3D12GraphicsCommandList>& CommandList=commandList();
 public:
-	MESH();
-	~MESH();
+	HIERARCHY_MESH();
+	~HIERARCHY_MESH();
 	void create();
 	void update(int frameCount, int interval, XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& light);
 	void draw();

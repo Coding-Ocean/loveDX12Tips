@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
     <ClCompile Include="graphic.cpp" />
+    <ClCompile Include="HIERARCHY_MESH.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="model.h" />
@@ -13,6 +14,7 @@
       <Filter>utility</Filter>
     </ClInclude>
     <ClInclude Include="graphic.h" />
+    <ClInclude Include="HIERARCHY_MESH.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">
@@ -34,5 +36,8 @@
     <None Include="Header.hlsli">
       <Filter>hlsl</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="memo.txt" />
   </ItemGroup>
 </Project>

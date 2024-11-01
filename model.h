@@ -4,7 +4,8 @@ constexpr int NumParts = 3;
 
 unsigned NumVertexElements = 8;
 constexpr float N = 0.577350259f;//Šp‚©‚çÎ‚ß‚S‚T“x‚ÉL‚Ñ‚é–@ü‚ğİ’è‚·‚é‚½‚ß‚Ì’l
-float Vertices[NumParts][64] = {
+float Vertices[NumParts][64] = 
+{
 	//Pos					Normal     TexCoord
 	-0.50f, -0.12f, -0.60f,	-N,-N,-N,  0.0f, 0.0f,
 	-0.50f, -0.12f,  0.60f, -N,-N, N,  0.0f, 0.0f,
@@ -34,7 +35,8 @@ float Vertices[NumParts][64] = {
 	 0.04f,  0.04f, -0.00f,	 N, N,-N,  0.0f, 0.0f,
 };
 
-unsigned short Indices[NumParts][36] = {
+unsigned short Indices[NumParts][36] = 
+{
 	2,1,0,
 	2,0,3,
 	7,4,5,
@@ -75,8 +77,18 @@ unsigned short Indices[NumParts][36] = {
 	5,0,4,
 };
 
-float Ambient[] = { 0.2f, 0.2f, 0.0f, 0.0f };
-float Diffuse[] = { 0.0f, 0.5f, 0.0f, 1.0f };
+float Ambient[NumParts][4] = 
+{
+	0.2f, 0.0f, 0.0f, 0.0f,
+	0.0f, 0.2f, 0.0f, 0.0f,
+	0.2f, 0.2f, 0.0f, 0.0f,
+};
+float Diffuse[NumParts][4] = 
+{
+	0.8f,0,0,1,
+	0,0.8f,0,1,
+	0.8f,0.8f,0,1,
+};
 
 const char* TextureFilename = "assets\\white.png";
 
