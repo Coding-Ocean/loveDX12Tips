@@ -7,8 +7,8 @@ MESH::MESH()
 
 MESH::~MESH()
 {
-	Parts.ConstBuffer1->Unmap(0, nullptr);
-	Parts.ConstBuffer0->Unmap(0, nullptr);
+	Parts.constBuffer1->Unmap(0, nullptr);
+	Parts.constBuffer0->Unmap(0, nullptr);
 }
 
 void MESH::create()
@@ -18,91 +18,91 @@ void MESH::create()
 		//データサイズを求めておく
 		UINT sizeInBytes = sizeof(Vertices);
 		UINT strideInBytes = sizeof(float) * NumVertexElements;
-		Parts.NumVertices = sizeInBytes / strideInBytes;
+		Parts.numVertices = sizeInBytes / strideInBytes;
 		//バッファをつくる
-		Hr = createBuffer(sizeInBytes, Parts.VertexBuffer);
+		Hr = createBuffer(sizeInBytes, Parts.vertexBuffer);
 		assert(SUCCEEDED(Hr));
 		//バッファにデータを入れる
-		Hr = updateBuffer(Vertices, sizeInBytes, Parts.VertexBuffer);
+		Hr = updateBuffer(Vertices, sizeInBytes, Parts.vertexBuffer);
 		assert(SUCCEEDED(Hr));
 		//バッファビューをつくる
-		createVertexBufferView(Parts.VertexBuffer, sizeInBytes, strideInBytes, Parts.VertexBufferView);
+		createVertexBufferView(Parts.vertexBuffer, sizeInBytes, strideInBytes, Parts.vertexBufferView);
 	}
 	//頂点インデックスバッファ
 	{
 		//データサイズを求めておく
 		UINT sizeInBytes = sizeof(Indices);
-		Parts.NumIndices = sizeInBytes / sizeof(UINT16);
+		Parts.numIndices = sizeInBytes / sizeof(UINT16);
 		//バッファをつくる
-		Hr = createBuffer(sizeInBytes, Parts.IndexBuffer);
+		Hr = createBuffer(sizeInBytes, Parts.indexBuffer);
 		assert(SUCCEEDED(Hr));
 		//バッファにデータを入れる
-		Hr = updateBuffer(Indices, sizeInBytes, Parts.IndexBuffer);
+		Hr = updateBuffer(Indices, sizeInBytes, Parts.indexBuffer);
 		assert(SUCCEEDED(Hr));
 		//インデックスバッファビューをつくる
-		createIndexBufferView(Parts.IndexBuffer, sizeInBytes, Parts.IndexBufferView);
+		createIndexBufferView(Parts.indexBuffer, sizeInBytes, Parts.indexBufferView);
 	}
 	//コンスタントバッファ０
 	{
 		//バッファをつくる
-		Hr = createBuffer(256, Parts.ConstBuffer0);
+		Hr = createBuffer(256, Parts.constBuffer0);
 		assert(SUCCEEDED(Hr));
 		//マップしておく
-		Hr = mapBuffer(Parts.ConstBuffer0, (void**)&Parts.CB0);
+		Hr = mapBuffer(Parts.constBuffer0, (void**)&Parts.cb0);
 		assert(SUCCEEDED(Hr));
 	}
 	//コンスタントバッファ１
 	{
 		//バッファをつくる
-		Hr = createBuffer(256, Parts.ConstBuffer1);
+		Hr = createBuffer(256, Parts.constBuffer1);
 		assert(SUCCEEDED(Hr));
 		//マップしておく
-		Hr = mapBuffer(Parts.ConstBuffer1, (void**)&Parts.CB1);
+		Hr = mapBuffer(Parts.constBuffer1, (void**)&Parts.cb1);
 		assert(SUCCEEDED(Hr));
 		//データを入れる
-		Parts.CB1->ambient = { Ambient[0],Ambient[1],Ambient[2],Ambient[3] };
-		Parts.CB1->diffuse = { Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3] };
+		Parts.cb1->ambient = { Ambient[0],Ambient[1],Ambient[2],Ambient[3] };
+		Parts.cb1->diffuse = { Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3] };
 	}
 	//テクスチャバッファ
 	{
-		Hr = createTextureBuffer(TextureFilename, Parts.TextureBuffer);
+		Hr = createTextureBuffer(TextureFilename, Parts.textureBuffer);
 		assert(SUCCEEDED(Hr));
 	}
 	//ディスクリプタヒープ
 	{
 		//ディスクリプタ(ビュー)３つ分のヒープをつくる
-		Hr = createDescriptorHeap(3, Parts.CbvTbvHeap);
+		Hr = createDescriptorHeap(3, Parts.cbvTbvHeap);
 		assert(SUCCEEDED(Hr));
 		CbvTbvIncSize = cbvTbvIncSize();
 		//１つめのディスクリプタ(ビュー)をヒープにつくる
-		auto hCbvTbvHeap = Parts.CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
-		createConstantBufferView(Parts.ConstBuffer0, hCbvTbvHeap);
+		auto hCbvTbvHeap = Parts.cbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
+		createConstantBufferView(Parts.constBuffer0, hCbvTbvHeap);
 		//２つめのディスクリプタ(ビュー)をヒープにつくる
 		hCbvTbvHeap.ptr += CbvTbvIncSize;
-		createConstantBufferView(Parts.ConstBuffer1, hCbvTbvHeap);
+		createConstantBufferView(Parts.constBuffer1, hCbvTbvHeap);
 		//３つめのディスクリプタ(ビュー)をヒープにつくる
 		hCbvTbvHeap.ptr += CbvTbvIncSize;
-		createTextureBufferView(Parts.TextureBuffer, hCbvTbvHeap);
+		createTextureBufferView(Parts.textureBuffer, hCbvTbvHeap);
 	}
 }
 
 void MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos)
 {
-	Parts.CB0->worldViewProj = world * view * proj;
-	Parts.CB0->world = world;
-	Parts.CB0->lightPos = lightPos;
+	Parts.cb0->worldViewProj = world * view * proj;
+	Parts.cb0->world = world;
+	Parts.cb0->lightPos = lightPos;
 }
 
 void MESH::draw()
 {
 	//頂点をセット
-	CommandList->IASetVertexBuffers(0, 1, &Parts.VertexBufferView);
-	CommandList->IASetIndexBuffer(&Parts.IndexBufferView);
+	CommandList->IASetVertexBuffers(0, 1, &Parts.vertexBufferView);
+	CommandList->IASetIndexBuffer(&Parts.indexBufferView);
 	//ディスクリプタヒープをＧＰＵにセット
-	CommandList->SetDescriptorHeaps(1, Parts.CbvTbvHeap.GetAddressOf());
+	CommandList->SetDescriptorHeaps(1, Parts.cbvTbvHeap.GetAddressOf());
 	//ディスクリプタヒープをディスクリプタテーブルにセット
-	auto hCbvTbvHeap = Parts.CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	auto hCbvTbvHeap = Parts.cbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
 	//描画
-	CommandList->DrawIndexedInstanced(Parts.NumIndices, 1, 0, 0, 0);
+	CommandList->DrawIndexedInstanced(Parts.numIndices, 1, 0, 0, 0);
 }
