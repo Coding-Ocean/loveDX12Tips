@@ -20,34 +20,34 @@ struct CONST_BUF1
 struct PARTS 
 {
 	//頂点バッファ
-	UINT NumVertices = 0;
-	ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
-	D3D12_VERTEX_BUFFER_VIEW VertexBufferView = {};
+	UINT numVertices = 0;
+	ComPtr<ID3D12Resource>   vertexBuffer = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView = {};
 	//頂点インデックスバッファ
-	UINT NumIndices = 0;
-	ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
-	D3D12_INDEX_BUFFER_VIEW	IndexBufferView = {};
+	UINT numIndices = 0;
+	ComPtr<ID3D12Resource>  indexBuffer = nullptr;
+	D3D12_INDEX_BUFFER_VIEW	indexBufferView = {};
 	//コンスタントバッファ
-	CONST_BUF0* CB0 = nullptr;
-	CONST_BUF1* CB1 = nullptr;
-	ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
-	ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
+	CONST_BUF0* cb0 = nullptr;
+	CONST_BUF1* cb1 = nullptr;
+	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
+	ComPtr<ID3D12Resource> constBuffer1 = nullptr;
 	//テクスチャバッファ
-	ComPtr<ID3D12Resource> TextureBuffer = nullptr;
-	//ディスクリプタヒープ
-	ComPtr<ID3D12DescriptorHeap> CbvTbvHeap = nullptr;
-
-	//アニメーションデータ。キーフレーム行列
-	std::vector<XMMATRIX> keyframeWorlds;
-	XMMATRIX currentFrameWorld;
+	ComPtr<ID3D12Resource> textureBuffer = nullptr;
+	//ディスクリプタヒープ(わかりやすさ優先で複数用意してしまいます)
+	ComPtr<ID3D12DescriptorHeap> cbvTbvHeap = nullptr;
 
 	//階層行列データ
-	//　姿勢行列
+	//　コンスタントバッファに渡す所謂ワールド行列。行列計算によって最終的に求める。
+	XMMATRIX world;
+	//  親から見た相対姿勢行列
 	XMMATRIX bindWorld;
-	//　これがこのパーツのワールド行列になる
-	XMMATRIX finalWorld;
-	//　このパーツの子供インデックス
+	//　アニメーションデータ。キーフレーム行列
+	std::vector<XMMATRIX> keyframeWorlds;
+	XMMATRIX currentFrameWorld;
+	//　この値を使って、子供インデックス配列をつくる
 	int parentIdx;
+	//　子供インデックス配列
 	std::vector<int> childIdxs;
 };
 
@@ -55,18 +55,22 @@ class HIERARCHY_MESH
 {
 private:
 	std::vector<PARTS> Parts;
-	UINT CbvTbvIncSize = 0;
-	HRESULT Hr;
-	ComPtr<ID3D12GraphicsCommandList>& CommandList=commandList();
+	UINT FrameCount = 0;
+	UINT Interval;//キーフレームの間隔
+
+	//システム系
+	HRESULT Hr = E_FAIL;
+	UINT CbvTbvIncSize = cbvTbvIncSize();
+	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
 public:
 	HIERARCHY_MESH();
 	~HIERARCHY_MESH();
 	void create();
-	void update(int frameCount, int interval, XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& light);
+	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& light);
 	void draw();
 private:
-	//update()の中で呼び出される２つの関数
+	//update()の中から呼び出される２つの関数
 	XMMATRIX LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t);
-	void UpdateFinalWorld(PARTS& p, XMMATRIX& m);
+	void UpdateWorld(PARTS& p, XMMATRIX& m);
 };
 
