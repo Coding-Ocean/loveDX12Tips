@@ -86,11 +86,11 @@ void MESH::create()
 	}
 }
 
-void MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj)
+void MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos)
 {
 	Parts.CB0->worldViewProj = world * view * proj;
 	Parts.CB0->world = world;
-	Parts.CB0->lightPos = { 0,1,0,0 };
+	Parts.CB0->lightPos = lightPos;
 }
 
 void MESH::draw()

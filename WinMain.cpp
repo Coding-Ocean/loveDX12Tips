@@ -24,7 +24,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		XMMATRIX view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&focus), XMLoadFloat3(&up));
 		//プロジェクションマトリックス
 		XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
-		mesh.update(world, view, proj);
+		//ライト位置
+		XMFLOAT4 lightPos = { 0,1,0,0 };
+		mesh.update(world, view, proj, lightPos);
 
 		//描画------------------------------------------------------------------
 		clear(ClearColor);

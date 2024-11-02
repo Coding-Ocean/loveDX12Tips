@@ -47,7 +47,7 @@ public:
 	MESH();
 	~MESH();
 	void create();
-	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj);
+	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos);
 	void draw();
 };
 
