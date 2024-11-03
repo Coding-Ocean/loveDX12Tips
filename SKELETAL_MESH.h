@@ -36,16 +36,16 @@ struct PARTS
 //ボーン構造体
 struct BONE
 {
-	//計算後の最終的な行列
+	//計算後の最終的な行列。これをシェーダに送る
 	XMMATRIX world;
 	//親からの相対姿勢行列
 	XMMATRIX bindWorld;
 	//アニメーションデータ。キーフレーム行列
 	std::vector<XMMATRIX> keyframeWorlds;
 	XMMATRIX currentFrameWorld;
-	//　この値を使って、子供インデックス配列をつくる
+	//この値を使って、子供インデックス配列をつくる
 	int parentIdx;
-	//　子供インデックス配列
+	//子供インデックス配列
 	std::vector<int> childIdxs;
 };
 
@@ -76,6 +76,6 @@ public:
 private:
 	//update()の中から呼び出される２つの関数
 	XMMATRIX LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t);
-	void UpdateWorld(BONE& b, const XMMATRIX& m);
+	void UpdateWorld(BONE& bone, const XMMATRIX& parentWorld);
 };
 

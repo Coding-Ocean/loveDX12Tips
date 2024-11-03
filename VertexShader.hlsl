@@ -1,13 +1,9 @@
 #include<Header.hlsli>
-matrix FetchBoneWorld(uint boneIdx)
-{
-    return BoneWorld[boneIdx];
-}
 void main(
     in float4 i_pos : POSITION,
     in float4 i_normal : NORMAL,
     in float2 i_uv : TEXCOORD,
-	in float2 i_bones : BONE_INDEX,
+	in float2 i_boneIdxs : BONE_INDEX,
     in float2 i_weights : BONE_WEIGHT,
     out float4 o_pos : SV_POSITION,
     out float4 o_diffuse : COLOR,
@@ -17,23 +13,24 @@ void main(
     float4 normal = { 0, 0, 0, 0 };
     
 	//ボーン0
-    uint boneIdx = i_bones.x;
-    float fWeight = i_weights.x;
-    matrix m = FetchBoneWorld(boneIdx);
-    o_pos  = fWeight * mul(m, i_pos);
-    normal = fWeight * mul(m, i_normal);
+    float weight = i_weights.x;
+    uint boneIdx = i_boneIdxs.x;
+    matrix world = BoneWorld[boneIdx];
+    o_pos  = weight * mul(world, i_pos);
+    normal = weight * mul(world, i_normal);
 	//ボーン1
-    boneIdx = i_bones.y;
-    fWeight = i_weights.y;
-    m = FetchBoneWorld(boneIdx);
-    o_pos  += fWeight * mul(m, i_pos);
-    normal += fWeight * mul(m, i_normal);
+    weight = i_weights.y;
+    boneIdx = i_boneIdxs.y;
+    world = BoneWorld[boneIdx];
+    o_pos  += weight * mul(world, i_pos);
+    normal += weight * mul(world, i_normal);
     
+    //位置
     o_pos = mul(ViewProj, o_pos);
-    
+    //ディフューズ色
     float brightness = max(0, dot(normal, LightPos));
     o_diffuse = Ambient + Diffuse * brightness;
     o_diffuse.a = Diffuse.a;
-    
+    //テクスチャ座標
     o_uv = i_uv;
 }
