@@ -1,6 +1,5 @@
 #pragma once
 #include<vector>
-#define _XM_NO_INTRINSICS_
 #include"graphic.h"
 
 //コンスタントバッファ構造体
@@ -9,6 +8,7 @@ struct CONST_BUF0
 	XMMATRIX worldViewProj;
 	XMMATRIX world;
 	XMFLOAT4 lightPos;
+	XMMATRIX boneWorlds[2];
 };
 struct CONST_BUF1 
 {
@@ -28,21 +28,20 @@ struct PARTS
 	ComPtr<ID3D12Resource>  indexBuffer = nullptr;
 	D3D12_INDEX_BUFFER_VIEW	indexBufferView = {};
 	//コンスタントバッファ
-	CONST_BUF0* cb0 = nullptr;
 	CONST_BUF1* cb1 = nullptr;
-	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
 	ComPtr<ID3D12Resource> constBuffer1 = nullptr;
 	//テクスチャバッファ
 	ComPtr<ID3D12Resource> textureBuffer = nullptr;
-	//ディスクリプタヒープ(わかりやすさ優先で複数用意してしまいます)
-	ComPtr<ID3D12DescriptorHeap> cbvTbvHeap = nullptr;
+};
 
-	//階層行列データ
-	//　コンスタントバッファに渡す所謂ワールド行列。行列計算によって最終的に求める。
+//ボーン。階層行列データ
+struct BONE
+{
+	//計算後の最終的な行列
 	XMMATRIX world;
-	//  親から見た相対姿勢行列
+	//親からの相対姿勢行列
 	XMMATRIX bindWorld;
-	//　アニメーションデータ。キーフレーム行列
+	//アニメーションデータ。キーフレーム行列
 	std::vector<XMMATRIX> keyframeWorlds;
 	XMMATRIX currentFrameWorld;
 	//　この値を使って、子供インデックス配列をつくる
@@ -51,26 +50,33 @@ struct PARTS
 	std::vector<int> childIdxs;
 };
 
-class HIERARCHY_MESH
+//Skeletal Mesh
+class SKELETAL_MESH
 {
 private:
 	std::vector<PARTS> Parts;
+	std::vector<BONE> Bones;
+
 	UINT FrameCount = 0;
 	UINT Interval;//キーフレームの間隔
+
+	CONST_BUF0* Cb0 = nullptr;
+	ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
+	ComPtr<ID3D12DescriptorHeap> CbvTbvHeap = nullptr;
 
 	//システム系
 	HRESULT Hr = E_FAIL;
 	UINT CbvTbvIncSize = cbvTbvIncSize();
 	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
 public:
-	HIERARCHY_MESH();
-	~HIERARCHY_MESH();
+	SKELETAL_MESH();
+	~SKELETAL_MESH();
 	void create();
 	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& light);
 	void draw();
 private:
 	//update()の中から呼び出される２つの関数
 	XMMATRIX LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t);
-	void UpdateWorld(PARTS& p, XMMATRIX& m);
+	void UpdateWorld(BONE& b, const XMMATRIX& m);
 };
 

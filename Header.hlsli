@@ -3,6 +3,7 @@ cbuffer b0 : register(b0)
     matrix WorldViewProj;
     matrix World;
     float4 LightPos;
+    matrix BoneWorld[2];
 }
 cbuffer b1 : register(b1)
 {

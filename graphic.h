@@ -1,6 +1,7 @@
 #pragma once
 #include<cmath>
 #include<d3d12.h>
+#define _XM_NO_INTRINSICS_
 #include<DirectXMath.h>
 #include<wrl.h>
 using namespace DirectX;

@@ -1,22 +1,22 @@
-#include "HIERARCHY_MESH.h"
+#include "SKELETAL_MESH.h"
 #include "model.h"
 
-HIERARCHY_MESH::HIERARCHY_MESH()
+SKELETAL_MESH::SKELETAL_MESH()
 	:Interval(::Interval)
 {
 }
 
-HIERARCHY_MESH::~HIERARCHY_MESH()
+SKELETAL_MESH::~SKELETAL_MESH()
 {
+	ConstBuffer0->Unmap(0, nullptr);
 	for (auto& parts : Parts) {
-		parts.constBuffer0->Unmap(0, nullptr);
 		parts.constBuffer1->Unmap(0, nullptr);
 	}
 }
 
-void HIERARCHY_MESH::create()
+void SKELETAL_MESH::create()
 {
-	//パーツ配列をつくる
+	//パーツ配列をつくる(今回は１つだけ)
 	for (int i = 0; i < NumParts; ++i) {
 
 		PARTS parts;
@@ -50,15 +50,6 @@ void HIERARCHY_MESH::create()
 			//インデックスバッファビューをつくる
 			createIndexBufferView(parts.indexBuffer, sizeInBytes, parts.indexBufferView);
 		}
-		//コンスタントバッファ０
-		{
-			//バッファをつくる
-			Hr = createBuffer(256, parts.constBuffer0);
-			assert(SUCCEEDED(Hr));
-			//マップしておく
-			Hr = mapBuffer(parts.constBuffer0, (void**)&parts.cb0);
-			assert(SUCCEEDED(Hr));
-		}
 		//コンスタントバッファ１
 		{
 			//バッファをつくる
@@ -76,14 +67,60 @@ void HIERARCHY_MESH::create()
 			Hr = createTextureBuffer(TextureFilename, parts.textureBuffer);
 			assert(SUCCEEDED(Hr));
 		}
-		//ディスクリプタヒープ
-		{
-			//ディスクリプタ(ビュー)３つ分のヒープをつくる
-			Hr = createDescriptorHeap(3, parts.cbvTbvHeap);
-			assert(SUCCEEDED(Hr));
-			//１つめのディスクリプタ(ビュー)をヒープにつくる
-			auto hCbvTbvHeap = parts.cbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
-			createConstantBufferView(parts.constBuffer0, hCbvTbvHeap);
+
+		Parts.push_back(parts);
+	}
+
+	//ボーン階層マトリックス
+	{
+		for (int i = 0; i < ::NumBones; ++i) {
+			BONE bone;
+			
+			//親のインデックス
+			bone.parentIdx = ::ParentIdx[i];
+
+			//親から見た相対姿勢行列
+			bone.bindWorld = ::BindWorld[i];
+
+			//アニメーションデータ。キーフレーム行列
+			for (int j = 0; j < ::NumKeyframes; j++) {
+				bone.keyframeWorlds.push_back(KeyframeWorlds[j][i]);
+			}
+
+			Bones.push_back(bone);
+		}
+	}
+	//自分の子供のインデックスをchildIdxs配列にセット
+	for (int i = 0; i < ::NumBones; i++){
+		for (int j = 0; j < ::NumBones; j++){
+			if (i == j)	{
+				continue;
+			}
+			if (Bones[i].parentIdx == Bones[j].parentIdx - 1){
+				Bones[i].childIdxs.push_back(j);
+			}
+		}
+	}
+
+	//コンスタントバッファ０
+	{
+		//バッファをつくる
+		Hr = createBuffer(512, ConstBuffer0);
+		assert(SUCCEEDED(Hr));
+		//マップしておく
+		Hr = mapBuffer(ConstBuffer0, (void**)&Cb0);
+		assert(SUCCEEDED(Hr));
+	}
+
+	//ディスクリプタヒープ
+	{
+		//ディスクリプタ(ビュー)３つ分のヒープをつくる
+		Hr = createDescriptorHeap(1 + 2 * NumParts, CbvTbvHeap);
+		assert(SUCCEEDED(Hr));
+		//１つめのディスクリプタ(ビュー)をヒープにつくる
+		auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
+		createConstantBufferView(ConstBuffer0, hCbvTbvHeap);
+		for (auto& parts : Parts) {
 			//２つめのディスクリプタ(ビュー)をヒープにつくる
 			hCbvTbvHeap.ptr += CbvTbvIncSize;
 			createConstantBufferView(parts.constBuffer1, hCbvTbvHeap);
@@ -91,41 +128,11 @@ void HIERARCHY_MESH::create()
 			hCbvTbvHeap.ptr += CbvTbvIncSize;
 			createTextureBufferView(parts.textureBuffer, hCbvTbvHeap);
 		}
-	
-		//階層マトリックス
-		{
-			//親のインデックス
-			parts.parentIdx = ::ParentIdx[i];
-
-			//親から見た相対姿勢行列
-			parts.bindWorld = ::BindWorld[i];
-			//parts.bindWorld = XMMatrixIdentity();
-
-			//アニメーションデータ。キーフレーム行列
-			for (int j = 0; j < ::NumKeyframes; j++){
-				parts.keyframeWorlds.push_back(KeyframeWorlds[j][i]);
-				//parts.keyframeWorlds.push_back(XMMatrixIdentity());
-			}
-		}
-
-		Parts.push_back(parts);
-	}
-
-	//自分の子供のインデックスをchildIdxs配列にセット
-	for (int i = 0; i < ::NumParts; i++){
-		for (int j = 0; j < ::NumParts; j++){
-			if (i == j)	{
-				continue;
-			}
-			if (Parts[i].parentIdx == Parts[j].parentIdx - 1){
-				Parts[i].childIdxs.push_back(j);
-			}
-		}
 	}
 }
 
 //2つの行列の間の線形補間を計算し、結果の行列を返す 
-XMMATRIX HIERARCHY_MESH::LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t)
+XMMATRIX SKELETAL_MESH::LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t)
 {
 	//それぞれの行列から平行移動成分を、それぞれベクトルに取り出す
 	XMFLOAT3 vA, vB;
@@ -190,7 +197,7 @@ XMMATRIX HIERARCHY_MESH::LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t)
 	//移動成分を線形補間
 	XMVECTOR vvA = XMLoadFloat3(&vA);
 	XMVECTOR vvB = XMLoadFloat3(&vB);
-	XMVECTOR vR = (1.0 - t) * vvA + t * vvB;
+	XMVECTOR vR = (1.0f - t) * vvA + t * vvB;
 	//移動成分を行列に戻す
 	ret._41 = XMVectorGetX(vR);
 	ret._42 = XMVectorGetY(vR);
@@ -200,57 +207,60 @@ XMMATRIX HIERARCHY_MESH::LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t)
 	return ret;
 }
 
-void HIERARCHY_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos)
+void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos)
 {
 	//どのキーフレームの間にいるのか
 	int keyFrameIdx = FrameCount / Interval;
-	if (keyFrameIdx + 1 >= Parts[0].keyframeWorlds.size()){
+	if (keyFrameIdx + 1 >= Bones[0].keyframeWorlds.size()){
 		keyFrameIdx = 0;
 		FrameCount = 0;
 	}
-
 	//キーフレーム行列の線形補間
 	float t = FrameCount % Interval;
 	t /= Interval;
-	for (int i = 0; i < ::NumParts; i++) {
-		XMMATRIX a = Parts[i].keyframeWorlds[keyFrameIdx];
-		XMMATRIX b = Parts[i].keyframeWorlds[keyFrameIdx + 1];
-		Parts[i].currentFrameWorld = LerpMatrix(a, b, t);
+	for (int i = 0; i < ::NumBones; i++) {
+		XMMATRIX a = Bones[i].keyframeWorlds[keyFrameIdx];
+		XMMATRIX b = Bones[i].keyframeWorlds[keyFrameIdx + 1];
+		Bones[i].currentFrameWorld = LerpMatrix(a, b, t);
 	}
-
-	//全パーツのworldを更新（再起関数）
-	UpdateWorld(Parts[0], world);
-
-	//コンスタントバッファ更新
-	for (auto& parts : Parts) {
-		parts.cb0->worldViewProj = parts.world * view * proj;
-		parts.cb0->world = parts.world;
-		parts.cb0->lightPos = lightPos;
-	}
-
+	//全のworlボーンのworldを更新（再起関数）
+	UpdateWorld(Bones[0], XMMatrixIdentity());
 	//次のフレームへ
 	FrameCount++;
-}
-void HIERARCHY_MESH::UpdateWorld(PARTS& parts, XMMATRIX& parentWorld)
-{
-	parts.world = parts.currentFrameWorld * parts.bindWorld * parentWorld;
 
-	for(auto& childIdx : parts.childIdxs) {
-		UpdateWorld(Parts[childIdx], parts.world);
+	//コンスタントバッファ0更新
+	Cb0->worldViewProj = world * view * proj;
+	Cb0->world = world;
+	Cb0->lightPos = lightPos;
+	for (int i = 0; i < NumBones; ++i) {
+		Cb0->boneWorlds[i] = Bones[i].world;
+	}
+}
+void SKELETAL_MESH::UpdateWorld(BONE& bone, const XMMATRIX& parentWorld)
+{
+	XMMATRIX invBindWorld = XMMatrixInverse(nullptr, bone.bindWorld);
+	bone.world = invBindWorld * bone.currentFrameWorld * bone.bindWorld * parentWorld;
+
+	for(auto& childIdx : bone.childIdxs) {
+		UpdateWorld(Bones[childIdx], bone.world);
 	}
 }
 
-void HIERARCHY_MESH::draw()
+void SKELETAL_MESH::draw()
 {
+	//ディスクリプタヒープをＧＰＵにセット
+	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
+	//Cb0vをディスクリプタテーブル0にセット
+	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+
 	for (auto& parts : Parts) {
 		//頂点をセット
 		CommandList->IASetVertexBuffers(0, 1, &parts.vertexBufferView);
 		CommandList->IASetIndexBuffer(&parts.indexBufferView);
-		//ディスクリプタヒープをＧＰＵにセット
-		CommandList->SetDescriptorHeaps(1, parts.cbvTbvHeap.GetAddressOf());
-		//ディスクリプタヒープをディスクリプタテーブルにセット
-		auto hCbvTbvHeap = parts.cbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-		CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+		//cb1vとtbvをディスクリプタテーブル1にセット
+		hCbvTbvHeap.ptr += CbvTbvIncSize;
+		CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
 		//描画
 		CommandList->DrawIndexedInstanced(parts.numIndices, 1, 0, 0, 0);
 	}
