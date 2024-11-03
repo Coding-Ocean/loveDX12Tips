@@ -5,8 +5,7 @@
 //コンスタントバッファ構造体
 struct CONST_BUF0 
 {
-	XMMATRIX worldViewProj;
-	XMMATRIX world;
+	XMMATRIX viewProj;
 	XMFLOAT4 lightPos;
 	XMMATRIX boneWorlds[2];
 };
@@ -16,7 +15,7 @@ struct CONST_BUF1
 	XMFLOAT4 diffuse;
 };
 
-//パーツメッシュ
+//パーツメッシュ構造体
 struct PARTS 
 {
 	//頂点バッファ
@@ -34,7 +33,7 @@ struct PARTS
 	ComPtr<ID3D12Resource> textureBuffer = nullptr;
 };
 
-//ボーン。階層行列データ
+//ボーン構造体
 struct BONE
 {
 	//計算後の最終的な行列

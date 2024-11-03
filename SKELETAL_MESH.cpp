@@ -224,13 +224,12 @@ void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFL
 		Bones[i].currentFrameWorld = LerpMatrix(a, b, t);
 	}
 	//全のworlボーンのworldを更新（再起関数）
-	UpdateWorld(Bones[0], XMMatrixIdentity());
+	UpdateWorld(Bones[0], world);
 	//次のフレームへ
 	FrameCount++;
 
 	//コンスタントバッファ0更新
-	Cb0->worldViewProj = world * view * proj;
-	Cb0->world = world;
+	Cb0->viewProj = view * proj;
 	Cb0->lightPos = lightPos;
 	for (int i = 0; i < NumBones; ++i) {
 		Cb0->boneWorlds[i] = Bones[i].world;

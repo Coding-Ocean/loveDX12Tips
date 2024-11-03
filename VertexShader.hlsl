@@ -13,27 +13,25 @@ void main(
     out float4 o_diffuse : COLOR,
     out float2 o_uv : TEXCOORD)
 {
-    float4 pos = { 0,0,0,1 };
-    float3 norm = { 0,0,0 };
+    i_normal.w = 0;
+    float4 normal = { 0, 0, 0, 0 };
     
 	//ボーン0
     uint boneIdx = i_bones.x;
     float fWeight = i_weights.x;
     matrix m = FetchBoneWorld(boneIdx);
-    pos  += fWeight * mul(m, i_pos);
-    norm += fWeight * mul((float3x3)m, i_normal.xyz);
+    o_pos  = fWeight * mul(m, i_pos);
+    normal = fWeight * mul(m, i_normal);
 	//ボーン1
     boneIdx = i_bones.y;
     fWeight = i_weights.y;
     m = FetchBoneWorld(boneIdx);
-    pos  += fWeight * mul(m, i_pos);
-    norm += fWeight * mul((float3x3) m, i_normal.xyz);
+    o_pos  += fWeight * mul(m, i_pos);
+    normal += fWeight * mul(m, i_normal);
     
-    //
-    o_pos = mul(WorldViewProj, pos);
+    o_pos = mul(ViewProj, o_pos);
     
-    norm = normalize(mul((float3x3)World, norm));
-    float brightness = max(0, dot(norm, LightPos.xyz));
+    float brightness = max(0, dot(normal, LightPos));
     o_diffuse = Ambient + Diffuse * brightness;
     o_diffuse.a = Diffuse.a;
     

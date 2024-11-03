@@ -1,11 +1,8 @@
 #pragma once
-#define _XM_NO_INTRINSICS_
-#include<DirectXMath.h>
-using namespace DirectX;
 
 constexpr int NumParts = 1;
-
 constexpr unsigned NumVertexElements = 12;
+
 float Vertices[NumParts][NumVertexElements*6] = 
 {
 	//Pos               Normal             TexCoord    Index1 Index2   Weight1, Weight2
@@ -35,6 +32,7 @@ float Diffuse[NumParts][4] =
 };
 
 const char* TextureFilename = "assets\\arm2.png";
+
 
 //階層ボーンマトリックスデータ
 constexpr unsigned NumBones = 2;
