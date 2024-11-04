@@ -7,7 +7,7 @@ void main(
     out float4 o_diffuse : COLOR,
     out float2 o_uv : TEXCOORD)
 {
-    o_pos = mul(WorldViewProj, i_pos);
+    o_pos = mul(ViewProj, mul(World, i_pos));
     
     i_normal.w = 0;
     float4 normal = normalize(mul(World, i_normal));

@@ -1,5 +1,5 @@
 #include"graphic.h"
-#include"MESH.h"
+#include"STATIC_MESH.h"
 
 const float ClearColor[] = { 0.25f, 0.5f, 0.8f, 1.0f };
 
@@ -8,7 +8,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	window(L"Lambert Vertex", 1280, 720);
 
 	//‚Â‚­‚é--------------------------------------------------------------
-	MESH mesh;
+	STATIC_MESH mesh;
 	mesh.create();
 
 	while (!quit())

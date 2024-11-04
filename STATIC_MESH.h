@@ -4,9 +4,9 @@
 //コンスタントバッファ構造体
 struct CONST_BUF0 
 {
-	XMMATRIX worldViewProj;
-	XMMATRIX world;
 	XMFLOAT4 lightPos;
+	XMMATRIX viewProj;
+	XMMATRIX world;
 };
 struct CONST_BUF1 
 {
@@ -14,8 +14,8 @@ struct CONST_BUF1
 	XMFLOAT4 diffuse;
 };
 
-//パーツメッシュ
-struct PARTS 
+//メッシュ
+struct MESH 
 {
 	//頂点バッファ
 	UINT numVertices = 0;
@@ -25,29 +25,31 @@ struct PARTS
 	UINT numIndices = 0;
 	ComPtr<ID3D12Resource>  indexBuffer = nullptr;
 	D3D12_INDEX_BUFFER_VIEW	indexBufferView = {};
-	//コンスタントバッファ
-	CONST_BUF0* cb0 = nullptr;
-	CONST_BUF1* cb1 = nullptr;
+	//コンスタントバッファ0
 	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
+	CONST_BUF0* cb0 = nullptr;
+	//コンスタントバッファ1
 	ComPtr<ID3D12Resource> constBuffer1 = nullptr;
+	CONST_BUF1* cb1 = nullptr;
 	//テクスチャバッファ
 	ComPtr<ID3D12Resource> textureBuffer = nullptr;
 	//ディスクリプタヒープ
 	ComPtr<ID3D12DescriptorHeap> cbvTbvHeap = nullptr;
 };
 
-class MESH
+//形が変わらないメッシュ
+class STATIC_MESH
 {
 private:
-	PARTS Parts;//今回はPartsひとつ
+	MESH Mesh;//今回はMeshひとつ
 
 	//システム系
 	HRESULT Hr = E_FAIL;
 	UINT CbvTbvIncSize = cbvTbvIncSize();
 	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
 public:
-	MESH();
-	~MESH();
+	STATIC_MESH();
+	~STATIC_MESH();
 	void create();
 	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos);
 	void draw();

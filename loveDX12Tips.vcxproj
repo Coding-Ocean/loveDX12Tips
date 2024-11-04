@@ -128,13 +128,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="graphic.cpp" />
-    <ClCompile Include="MESH.cpp" />
+    <ClCompile Include="STATIC_MESH.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h" />
     <ClInclude Include="graphic.h" />
-    <ClInclude Include="MESH.h" />
+    <ClInclude Include="STATIC_MESH.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
