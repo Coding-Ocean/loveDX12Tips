@@ -1,5 +1,6 @@
 #pragma once
 
+//PARTS（今回は１つだけ）-----------------------------------------------------------------
 constexpr int NumParts = 1;
 constexpr unsigned NumVertexElements = 12;
 
@@ -34,6 +35,7 @@ float Diffuse[NumParts][4] =
 const char* TextureFilename = "assets\\arm2.png";
 
 
+//BONE---------------------------------------------------------------------------------
 //階層ボーンマトリックスデータ
 constexpr unsigned NumBones = 2;
 //　親のインデックス

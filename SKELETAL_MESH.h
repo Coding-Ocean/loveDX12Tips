@@ -26,11 +26,16 @@ struct PARTS
 	UINT numIndices = 0;
 	ComPtr<ID3D12Resource>  indexBuffer = nullptr;
 	D3D12_INDEX_BUFFER_VIEW	indexBufferView = {};
-	//コンスタントバッファ
-	CONST_BUF1* cb1 = nullptr;
+	//コンスタントバッファ0
+	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
+	CONST_BUF0* cb0 = nullptr;
+	//コンスタントバッファ1
 	ComPtr<ID3D12Resource> constBuffer1 = nullptr;
+	CONST_BUF1* cb1 = nullptr;
 	//テクスチャバッファ
 	ComPtr<ID3D12Resource> textureBuffer = nullptr;
+	//ディスクリプタヒープ
+	ComPtr<ID3D12DescriptorHeap> cbvTbvHeap = nullptr;
 };
 
 //ボーン構造体
@@ -55,13 +60,8 @@ class SKELETAL_MESH
 private:
 	std::vector<PARTS> Parts;
 	std::vector<BONE> Bones;
-
 	UINT FrameCount = 0;
 	UINT Interval;//キーフレームの間隔
-
-	CONST_BUF0* Cb0 = nullptr;
-	ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
-	ComPtr<ID3D12DescriptorHeap> CbvTbvHeap = nullptr;
 
 	//システム系
 	HRESULT Hr = E_FAIL;

@@ -8,8 +8,8 @@ SKELETAL_MESH::SKELETAL_MESH()
 
 SKELETAL_MESH::~SKELETAL_MESH()
 {
-	ConstBuffer0->Unmap(0, nullptr);
 	for (auto& parts : Parts) {
+		parts.constBuffer0->Unmap(0, nullptr);
 		parts.constBuffer1->Unmap(0, nullptr);
 	}
 }
@@ -50,10 +50,19 @@ void SKELETAL_MESH::create()
 			//インデックスバッファビューをつくる
 			createIndexBufferView(parts.indexBuffer, sizeInBytes, parts.indexBufferView);
 		}
+		//コンスタントバッファ０
+		{
+			//バッファをつくる
+			Hr = createBuffer((sizeof(CONST_BUF0) + 0xff) & ~0xff, parts.constBuffer0);
+			assert(SUCCEEDED(Hr));
+			//マップしておく
+			Hr = mapBuffer(parts.constBuffer0, (void**)&parts.cb0);
+			assert(SUCCEEDED(Hr));
+		}
 		//コンスタントバッファ１
 		{
 			//バッファをつくる
-			Hr = createBuffer(256, parts.constBuffer1);
+			Hr = createBuffer((sizeof(CONST_BUF1) + 0xff) & ~0xff, parts.constBuffer1);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
 			Hr = mapBuffer(parts.constBuffer1, (void**)&parts.cb1);
@@ -66,6 +75,21 @@ void SKELETAL_MESH::create()
 		{
 			Hr = createTextureBuffer(TextureFilename, parts.textureBuffer);
 			assert(SUCCEEDED(Hr));
+		}
+		//ディスクリプタヒープ
+		{
+			//ディスクリプタ(ビュー)３つ分のヒープをつくる
+			Hr = createDescriptorHeap(3, parts.cbvTbvHeap);
+			assert(SUCCEEDED(Hr));
+			//１つめのディスクリプタ(ビュー)をヒープにつくる
+			auto hCbvTbvHeap = parts.cbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
+			createConstantBufferView(parts.constBuffer0, hCbvTbvHeap);
+			//２つめのディスクリプタ(ビュー)をヒープにつくる
+			hCbvTbvHeap.ptr += CbvTbvIncSize;
+			createConstantBufferView(parts.constBuffer1, hCbvTbvHeap);
+			//３つめのディスクリプタ(ビュー)をヒープにつくる
+			hCbvTbvHeap.ptr += CbvTbvIncSize;
+			createTextureBufferView(parts.textureBuffer, hCbvTbvHeap);
 		}
 
 		Parts.push_back(parts);
@@ -99,34 +123,6 @@ void SKELETAL_MESH::create()
 			if (Bones[i].parentIdx == Bones[j].parentIdx - 1){
 				Bones[i].childIdxs.push_back(j);
 			}
-		}
-	}
-
-	//コンスタントバッファ０
-	{
-		//バッファをつくる
-		Hr = createBuffer(512, ConstBuffer0);
-		assert(SUCCEEDED(Hr));
-		//マップしておく
-		Hr = mapBuffer(ConstBuffer0, (void**)&Cb0);
-		assert(SUCCEEDED(Hr));
-	}
-
-	//ディスクリプタヒープ
-	{
-		//ディスクリプタ(ビュー)３つ分のヒープをつくる
-		Hr = createDescriptorHeap(1 + 2 * NumParts, CbvTbvHeap);
-		assert(SUCCEEDED(Hr));
-		//１つめのディスクリプタ(ビュー)をヒープにつくる
-		auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
-		createConstantBufferView(ConstBuffer0, hCbvTbvHeap);
-		for (auto& parts : Parts) {
-			//２つめのディスクリプタ(ビュー)をヒープにつくる
-			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createConstantBufferView(parts.constBuffer1, hCbvTbvHeap);
-			//３つめのディスクリプタ(ビュー)をヒープにつくる
-			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createTextureBufferView(parts.textureBuffer, hCbvTbvHeap);
 		}
 	}
 }
@@ -228,11 +224,13 @@ void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFL
 	//次のフレームへ
 	FrameCount++;
 
-	//コンスタントバッファ0更新
-	Cb0->viewProj = view * proj;
-	Cb0->lightPos = lightPos;
-	for (int i = 0; i < NumBones; ++i) {
-		Cb0->boneWorlds[i] = Bones[i].world;
+	//コンスタントバッファ0更新(今回Partsはひとつ)
+	for (auto& parts : Parts) {
+		parts.cb0->viewProj = view * proj;
+		parts.cb0->lightPos = lightPos;
+		for (int i = 0; i < NumBones; ++i) {
+			parts.cb0->boneWorlds[i] = Bones[i].world;
+		}
 	}
 }
 void SKELETAL_MESH::UpdateWorld(BONE& bone, const XMMATRIX& parentWorld)
@@ -247,19 +245,15 @@ void SKELETAL_MESH::UpdateWorld(BONE& bone, const XMMATRIX& parentWorld)
 
 void SKELETAL_MESH::draw()
 {
-	//ディスクリプタヒープをＧＰＵにセット
-	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
-	//Cb0vをディスクリプタテーブル0にセット
-	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-
-	for (auto& parts : Parts) {
+	for (auto& parts : Parts) {//(今回Partsはひとつ)
 		//頂点をセット
 		CommandList->IASetVertexBuffers(0, 1, &parts.vertexBufferView);
 		CommandList->IASetIndexBuffer(&parts.indexBufferView);
-		//cb1vとtbvをディスクリプタテーブル1にセット
-		hCbvTbvHeap.ptr += CbvTbvIncSize;
-		CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
+		//ディスクリプタヒープをＧＰＵにセット
+		CommandList->SetDescriptorHeaps(1, parts.cbvTbvHeap.GetAddressOf());
+		//ディスクリプタヒープをディスクリプタテーブルにセット
+		auto hCbvTbvHeap = parts.cbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+		CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
 		//描画
 		CommandList->DrawIndexedInstanced(parts.numIndices, 1, 0, 0, 0);
 	}
