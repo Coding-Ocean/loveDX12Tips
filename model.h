@@ -1,10 +1,10 @@
 #pragma once
 
-constexpr int NumParts = 3;
+constexpr int NumMeshes = 3;
 
 unsigned NumVertexElements = 8;
 constexpr float N = 0.577350259f;//角から斜め４５度に伸びる法線を設定するための値
-float Vertices[NumParts][64] = 
+float Vertices[NumMeshes][64] = 
 {
 	//Pos					Normal     TexCoord
 	-0.50f, -0.12f, -0.60f,	-N,-N,-N,  0.0f, 0.0f,
@@ -18,12 +18,12 @@ float Vertices[NumParts][64] =
 
 	-0.26f, -0.12f, -0.30f,	-N,-N,-N,  0.0f, 0.0f,
 	-0.26f, -0.12f,  0.30f,	-N,-N, N,  0.0f, 0.0f,
-	-0.26f,  0.12f,  0.30f, -N, N, N,  0.0f, 0.0f,
-	-0.26f,  0.12f, -0.30f,	-N, N,-N,  0.0f, 0.0f,
+	-0.26f,  0.13f,  0.30f, -N, N, N,  0.0f, 0.0f,
+	-0.26f,  0.13f, -0.30f,	-N, N,-N,  0.0f, 0.0f,
 	 0.26f, -0.12f, -0.30f,	 N,-N,-N,  0.0f, 0.0f,
 	 0.26f, -0.12f,  0.30f,	 N,-N, N,  0.0f, 0.0f,
-	 0.26f,  0.12f,  0.30f,	 N, N, N,  0.0f, 0.0f,
-	 0.26f,  0.12f, -0.30f,	 N, N,-N,  0.0f, 0.0f,
+	 0.26f,  0.13f,  0.30f,	 N, N, N,  0.0f, 0.0f,
+	 0.26f,  0.13f, -0.30f,	 N, N,-N,  0.0f, 0.0f,
 
 	-0.04f, -0.04f,  0.00f,	-N,-N, N,  0.0f, 0.0f,
 	-0.04f, -0.04f, -0.80f,	-N,-N,-N,  0.0f, 0.0f,
@@ -35,7 +35,7 @@ float Vertices[NumParts][64] =
 	 0.04f,  0.04f, -0.00f,	 N, N,-N,  0.0f, 0.0f,
 };
 
-unsigned short Indices[NumParts][36] = 
+unsigned short Indices[NumMeshes][36] = 
 {
 	2,1,0,
 	2,0,3,
@@ -77,13 +77,13 @@ unsigned short Indices[NumParts][36] =
 	5,0,4,
 };
 
-float Ambient[NumParts][4] = 
+float Ambient[NumMeshes][4] = 
 {
 	0.2f, 0.0f, 0.0f, 0.0f,
 	0.0f, 0.2f, 0.0f, 0.0f,
 	0.2f, 0.2f, 0.0f, 0.0f,
 };
-float Diffuse[NumParts][4] =
+float Diffuse[NumMeshes][4] =
 {
 	0.8f, 0.0f, 0.0f, 1.0f,
 	0.0f, 0.8f, 0.0f, 1.0f,
@@ -102,7 +102,7 @@ int ParentIdx[3] =
 };
 
 //　親からの相対姿勢行列
-XMMATRIX BindWorld[NumParts] =
+XMMATRIX BindWorld[NumMeshes] =
 {
 	{1.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0, 0.0,0.0,1.0,0.0,  0.0, 0.12, 0.0, 1.0},//0
 	{1.0,0.0,0.0,0.0, 0.0,1.0,0.0,0.0, 0.0,0.0,1.0,0.0,  0.0, 0.24, 0.1, 1.0},//1
@@ -115,7 +115,7 @@ constexpr int NumKeyframes = 3;
 //　次のキーまでの間隔
 int Interval = 60;
 //  キーフレーム行列
-XMMATRIX KeyframeWorlds[NumKeyframes][NumParts] =
+XMMATRIX KeyframeWorlds[NumKeyframes][NumMeshes] =
 {
 	//キー０
 	{

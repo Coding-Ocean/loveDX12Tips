@@ -8,117 +8,117 @@ HIERARCHY_MESH::HIERARCHY_MESH()
 
 HIERARCHY_MESH::~HIERARCHY_MESH()
 {
-	for (auto& parts : Parts) {
-		parts.constBuffer0->Unmap(0, nullptr);
-		parts.constBuffer1->Unmap(0, nullptr);
+	for (auto& mesh : Meshes) {
+		mesh.constBuffer0->Unmap(0, nullptr);
+		mesh.constBuffer1->Unmap(0, nullptr);
 	}
 }
 
 void HIERARCHY_MESH::create()
 {
 	//パーツ配列をつくる
-	for (int i = 0; i < NumParts; ++i) {
+	for (int i = 0; i < NumMeshes; ++i) {
 
-		PARTS parts;
+		MESH mesh;
 		
 		//頂点バッファ
 		{
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(Vertices[i]);
 			UINT strideInBytes = sizeof(float) * NumVertexElements;
-			parts.numVertices = sizeInBytes / strideInBytes;
+			mesh.numVertices = sizeInBytes / strideInBytes;
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, parts.vertexBuffer);
+			Hr = createBuffer(sizeInBytes, mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Vertices[i], sizeInBytes, parts.vertexBuffer);
+			Hr = updateBuffer(Vertices[i], sizeInBytes, mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファビューをつくる
-			createVertexBufferView(parts.vertexBuffer, sizeInBytes, strideInBytes, parts.vertexBufferView);
+			createVertexBufferView(mesh.vertexBuffer, sizeInBytes, strideInBytes, mesh.vertexBufferView);
 		}
 		//頂点インデックスバッファ
 		{
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(Indices[i]);
-			parts.numIndices = sizeInBytes / sizeof(UINT16);
+			mesh.numIndices = sizeInBytes / sizeof(UINT16);
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, parts.indexBuffer);
+			Hr = createBuffer(sizeInBytes, mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Indices[i], sizeInBytes, parts.indexBuffer);
+			Hr = updateBuffer(Indices[i], sizeInBytes, mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
 			//インデックスバッファビューをつくる
-			createIndexBufferView(parts.indexBuffer, sizeInBytes, parts.indexBufferView);
+			createIndexBufferView(mesh.indexBuffer, sizeInBytes, mesh.indexBufferView);
 		}
 		//コンスタントバッファ０
 		{
 			//バッファをつくる
-			Hr = createBuffer(256, parts.constBuffer0);
+			Hr = createBuffer(256, mesh.constBuffer0);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
-			Hr = mapBuffer(parts.constBuffer0, (void**)&parts.cb0);
+			Hr = mapBuffer(mesh.constBuffer0, (void**)&mesh.cb0);
 			assert(SUCCEEDED(Hr));
 		}
 		//コンスタントバッファ１
 		{
 			//バッファをつくる
-			Hr = createBuffer(256, parts.constBuffer1);
+			Hr = createBuffer(256, mesh.constBuffer1);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
-			Hr = mapBuffer(parts.constBuffer1, (void**)&parts.cb1);
+			Hr = mapBuffer(mesh.constBuffer1, (void**)&mesh.cb1);
 			assert(SUCCEEDED(Hr));
 			//データを入れる
-			parts.cb1->ambient = { Ambient[i][0],Ambient[i][1],Ambient[i][2],Ambient[i][3] };
-			parts.cb1->diffuse = { Diffuse[i][0],Diffuse[i][1],Diffuse[i][2],Diffuse[i][3] };
+			mesh.cb1->ambient = { Ambient[i][0],Ambient[i][1],Ambient[i][2],Ambient[i][3] };
+			mesh.cb1->diffuse = { Diffuse[i][0],Diffuse[i][1],Diffuse[i][2],Diffuse[i][3] };
 		}
 		//テクスチャバッファ
 		{
-			Hr = createTextureBuffer(TextureFilename, parts.textureBuffer);
+			Hr = createTextureBuffer(TextureFilename, mesh.textureBuffer);
 			assert(SUCCEEDED(Hr));
 		}
 		//ディスクリプタヒープ
 		{
 			//ディスクリプタ(ビュー)３つ分のヒープをつくる
-			Hr = createDescriptorHeap(3, parts.cbvTbvHeap);
+			Hr = createDescriptorHeap(3, mesh.cbvTbvHeap);
 			assert(SUCCEEDED(Hr));
 			//１つめのディスクリプタ(ビュー)をヒープにつくる
-			auto hCbvTbvHeap = parts.cbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
-			createConstantBufferView(parts.constBuffer0, hCbvTbvHeap);
+			auto hCbvTbvHeap = mesh.cbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
+			createConstantBufferView(mesh.constBuffer0, hCbvTbvHeap);
 			//２つめのディスクリプタ(ビュー)をヒープにつくる
 			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createConstantBufferView(parts.constBuffer1, hCbvTbvHeap);
+			createConstantBufferView(mesh.constBuffer1, hCbvTbvHeap);
 			//３つめのディスクリプタ(ビュー)をヒープにつくる
 			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createTextureBufferView(parts.textureBuffer, hCbvTbvHeap);
+			createTextureBufferView(mesh.textureBuffer, hCbvTbvHeap);
 		}
 	
 		//階層マトリックス
 		{
 			//親のインデックス
-			parts.parentIdx = ::ParentIdx[i];
+			mesh.parentIdx = ::ParentIdx[i];
 
 			//親から見た相対姿勢行列
-			parts.bindWorld = ::BindWorld[i];
-			//parts.bindWorld = XMMatrixIdentity();
+			mesh.bindWorld = ::BindWorld[i];
+			//mesh.bindWorld = XMMatrixIdentity();
 
 			//アニメーションデータ。キーフレーム行列
 			for (int j = 0; j < ::NumKeyframes; j++){
-				parts.keyframeWorlds.push_back(KeyframeWorlds[j][i]);
-				//parts.keyframeWorlds.push_back(XMMatrixIdentity());
+				mesh.keyframeWorlds.push_back(KeyframeWorlds[j][i]);
+				//mesh.keyframeWorlds.push_back(XMMatrixIdentity());
 			}
 		}
 
-		Parts.push_back(parts);
+		Meshes.push_back(mesh);
 	}
 
 	//自分の子供のインデックスをchildIdxs配列にセット
-	for (int i = 0; i < ::NumParts; i++){
-		for (int j = 0; j < ::NumParts; j++){
+	for (int i = 0; i < ::NumMeshes; i++){
+		for (int j = 0; j < ::NumMeshes; j++){
 			if (i == j)	{
 				continue;
 			}
-			if (Parts[i].parentIdx == Parts[j].parentIdx - 1){
-				Parts[i].childIdxs.push_back(j);
+			if (Meshes[i].parentIdx == Meshes[j].parentIdx - 1){
+				Meshes[i].childIdxs.push_back(j);
 			}
 		}
 	}
@@ -129,36 +129,36 @@ void HIERARCHY_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMF
 	//どのキーフレームの間にいるのか
 	int keyFrameIdx = FrameCount / Interval;
 	//最後まで行ったら最初から
-	if (keyFrameIdx + 1 >= Parts[0].keyframeWorlds.size()){
+	if (keyFrameIdx + 1 >= Meshes[0].keyframeWorlds.size()){
 		keyFrameIdx = 0;
 		FrameCount = 0;
 	}
 	//キーフレーム行列の線形補間
 	float t = FrameCount % Interval;
 	t /= Interval;
-	for (int i = 0; i < ::NumParts; i++) {
-		XMMATRIX a = Parts[i].keyframeWorlds[keyFrameIdx];
-		XMMATRIX b = Parts[i].keyframeWorlds[keyFrameIdx + 1];
-		Parts[i].currentFrameWorld = LerpMatrix(a, b, t);
+	for (int i = 0; i < ::NumMeshes; i++) {
+		XMMATRIX a = Meshes[i].keyframeWorlds[keyFrameIdx];
+		XMMATRIX b = Meshes[i].keyframeWorlds[keyFrameIdx + 1];
+		Meshes[i].currentFrameWorld = LerpMatrix(a, b, t);
 	}
-	//全パーツのworldを更新（再起関数）
-	UpdateWorlds(Parts[0], world);
+	//全メッシュのworldを更新（再起関数）
+	UpdateWorlds(Meshes[0], world);
 	//次のフレームへ
 	FrameCount++;
 
 	//コンスタントバッファ更新
-	for (auto& parts : Parts) {
-		parts.cb0->worldViewProj = parts.world * view * proj;
-		parts.cb0->world = parts.world;
-		parts.cb0->lightPos = lightPos;
+	for (auto& mesh : Meshes) {
+		mesh.cb0->ViewProj = view * proj;
+		mesh.cb0->world = mesh.world;
+		mesh.cb0->lightPos = lightPos;
 	}
 }
-void HIERARCHY_MESH::UpdateWorlds(PARTS& parts, XMMATRIX& parentWorld)
+void HIERARCHY_MESH::UpdateWorlds(MESH& mesh, XMMATRIX& parentWorld)
 {
-	parts.world = parts.currentFrameWorld * parts.bindWorld * parentWorld;
+	mesh.world = mesh.currentFrameWorld * mesh.bindWorld * parentWorld;
 
-	for(auto& childIdx : parts.childIdxs) {
-		UpdateWorlds(Parts[childIdx], parts.world);
+	for(auto& childIdx : mesh.childIdxs) {
+		UpdateWorlds(Meshes[childIdx], mesh.world);
 	}
 }
 //2つの行列の補間計算
@@ -188,16 +188,16 @@ XMMATRIX HIERARCHY_MESH::LerpMatrix(XMMATRIX& m1, XMMATRIX& m2, float t)
 
 void HIERARCHY_MESH::draw()
 {
-	for (auto& parts : Parts) {
+	for (auto& mesh : Meshes) {
 		//頂点をセット
-		CommandList->IASetVertexBuffers(0, 1, &parts.vertexBufferView);
-		CommandList->IASetIndexBuffer(&parts.indexBufferView);
+		CommandList->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
+		CommandList->IASetIndexBuffer(&mesh.indexBufferView);
 		//ディスクリプタヒープをＧＰＵにセット
-		CommandList->SetDescriptorHeaps(1, parts.cbvTbvHeap.GetAddressOf());
+		CommandList->SetDescriptorHeaps(1, mesh.cbvTbvHeap.GetAddressOf());
 		//ディスクリプタヒープをディスクリプタテーブルにセット
-		auto hCbvTbvHeap = parts.cbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+		auto hCbvTbvHeap = mesh.cbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 		CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
 		//描画
-		CommandList->DrawIndexedInstanced(parts.numIndices, 1, 0, 0, 0);
+		CommandList->DrawIndexedInstanced(mesh.numIndices, 1, 0, 0, 0);
 	}
 }

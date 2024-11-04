@@ -37,7 +37,4 @@
       <Filter>hlsl</Filter>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="memo.txt" />
-  </ItemGroup>
 </Project>

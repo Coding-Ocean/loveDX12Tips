@@ -1,14 +1,13 @@
 #pragma once
 #include<vector>
-#define _XM_NO_INTRINSICS_
 #include"graphic.h"
 
 //コンスタントバッファ構造体
 struct CONST_BUF0 
 {
-	XMMATRIX worldViewProj;
-	XMMATRIX world;
 	XMFLOAT4 lightPos;
+	XMMATRIX ViewProj;
+	XMMATRIX world;
 };
 struct CONST_BUF1 
 {
@@ -16,8 +15,8 @@ struct CONST_BUF1
 	XMFLOAT4 diffuse;
 };
 
-//パーツメッシュ
-struct PARTS 
+//メッシュパーツ
+struct MESH 
 {
 	//頂点バッファ
 	UINT numVertices = 0;
@@ -51,10 +50,11 @@ struct PARTS
 	std::vector<int> childIdxs;
 };
 
+//階層メッシュ
 class HIERARCHY_MESH
 {
 private:
-	std::vector<PARTS> Parts;
+	std::vector<MESH> Meshes;
 	UINT FrameCount = 0;
 	UINT Interval;//キーフレームの間隔
 
@@ -62,12 +62,14 @@ private:
 	HRESULT Hr = E_FAIL;
 	UINT CbvTbvIncSize = cbvTbvIncSize();
 	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
-public:	HIERARCHY_MESH();
-public:	~HIERARCHY_MESH();
-public:	void create();
-public:	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& light);
-private: void UpdateWorlds(PARTS& parts, XMMATRIX& parentWorld);
-private: XMMATRIX LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t);
-public:	void draw();
+public:
+	HIERARCHY_MESH();
+	~HIERARCHY_MESH();
+	void create();
+	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& light);
+	void draw();
+private:
+	void UpdateWorlds(MESH& mesh, XMMATRIX& parentWorld);
+	XMMATRIX LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t);
 };
 

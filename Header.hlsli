@@ -1,8 +1,8 @@
 cbuffer b0 : register(b0)
 {
-    matrix WorldViewProj;
-    matrix World;
     float4 LightPos;
+    matrix ViewProj;
+    matrix World;
 }
 cbuffer b1 : register(b1)
 {
