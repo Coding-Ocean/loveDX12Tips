@@ -13,17 +13,13 @@ void main(
     float4 normal = { 0, 0, 0, 0 };
     
 	//ボーン0
-    float weight = i_weights.x;
-    uint boneIdx = i_boneIdxs.x;
-    matrix world = BoneWorld[boneIdx];
-    o_pos  = weight * mul(world, i_pos);
-    normal = weight * mul(world, i_normal);
+    matrix world = BoneWorlds[(int)i_boneIdxs.x];
+    o_pos = i_weights.x * mul(world, i_pos);
+    normal = i_weights.x * mul(world, i_normal);
 	//ボーン1
-    weight = i_weights.y;
-    boneIdx = i_boneIdxs.y;
-    world = BoneWorld[boneIdx];
-    o_pos  += weight * mul(world, i_pos);
-    normal += weight * mul(world, i_normal);
+    world = BoneWorlds[(int) i_boneIdxs.y];
+    o_pos += i_weights.y * mul(world, i_pos);
+    normal += i_weights.y * mul(world, i_normal);
     
     //位置
     o_pos = mul(ViewProj, o_pos);

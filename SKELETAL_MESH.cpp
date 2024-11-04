@@ -8,91 +8,91 @@ SKELETAL_MESH::SKELETAL_MESH()
 
 SKELETAL_MESH::~SKELETAL_MESH()
 {
-	for (auto& parts : Parts) {
-		parts.constBuffer0->Unmap(0, nullptr);
-		parts.constBuffer1->Unmap(0, nullptr);
+	for (auto& mesh : Meshes) {
+		mesh.constBuffer0->Unmap(0, nullptr);
+		mesh.constBuffer1->Unmap(0, nullptr);
 	}
 }
 
 void SKELETAL_MESH::create()
 {
-	//パーツ配列をつくる(今回は１つだけ)
-	for (int i = 0; i < NumParts; ++i) {
+	//メッシュ配列をつくる(配列といっても今回はメッシュ１つ)
+	for (int i = 0; i < NumMeshes; ++i) {
 
-		PARTS parts;
+		MESH mesh;
 		
 		//頂点バッファ
 		{
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(Vertices[i]);
 			UINT strideInBytes = sizeof(float) * NumVertexElements;
-			parts.numVertices = sizeInBytes / strideInBytes;
+			mesh.numVertices = sizeInBytes / strideInBytes;
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, parts.vertexBuffer);
+			Hr = createBuffer(sizeInBytes, mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Vertices[i], sizeInBytes, parts.vertexBuffer);
+			Hr = updateBuffer(Vertices[i], sizeInBytes, mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファビューをつくる
-			createVertexBufferView(parts.vertexBuffer, sizeInBytes, strideInBytes, parts.vertexBufferView);
+			createVertexBufferView(mesh.vertexBuffer, sizeInBytes, strideInBytes, mesh.vertexBufferView);
 		}
 		//頂点インデックスバッファ
 		{
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(Indices[i]);
-			parts.numIndices = sizeInBytes / sizeof(UINT16);
+			mesh.numIndices = sizeInBytes / sizeof(UINT16);
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, parts.indexBuffer);
+			Hr = createBuffer(sizeInBytes, mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Indices[i], sizeInBytes, parts.indexBuffer);
+			Hr = updateBuffer(Indices[i], sizeInBytes, mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
 			//インデックスバッファビューをつくる
-			createIndexBufferView(parts.indexBuffer, sizeInBytes, parts.indexBufferView);
+			createIndexBufferView(mesh.indexBuffer, sizeInBytes, mesh.indexBufferView);
 		}
 		//コンスタントバッファ０
 		{
 			//バッファをつくる
-			Hr = createBuffer((sizeof(CONST_BUF0) + 0xff) & ~0xff, parts.constBuffer0);
+			Hr = createBuffer((sizeof(CONST_BUF0) + 0xff) & ~0xff, mesh.constBuffer0);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
-			Hr = mapBuffer(parts.constBuffer0, (void**)&parts.cb0);
+			Hr = mapBuffer(mesh.constBuffer0, (void**)&mesh.cb0);
 			assert(SUCCEEDED(Hr));
 		}
 		//コンスタントバッファ１
 		{
 			//バッファをつくる
-			Hr = createBuffer((sizeof(CONST_BUF1) + 0xff) & ~0xff, parts.constBuffer1);
+			Hr = createBuffer((sizeof(CONST_BUF1) + 0xff) & ~0xff, mesh.constBuffer1);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
-			Hr = mapBuffer(parts.constBuffer1, (void**)&parts.cb1);
+			Hr = mapBuffer(mesh.constBuffer1, (void**)&mesh.cb1);
 			assert(SUCCEEDED(Hr));
 			//データを入れる
-			parts.cb1->ambient = { Ambient[i][0],Ambient[i][1],Ambient[i][2],Ambient[i][3] };
-			parts.cb1->diffuse = { Diffuse[i][0],Diffuse[i][1],Diffuse[i][2],Diffuse[i][3] };
+			mesh.cb1->ambient = { Ambient[i][0],Ambient[i][1],Ambient[i][2],Ambient[i][3] };
+			mesh.cb1->diffuse = { Diffuse[i][0],Diffuse[i][1],Diffuse[i][2],Diffuse[i][3] };
 		}
 		//テクスチャバッファ
 		{
-			Hr = createTextureBuffer(TextureFilename, parts.textureBuffer);
+			Hr = createTextureBuffer(TextureFilename, mesh.textureBuffer);
 			assert(SUCCEEDED(Hr));
 		}
 		//ディスクリプタヒープ
 		{
 			//ディスクリプタ(ビュー)３つ分のヒープをつくる
-			Hr = createDescriptorHeap(3, parts.cbvTbvHeap);
+			Hr = createDescriptorHeap(3, mesh.cbvTbvHeap);
 			assert(SUCCEEDED(Hr));
 			//１つめのディスクリプタ(ビュー)をヒープにつくる
-			auto hCbvTbvHeap = parts.cbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
-			createConstantBufferView(parts.constBuffer0, hCbvTbvHeap);
+			auto hCbvTbvHeap = mesh.cbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
+			createConstantBufferView(mesh.constBuffer0, hCbvTbvHeap);
 			//２つめのディスクリプタ(ビュー)をヒープにつくる
 			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createConstantBufferView(parts.constBuffer1, hCbvTbvHeap);
+			createConstantBufferView(mesh.constBuffer1, hCbvTbvHeap);
 			//３つめのディスクリプタ(ビュー)をヒープにつくる
 			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createTextureBufferView(parts.textureBuffer, hCbvTbvHeap);
+			createTextureBufferView(mesh.textureBuffer, hCbvTbvHeap);
 		}
 
-		Parts.push_back(parts);
+		Meshes.push_back(mesh);
 	}
 
 	//ボーン階層マトリックス
@@ -148,12 +148,12 @@ void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFL
 	//次のフレームへ
 	FrameCount++;
 
-	//コンスタントバッファ0更新(ループしてるけど今回Partsはひとつ)
-	for (auto& parts : Parts) {
-		parts.cb0->viewProj = view * proj;
-		parts.cb0->lightPos = lightPos;
+	//コンスタントバッファ0更新(ループしてるけど今回メッシュはひとつ)
+	for (auto& mesh : Meshes) {
+		mesh.cb0->viewProj = view * proj;
+		mesh.cb0->lightPos = lightPos;
 		for (int i = 0; i < NumBones; ++i) {
-			parts.cb0->boneWorlds[i] = Bones[i].world;
+			mesh.cb0->boneWorlds[i] = Bones[i].world;
 		}
 	}
 }
@@ -193,16 +193,16 @@ XMMATRIX SKELETAL_MESH::LerpMatrix(XMMATRIX& m1, XMMATRIX& m2, float t)
 
 void SKELETAL_MESH::draw()
 {
-	for (auto& parts : Parts) {//ループしてるけど今回Partsはひとつ
+	for (auto& mesh : Meshes) {//ループしてるけど今回メッシュはひとつ
 		//頂点をセット
-		CommandList->IASetVertexBuffers(0, 1, &parts.vertexBufferView);
-		CommandList->IASetIndexBuffer(&parts.indexBufferView);
+		CommandList->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
+		CommandList->IASetIndexBuffer(&mesh.indexBufferView);
 		//ディスクリプタヒープをＧＰＵにセット
-		CommandList->SetDescriptorHeaps(1, parts.cbvTbvHeap.GetAddressOf());
+		CommandList->SetDescriptorHeaps(1, mesh.cbvTbvHeap.GetAddressOf());
 		//ディスクリプタヒープをディスクリプタテーブルにセット
-		auto hCbvTbvHeap = parts.cbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+		auto hCbvTbvHeap = mesh.cbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 		CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
 		//描画
-		CommandList->DrawIndexedInstanced(parts.numIndices, 1, 0, 0, 0);
+		CommandList->DrawIndexedInstanced(mesh.numIndices, 1, 0, 0, 0);
 	}
 }

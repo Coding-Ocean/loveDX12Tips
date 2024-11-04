@@ -1,10 +1,10 @@
 #pragma once
 
-//PARTS（今回は１つだけ）-----------------------------------------------------------------
-constexpr int NumParts = 1;
+//MESH（今回は１つだけ）-----------------------------------------------------------------
+constexpr int NumMeshes = 1;
 constexpr unsigned NumVertexElements = 12;
 
-float Vertices[NumParts][NumVertexElements*6] = 
+float Vertices[NumMeshes][NumVertexElements*6] = 
 {
 	//Pos               Normal             TexCoord    Index1 Index2   Weight1, Weight2
 	-0.25,  0.0, 0.0,   0.0, 0.0, -1.0,    0.0, 0.0,   0,     1,       1.0,     0.0,
@@ -15,7 +15,7 @@ float Vertices[NumParts][NumVertexElements*6] =
 	 0.25, -2.0, 0.0,   0.0, 0.0, -1.0,    1.0, 1.0,   0,     1,       0.0,     1.0,
 };
 
-unsigned short Indices[NumParts][3*4] = 
+unsigned short Indices[NumMeshes][3*4] = 
 {
 	0, 1, 2,
 	2, 1, 3,
@@ -23,11 +23,11 @@ unsigned short Indices[NumParts][3*4] =
 	4, 3, 5,
 };
 
-float Ambient[NumParts][4] = 
+float Ambient[NumMeshes][4] = 
 {
 	0.2f, 0.2f, 0.2f, 0.0f,
 };
-float Diffuse[NumParts][4] =
+float Diffuse[NumMeshes][4] =
 {
 	0.8f, 0.6f, 0.6f, 1.0f,
 };

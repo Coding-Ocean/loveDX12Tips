@@ -5,8 +5,8 @@
 //コンスタントバッファ構造体
 struct CONST_BUF0 
 {
-	XMMATRIX viewProj;
 	XMFLOAT4 lightPos;
+	XMMATRIX viewProj;
 	XMMATRIX boneWorlds[2];
 };
 struct CONST_BUF1 
@@ -15,8 +15,8 @@ struct CONST_BUF1
 	XMFLOAT4 diffuse;
 };
 
-//パーツメッシュ構造体
-struct PARTS 
+//メッシュパーツ構造体
+struct MESH 
 {
 	//頂点バッファ
 	UINT numVertices = 0;
@@ -58,7 +58,7 @@ struct BONE
 class SKELETAL_MESH
 {
 private:
-	std::vector<PARTS> Parts;
+	std::vector<MESH> Meshes;
 	std::vector<BONE> Bones;
 	UINT FrameCount = 0;
 	UINT Interval;//キーフレームの間隔
