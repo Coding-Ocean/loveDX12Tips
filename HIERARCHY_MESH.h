@@ -62,15 +62,12 @@ private:
 	HRESULT Hr = E_FAIL;
 	UINT CbvTbvIncSize = cbvTbvIncSize();
 	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
-public:
-	HIERARCHY_MESH();
-	~HIERARCHY_MESH();
-	void create();
-	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& light);
-	void draw();
-private:
-	//update()ÇÃíÜÇ©ÇÁåƒÇ—èoÇ≥ÇÍÇÈÇQÇ¬ÇÃä÷êî
-	XMMATRIX LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t);
-	void UpdateWorld(PARTS& p, XMMATRIX& m);
+public:	HIERARCHY_MESH();
+public:	~HIERARCHY_MESH();
+public:	void create();
+public:	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& light);
+private: void UpdateWorlds(PARTS& parts, XMMATRIX& parentWorld);
+private: XMMATRIX LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t);
+public:	void draw();
 };
 
