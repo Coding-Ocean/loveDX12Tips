@@ -75,7 +75,7 @@ public:
 	void draw();
 private:
 	//update()‚Ì’†‚©‚çŒÄ‚Ño‚³‚ê‚é‚Q‚Â‚ÌŠÖ”
+	void UpdateWorlds(BONE& bone, const XMMATRIX& parentWorld);
 	XMMATRIX LerpMatrix(XMMATRIX& a, XMMATRIX& b, float t);
-	void UpdateWorld(BONE& bone, const XMMATRIX& parentWorld);
 };
 

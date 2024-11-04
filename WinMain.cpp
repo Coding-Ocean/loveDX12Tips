@@ -8,8 +8,8 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	window(L"Skeletal Mesh", 1280, 720);
 
 	//つくる--------------------------------------------------------------
-	SKELETAL_MESH skinedMesh;
-	skinedMesh.create();
+	SKELETAL_MESH skeletalMesh;
+	skeletalMesh.create();
 
 	while (!quit())
 	{
@@ -24,11 +24,11 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//ライトの位置
 		XMFLOAT4 lightPos(0, 0, -1, 0);
 		//アニメーションメッシュの行列とコンスタントバッファ更新
-		skinedMesh.update(world, view, proj, lightPos);
+		skeletalMesh.update(world, view, proj, lightPos);
 
 		//描画------------------------------------------------------------------
 		clear(ClearColor);
-		skinedMesh.draw();
+		skeletalMesh.draw();
 		present();
 	}
 	
