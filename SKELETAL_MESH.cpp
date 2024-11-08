@@ -17,21 +17,21 @@ SKELETAL_MESH::~SKELETAL_MESH()
 void SKELETAL_MESH::create()
 {
 	//メッシュ配列をつくる(配列といっても今回はメッシュ１つ)
-	for (int i = 0; i < NumMeshes; ++i) {
+	for (int i = 0; i < ::NumMeshes; ++i) {
 
 		MESH mesh;
 		
 		//頂点バッファ
 		{
 			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(Vertices[i]);
-			UINT strideInBytes = sizeof(float) * NumVertexElements;
+			UINT sizeInBytes = sizeof(::Vertices[i]);
+			UINT strideInBytes = sizeof(float) * ::NumVertexElements;
 			mesh.numVertices = sizeInBytes / strideInBytes;
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Vertices[i], sizeInBytes, mesh.vertexBuffer);
+			Hr = updateBuffer(::Vertices[i], sizeInBytes, mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファビューをつくる
 			createVertexBufferView(mesh.vertexBuffer, sizeInBytes, strideInBytes, mesh.vertexBufferView);
@@ -39,13 +39,13 @@ void SKELETAL_MESH::create()
 		//頂点インデックスバッファ
 		{
 			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(Indices[i]);
+			UINT sizeInBytes = sizeof(::Indices[i]);
 			mesh.numIndices = sizeInBytes / sizeof(UINT16);
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Indices[i], sizeInBytes, mesh.indexBuffer);
+			Hr = updateBuffer(::Indices[i], sizeInBytes, mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
 			//インデックスバッファビューをつくる
 			createIndexBufferView(mesh.indexBuffer, sizeInBytes, mesh.indexBufferView);
@@ -152,7 +152,7 @@ void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFL
 	for (auto& mesh : Meshes) {
 		mesh.cb0->viewProj = view * proj;
 		mesh.cb0->lightPos = lightPos;
-		for (int i = 0; i < NumBones; ++i) {
+		for (int i = 0; i < ::NumBones; ++i) {
 			mesh.cb0->boneWorlds[i] = Bones[i].world;
 		}
 	}
