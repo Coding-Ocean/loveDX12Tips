@@ -128,14 +128,14 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//ワールドマトリックス
 		XMMATRIX world = XMMatrixIdentity();
 		//ビューマトリックス
-		XMFLOAT3 eye = { 0, 0, -2 }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
+		XMFLOAT3 eye = { 0, 0, -2.0f }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
 		XMMATRIX view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&focus), XMLoadFloat3(&up));
 		//プロジェクションマトリックス
 		XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
 
 		CB0->worldViewProj = world * view * proj;
 		CB0->world = world;
-		CB0->lightPos = { cosf(r),0,-0.5f,0 };
+		CB0->lightPos = { cosf(r),0,powf(cosf(r / 6),2) * -1.5f-0.05f,0 };
 		CB0->eyePos = { eye.x,eye.y,eye.z,0 };
 
 		//描画------------------------------------------------------------------
