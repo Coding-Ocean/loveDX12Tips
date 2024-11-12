@@ -132,7 +132,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 		CB0->worldViewProj = world * view * proj;
 		CB0->world = world;
-		CB0->lightPos = { cosf(r),0,-0.3f,0 };
+		CB0->lightPos = { cosf(r),0,powf(cosf(r/6),2)*-1.5f,0};
 
 		//描画------------------------------------------------------------------
 		//バックバッファクリア
