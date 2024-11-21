@@ -3,6 +3,8 @@
 #include"model.h"
 
 //Grobal variables
+//背景カラー
+const float ClearColor[] = { 0.25f, 0.5f, 0.9f, 1.0f };
 //頂点バッファ
 UINT NumVertices = 0;
 ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
