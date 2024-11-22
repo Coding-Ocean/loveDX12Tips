@@ -35,7 +35,7 @@ UINT CbvTbvIncSize = 0;
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Lambert Pixel", 1280, 720);
+	window(L"Phong Pixel", 1280, 720);
 
 	HRESULT Hr;
 
@@ -100,7 +100,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//ディスクリプタヒープ
 		{
 			//ディスクリプタ(ビュー)３つ分のヒープをつくる
-			Hr = createDescriptorHeap(3, CbvTbvHeap);
+			Hr = createDescriptorHeap(3+2, CbvTbvHeap);
 			assert(SUCCEEDED(Hr));
 			CbvTbvIncSize = cbvTbvIncSize();
 			//１つめのディスクリプタ(ビュー)をヒープにつくる
@@ -112,6 +112,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//３つめのディスクリプタ(ビュー)をヒープにつくる
 			hCbvTbvHeap.ptr += CbvTbvIncSize;
 			createTextureBufferView(TextureBuffer, hCbvTbvHeap);
+			//===
+			hCbvTbvHeap.ptr += CbvTbvIncSize;
+			createTextureBufferView(hCbvTbvHeap);
 		}
 	}
 	
@@ -151,6 +154,10 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
 		//描画
 		CommandList->DrawIndexedInstanced(NumIndices, 1, 0, 0, 0);
+		
+		//===
+		postTransition(0);
+		
 		//バックバッファ表示
 		present();
 	}
