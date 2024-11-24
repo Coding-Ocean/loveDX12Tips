@@ -11,7 +11,9 @@ using namespace Microsoft::WRL;
 void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int clientPosX = -1, int clientPosY = -1);
 bool quit();
 void clear(const float* clearColor);
-void postTransition(UINT idx);
+void postTransition1();
+void postTransition2();
+void postTransition3();
 void present();
 void waitGPU();
 void closeEventHandle();
@@ -27,7 +29,7 @@ HRESULT createDescriptorHeap(UINT numDescriptors, ComPtr<ID3D12DescriptorHeap>& 
 void createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer, D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap);
 void createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer, D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap);
 //===
-void createTextureBufferView(D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap);
+void createTextureBufferView(UINT i, D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap);
 //Getån
 ComPtr<ID3D12Device>& device();
 ComPtr<ID3D12GraphicsCommandList>& commandList();

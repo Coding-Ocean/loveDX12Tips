@@ -11,6 +11,10 @@ cbuffer b1 : register(b1)
     float4 Diffuse;
     float4 Specular;
 }
+cbuffer b2 : register(b2)
+{
+    float4 Offset;
+}
 Texture2D<float4> Texture : register(t0); //テクスチャ0番
 SamplerState Sampler : register(s0); //サンプラ0番
 
