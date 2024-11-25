@@ -13,7 +13,7 @@ cbuffer b1 : register(b1)
 }
 cbuffer b2 : register(b2)
 {
-    float4 Offset;
+    float4 BlurUVUnit;
 }
 Texture2D<float4> Texture : register(t0); //テクスチャ0番
 SamplerState Sampler : register(s0); //サンプラ0番

@@ -21,6 +21,18 @@
     <FxCompile Include="VertexShader.hlsl">
       <Filter>hlsl</Filter>
     </FxCompile>
+    <FxCompile Include="PixelShader1.hlsl">
+      <Filter>hlsl1</Filter>
+    </FxCompile>
+    <FxCompile Include="VertexShader1.hlsl">
+      <Filter>hlsl1</Filter>
+    </FxCompile>
+    <FxCompile Include="PixelShader2.hlsl">
+      <Filter>hlsl2</Filter>
+    </FxCompile>
+    <FxCompile Include="VertexShader2.hlsl">
+      <Filter>hlsl2</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hlsl">
@@ -28,6 +40,12 @@
     </Filter>
     <Filter Include="utility">
       <UniqueIdentifier>{e6a8d2fb-5a7e-44bd-bf85-95f30edd2c1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hlsl1">
+      <UniqueIdentifier>{6217d5ac-54cc-4f94-a385-d0032e30c5c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hlsl2">
+      <UniqueIdentifier>{70a85f5f-a145-4136-8fa8-ad5183b821c8}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

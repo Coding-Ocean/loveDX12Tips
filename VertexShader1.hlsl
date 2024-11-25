@@ -7,6 +7,5 @@ void main(
 )
 {
     o_sv_pos = i_pos;
-    //o_sv_pos = float4(i_pos.x + Offset.x, i_pos.y + Offset.y, i_pos.z, 1);
     o_uv = i_uv;
 }
