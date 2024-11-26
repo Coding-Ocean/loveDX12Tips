@@ -6,8 +6,3 @@ void main(
 {
     o_col = float4(Texture.Sample(Sampler, i_uv)) * Diffuse;
 }
-
-//float4 main() : SV_TARGET
-//{
-//	return Diffuse;
-//}

@@ -1,7 +1,6 @@
 #pragma once
-const float ClearColor[] = {0.25f, 0.5f, 0.9f, 1.0f};
 
-unsigned NumVertexElements = 5;
+unsigned NumVertexElements = 5;//ÇPí∏ì_ÇÃóvëfêî
 float Vertices[] = {
 	//position            texcoord
 	-0.5f,  0.5f,  0.0f,  0.0f,  0.0f, //ç∂è„
