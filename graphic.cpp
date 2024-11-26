@@ -747,33 +747,6 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 	Device->CreateShaderResourceView(textureBuffer.Get(), &desc, hCbvTbvHeap);
 	return CurrentCbvTbvIdx++;
 }
-//自分で用意したコンスタント系ディスクリプタヒープをつくる
-HRESULT createDescriptorHeap(UINT numDescriptors, ComPtr<ID3D12DescriptorHeap>& cbvTbvHeap)
-{
-	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desc.NumDescriptors = numDescriptors;
-	desc.NodeMask = 0;
-	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	return Device->CreateDescriptorHeap(
-		&desc, IID_PPV_ARGS(cbvTbvHeap.ReleaseAndGetAddressOf()));
-}
-void createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer, D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap)
-{
-	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
-	desc.BufferLocation = constantBuffer->GetGPUVirtualAddress();
-	desc.SizeInBytes = static_cast<UINT>(constantBuffer->GetDesc().Width);
-	Device->CreateConstantBufferView(&desc, hCbvTbvHeap);
-}
-void createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer,	D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap)
-{
-	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-	desc.Format = textureBuffer->GetDesc().Format;
-	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	desc.Texture2D.MipLevels = 1;//ミップマップは使用しないので1
-	Device->CreateShaderResourceView(textureBuffer.Get(), &desc, hCbvTbvHeap);
-}
 //描画
 void drawMesh(
 	D3D12_VERTEX_BUFFER_VIEW& vertexBufferView,
