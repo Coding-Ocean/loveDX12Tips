@@ -26,9 +26,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 	//リソース初期化
 	{
-		//最初にこのアプリに必要な「全ディスクリプタ」を並べるヒープをつくっておく
+		//最初に必要な数のコンスタントバッファ系ディスクリプタヒープをつくっておく
 		{
-			Hr = createDescriptorHeap(3);//Cbv2+Tbv1
+			Hr = createDescriptorHeap(3);
 			assert(SUCCEEDED(Hr));
 		}
 
