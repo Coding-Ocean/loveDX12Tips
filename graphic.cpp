@@ -747,61 +747,32 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 	Device->CreateShaderResourceView(textureBuffer.Get(), &desc, hCbvTbvHeap);
 	return CurrentCbvTbvIdx++;
 }
-//自分で用意したコンスタント系ディスクリプタヒープをつくる
-HRESULT createDescriptorHeap(UINT numDescriptors, ComPtr<ID3D12DescriptorHeap>& cbvTbvHeap)
-{
-	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desc.NumDescriptors = numDescriptors;
-	desc.NodeMask = 0;
-	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	return Device->CreateDescriptorHeap(
-		&desc, IID_PPV_ARGS(cbvTbvHeap.ReleaseAndGetAddressOf()));
-}
-void createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer, D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap)
-{
-	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
-	desc.BufferLocation = constantBuffer->GetGPUVirtualAddress();
-	desc.SizeInBytes = static_cast<UINT>(constantBuffer->GetDesc().Width);
-	Device->CreateConstantBufferView(&desc, hCbvTbvHeap);
-}
-void createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer,	D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap)
-{
-	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-	desc.Format = textureBuffer->GetDesc().Format;
-	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	desc.Texture2D.MipLevels = 1;//ミップマップは使用しないので1
-	Device->CreateShaderResourceView(textureBuffer.Get(), &desc, hCbvTbvHeap);
-}
 //描画
-void drawMesh(
-	D3D12_VERTEX_BUFFER_VIEW& vertexBufferView,
-	D3D12_INDEX_BUFFER_VIEW& indexBufferView,
-	UINT cbvTbvIdx) 
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvTbvIdx) 
 {
 	//頂点をセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	CommandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-	CommandList->IASetIndexBuffer(&indexBufferView);
+	CommandList->IASetVertexBuffers(0, 1, &vbv);
+	CommandList->IASetIndexBuffer(&ibv);
 	//ディスクリプタヒープをディスクリプタテーブルにセット
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvTbvIdx;
 	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
 	//描画
-	UINT numIndices = indexBufferView.SizeInBytes / sizeof(UINT16);
+	UINT numIndices = ibv.SizeInBytes / sizeof(UINT16);
 	CommandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
 }
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW* vertexBufferView, UINT cbvTbvIdx)
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, UINT cbvTbvIdx)
 {
 	//頂点をセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	CommandList->IASetVertexBuffers(0, 1, vertexBufferView);
+	CommandList->IASetVertexBuffers(0, 1, &vbv);
 	//ディスクリプタヒープをディスクリプタテーブルにセット
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvTbvIdx;
 	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-	UINT numVertices = vertexBufferView->SizeInBytes / vertexBufferView->StrideInBytes;
+	//描画
+	UINT numVertices = vbv.SizeInBytes / vbv.StrideInBytes;
 	CommandList->DrawInstanced(numVertices, 1, 0, 0);
 }
 //Get系
@@ -812,10 +783,6 @@ ComPtr<ID3D12Device>& device()
 ComPtr<ID3D12GraphicsCommandList>& commandList()
 {
 	return CommandList;
-}
-UINT cbvTbvIncSize()
-{
-	return Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 float aspect()
 {
