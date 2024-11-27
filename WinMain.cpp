@@ -1,21 +1,18 @@
 #include"graphic.h"
 #include"model.h"
 
-//バックバッファクリアカラー
-const float ClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
 //メッシュ
 //　頂点バッファ
 ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
-D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
+D3D12_VERTEX_BUFFER_VIEW Vbv;
 //　頂点インデックスバッファ
 ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
-D3D12_INDEX_BUFFER_VIEW	IndexBufferView;
+D3D12_INDEX_BUFFER_VIEW	Ibv;
 //　コンスタントバッファ
-CONST_BUF0* CB0 = nullptr;
-CONST_BUF1* CB1 = nullptr;
 ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
 ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
+CONST_BUF0* CB0 = nullptr;
+CONST_BUF1* CB1 = nullptr;
 //　テクスチャバッファ
 ComPtr<ID3D12Resource> TextureBuffer = nullptr;
 UINT CbvTbvIdx = 0;
@@ -23,8 +20,7 @@ UINT CbvTbvIdx = 0;
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	int w = 720, h = 720;
-	window(L"Deferred Rendering", w, h);
+	window(L"Deferred Rendering", 1280, 720);
 
 	HRESULT Hr;
 
@@ -32,7 +28,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	{
 		//コンスタント・テクスチャ系ディスクリプタヒープ
 		{
-			//メッシュ用３＋ディファード用４
+			//メッシュ用3*1 ＋ ディファード用2*2
 			Hr = createDescriptorHeap(3 + 4);
 			assert(SUCCEEDED(Hr));
 		}
@@ -50,7 +46,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			Hr = updateBuffer(::Vertices, sizeInBytes, VertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファビューをつくる
-			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, VertexBufferView);
+			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, Vbv);
 		}
 		//　頂点インデックスバッファ
 		{
@@ -63,7 +59,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			Hr = updateBuffer(::Indices, sizeInBytes, IndexBuffer);
 			assert(SUCCEEDED(Hr));
 			//インデックスバッファビューをつくる
-			createIndexBufferView(IndexBuffer, sizeInBytes, IndexBufferView);
+			createIndexBufferView(IndexBuffer, sizeInBytes, Ibv);
 		}
 		//　コンスタントバッファ０
 		{
@@ -117,22 +113,30 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//プロジェクションマトリックス
 		XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
 		//コンスタントバッファ０更新
+		CB0->lightPos = { 0, 0, -1, 0 };
+		CB0->eyePos = { eye.x, eye.y, eye.z, 0 };
 		CB0->worldViewProj = world * view * proj;
 		CB0->world = world;
-		CB0->lightPos = { 0,0,-1,0 };
-		CB0->eyePos = { eye.x,eye.y,eye.z,0 };
 
 		//描画------------------------------------------------------------------
-		beginDeferredRender(ClearColor);
-		drawMesh(&VertexBufferView, &IndexBufferView, CbvTbvIdx);
+#if 0
+		setClearColor(0.2f, 0.2f, 0.2f);
+		beginRender();
+		drawMesh(Vbv, Ibv, CbvTbvIdx);
+		endRender();
+#else
+		beginDeferredRender();
+		drawMesh(Vbv, Ibv, CbvTbvIdx);
 		endDeferredRender();
+#endif
 	}
 	
 	//後始末
 	{
 		waitGPU();
 		closeEventHandle();
-		ConstBuffer1->Unmap(0, nullptr);
-		ConstBuffer0->Unmap(0, nullptr);
+		unmapDeferredRenderConstant();
+		unmapBuffer(ConstBuffer0);
+		unmapBuffer(ConstBuffer1);
 	}
 }

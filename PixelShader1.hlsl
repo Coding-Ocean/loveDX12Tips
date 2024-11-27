@@ -6,10 +6,9 @@ float4 main(
 {
     float3 color = float3(0.0, 0.0, 0.0);
     float weightTotal = 0.0;
-    int blurUVCount = 60;
-    for (int i = -blurUVCount; i <= blurUVCount; i+=3)
+    for (int i = -BlurUVCount; i <= BlurUVCount; i+=BlurInc)
     {
-        float weight = 1.0 - smoothstep(0.0, blurUVCount + 1, abs(i));
+        float weight = 1.0 - smoothstep(0.0, BlurUVCount + 1, abs(i));
         color += Texture.Sample(Sampler, i_uv + BlurUVUnit.xy * i).xyz * weight;
         weightTotal += weight;
     }
