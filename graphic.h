@@ -19,8 +19,8 @@ struct CONST_BUF1 {
 void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int clientPosX = -1, int clientPosY = -1);
 bool quit();
 void setClearColor(float r, float g, float b);
-void beginDraw();
-void endDraw();
+void beginRender();
+void endRender();
 void waitGPU();
 void closeEventHandle();
 //リソースバッファ系

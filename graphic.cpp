@@ -425,7 +425,7 @@ void setClearColor(float r, float g, float b)
 {
 	ClearColor[0] = r; ClearColor[1] = g; ClearColor[2] = b;
 }
-void beginDraw()
+void beginRender()
 {
 	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
 	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
@@ -466,7 +466,7 @@ void beginDraw()
 	//ディスクリプタヒープをＧＰＵにセット
 	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 }
-void endDraw()
+void endRender()
 {
 	//バリアでバックバッファを表示用に切り替える
 	D3D12_RESOURCE_BARRIER barrier;
@@ -753,10 +753,19 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 	return CurrentCbvTbvIdx++;
 }
 //描画
-void drawMesh(
-	D3D12_VERTEX_BUFFER_VIEW& vertexBufferView,
-	D3D12_INDEX_BUFFER_VIEW& indexBufferView,
-	UINT cbvTbvIdx) 
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW* vertexBufferView, UINT cbvTbvIdx)
+{
+	//頂点をセット
+	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	CommandList->IASetVertexBuffers(0, 1, vertexBufferView);
+	//ディスクリプタヒープをディスクリプタテーブルにセット
+	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvTbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+	UINT numVertices = vertexBufferView->SizeInBytes / vertexBufferView->StrideInBytes;
+	CommandList->DrawInstanced(numVertices, 1, 0, 0);
+}
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& indexBufferView, UINT cbvTbvIdx) 
 {
 	//頂点をセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -769,18 +778,6 @@ void drawMesh(
 	//描画
 	UINT numIndices = indexBufferView.SizeInBytes / sizeof(UINT16);
 	CommandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
-}
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW* vertexBufferView, UINT cbvTbvIdx)
-{
-	//頂点をセット
-	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	CommandList->IASetVertexBuffers(0, 1, vertexBufferView);
-	//ディスクリプタヒープをディスクリプタテーブルにセット
-	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvTbvIdx;
-	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-	UINT numVertices = vertexBufferView->SizeInBytes / vertexBufferView->StrideInBytes;
-	CommandList->DrawInstanced(numVertices, 1, 0, 0);
 }
 //Get系
 ComPtr<ID3D12Device>& device()
