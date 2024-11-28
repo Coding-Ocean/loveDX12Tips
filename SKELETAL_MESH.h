@@ -34,8 +34,8 @@ struct MESH
 	CONST_BUF1* cb1 = nullptr;
 	//テクスチャバッファ
 	ComPtr<ID3D12Resource> textureBuffer = nullptr;
-	//ディスクリプタヒープ
-	ComPtr<ID3D12DescriptorHeap> cbvTbvHeap = nullptr;
+	//ディスクリプタインデックス
+	UINT cbvTbvIdx=0;
 };
 
 //ボーン構造体
@@ -62,11 +62,6 @@ private:
 	std::vector<BONE> Bones;
 	UINT FrameCount = 0;
 	UINT Interval;//キーフレームの間隔
-
-	//システム系
-	HRESULT Hr = E_FAIL;
-	UINT CbvTbvIncSize = cbvTbvIncSize();
-	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
 public:
 	SKELETAL_MESH();
 	~SKELETAL_MESH();

@@ -8,6 +8,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	window(L"Skeletal Mesh", 1280, 720);
 
 	//‚Â‚­‚é--------------------------------------------------------------
+	
+	createDescriptorHeap(3);
+
 	SKELETAL_MESH skeletalMesh;
 	skeletalMesh.create();
 
@@ -27,9 +30,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		skeletalMesh.update(world, view, proj, lightPos);
 
 		//•`‰æ------------------------------------------------------------------
-		clear(ClearColor);
+		beginRender(ClearColor);
 		skeletalMesh.draw();
-		present();
+		endRender();
 	}
 	
 	waitGPU();
