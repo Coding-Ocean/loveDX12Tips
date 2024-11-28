@@ -8,6 +8,8 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	window(L"Lambert Vertex", 1280, 720);
 
 	//‚Â‚­‚é--------------------------------------------------------------
+	createDescriptorHeap(3);
+
 	STATIC_MESH mesh;
 	mesh.create();
 
