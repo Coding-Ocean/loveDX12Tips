@@ -50,12 +50,12 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//　頂点インデックスバッファ
 		{
 			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(Indices);
+			UINT sizeInBytes = sizeof(::Indices);
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, IndexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Indices, sizeInBytes, IndexBuffer);
+			Hr = updateBuffer(::Indices, sizeInBytes, IndexBuffer);
 			assert(SUCCEEDED(Hr));
 			//ビューをつくる
 			createIndexBufferView(IndexBuffer, sizeInBytes, Ibv);
