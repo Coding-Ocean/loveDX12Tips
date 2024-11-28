@@ -21,6 +21,7 @@ UINT CbvTbvIdx;
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Graphic Functions2", 1280, 720);
+	setClearColor(0.25f, 0.5f, 0.9f);
 
 	HRESULT Hr;
 
@@ -111,10 +112,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		CB0->worldViewProj = world * view * proj;
 
 		//•`‰æ------------------------------------------------------------------
-		float clearColor[] = { 0.25f, 0.5f, 0.9f, 1.0f };
-		clear(clearColor);
+		beginDraw();
 		drawMesh(Vbv, Ibv, CbvTbvIdx);
-		present();
+		endDraw();
 	}
 	
 	//ŒãŽn––

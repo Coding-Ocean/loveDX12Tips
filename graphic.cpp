@@ -38,6 +38,7 @@ ComPtr<ID3D12Resource> BackBuffers[2];
 UINT BackBufIdx;
 ComPtr<ID3D12DescriptorHeap> BbvHeap;//"Bbv"は"BackBufView"の略
 UINT BbvIncSize;
+float ClearColor[] = { 0,0,0,1 };
 // デプスステンシルバッファ
 ComPtr<ID3D12Resource> DepthStencilBuffer;
 ComPtr<ID3D12DescriptorHeap> DsvHeap;//"Dsv"は"DepthStencilBufferView"の略
@@ -420,7 +421,11 @@ bool quit()
 	}
 	return false;
 }
-void clear(const float* clearColor)
+void setClearColor(float r, float g, float b)
+{
+	ClearColor[0] = r; ClearColor[1] = g; ClearColor[2] = b;
+}
+void beginDraw()
 {
 	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
 	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
@@ -444,7 +449,7 @@ void clear(const float* clearColor)
 	CommandList->OMSetRenderTargets(1, &hBbvHeap, false, &hDsvHeap);
 
 	//描画ターゲットをクリアする
-	CommandList->ClearRenderTargetView(hBbvHeap, clearColor, 0, nullptr);
+	CommandList->ClearRenderTargetView(hBbvHeap, ClearColor, 0, nullptr);
 
 	//デプスステンシルバッファをクリアする
 	CommandList->ClearDepthStencilView(hDsvHeap, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -461,7 +466,7 @@ void clear(const float* clearColor)
 	//ディスクリプタヒープをＧＰＵにセット
 	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 }
-void present()
+void endDraw()
 {
 	//バリアでバックバッファを表示用に切り替える
 	D3D12_RESOURCE_BARRIER barrier;
