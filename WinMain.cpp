@@ -8,6 +8,10 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	window(L"Hierarchy Mesh", 1280, 720);
 
 	//つくる--------------------------------------------------------------
+	//全てのコンスタントバッファビュー、テクスチャバッファビューの入れ物を用意する
+	//１つのメッシュにビュー３つ × メッシュ３つ ＝ ９
+	createDescriptorHeap(3*3);
+	
 	HIERARCHY_MESH hierarchyMesh;
 	hierarchyMesh.create();
 
@@ -29,9 +33,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		hierarchyMesh.update(world, view, proj, lightPos);
 
 		//描画------------------------------------------------------------------
-		clear(ClearColor);
+		beginRender(ClearColor);
 		hierarchyMesh.draw();
-		present();
+		endRender();
 	}
 	
 	waitGPU();

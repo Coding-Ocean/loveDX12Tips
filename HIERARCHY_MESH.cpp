@@ -16,6 +16,8 @@ HIERARCHY_MESH::~HIERARCHY_MESH()
 
 void HIERARCHY_MESH::create()
 {
+	HRESULT Hr = E_FAIL;
+
 	//パーツ配列をつくる
 	for (int i = 0; i < NumMeshes; ++i) {
 
@@ -58,6 +60,8 @@ void HIERARCHY_MESH::create()
 			//マップしておく
 			Hr = mapBuffer(mesh.constBuffer0, (void**)&mesh.cb0);
 			assert(SUCCEEDED(Hr));
+			//ビューをつくる
+			mesh.cbvTbvIdx = createConstantBufferView(mesh.constBuffer0);
 		}
 		//コンスタントバッファ１
 		{
@@ -70,26 +74,15 @@ void HIERARCHY_MESH::create()
 			//データを入れる
 			mesh.cb1->ambient = { Ambient[i][0],Ambient[i][1],Ambient[i][2],Ambient[i][3] };
 			mesh.cb1->diffuse = { Diffuse[i][0],Diffuse[i][1],Diffuse[i][2],Diffuse[i][3] };
+			//ビューをつくる
+			createConstantBufferView(mesh.constBuffer1);
 		}
 		//テクスチャバッファ
 		{
 			Hr = createTextureBuffer(TextureFilename, mesh.textureBuffer);
 			assert(SUCCEEDED(Hr));
-		}
-		//ディスクリプタヒープ
-		{
-			//ディスクリプタ(ビュー)３つ分のヒープをつくる
-			Hr = createDescriptorHeap(3, mesh.cbvTbvHeap);
-			assert(SUCCEEDED(Hr));
-			//１つめのディスクリプタ(ビュー)をヒープにつくる
-			auto hCbvTbvHeap = mesh.cbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
-			createConstantBufferView(mesh.constBuffer0, hCbvTbvHeap);
-			//２つめのディスクリプタ(ビュー)をヒープにつくる
-			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createConstantBufferView(mesh.constBuffer1, hCbvTbvHeap);
-			//３つめのディスクリプタ(ビュー)をヒープにつくる
-			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createTextureBufferView(mesh.textureBuffer, hCbvTbvHeap);
+			//ビューをつくる
+			createTextureBufferView(mesh.textureBuffer);
 		}
 	
 		//階層マトリックス
@@ -189,15 +182,6 @@ XMMATRIX HIERARCHY_MESH::LerpMatrix(XMMATRIX& m1, XMMATRIX& m2, float t)
 void HIERARCHY_MESH::draw()
 {
 	for (auto& mesh : Meshes) {
-		//頂点をセット
-		CommandList->IASetVertexBuffers(0, 1, &mesh.vertexBufferView);
-		CommandList->IASetIndexBuffer(&mesh.indexBufferView);
-		//ディスクリプタヒープをＧＰＵにセット
-		CommandList->SetDescriptorHeaps(1, mesh.cbvTbvHeap.GetAddressOf());
-		//ディスクリプタヒープをディスクリプタテーブルにセット
-		auto hCbvTbvHeap = mesh.cbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-		CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-		//描画
-		CommandList->DrawIndexedInstanced(mesh.numIndices, 1, 0, 0, 0);
+		drawMesh(mesh.vertexBufferView, mesh.indexBufferView, mesh.cbvTbvIdx);
 	}
 }

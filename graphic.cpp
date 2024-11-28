@@ -46,6 +46,11 @@ ComPtr<ID3D12RootSignature> RootSignature;
 ComPtr<ID3D12PipelineState> PipelineState;
 D3D12_VIEWPORT Viewport;
 D3D12_RECT ScissorRect;
+//　コンスタントバッファ系ディスクリプタヒープ
+ComPtr<ID3D12DescriptorHeap> CbvTbvHeap = nullptr;
+D3D12_CPU_DESCRIPTOR_HANDLE HCbvTbvHeapStart;
+UINT CbvTbvIncSize = 0;
+UINT CbvTbvCurrentIdx = 0;
 
 //プライベートな関数--------------------------------------------------------------
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -398,9 +403,9 @@ void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowe
 	ClientWidth = clientWidth;
 	ClientHeight = clientHeight;
 	ClientPosX = (GetSystemMetrics(SM_CXSCREEN) - ClientWidth) / 2;//中央表示
-	if (clientPosX>=0)ClientPosX = clientPosX;
+	if (clientPosX >= 0)ClientPosX = clientPosX;
 	ClientPosY = (GetSystemMetrics(SM_CYSCREEN) - ClientHeight) / 2;//中央表示
-	if (clientPosY>=0)ClientPosY = clientPosY;
+	if (clientPosY >= 0)ClientPosY = clientPosY;
 	Aspect = static_cast<float>(ClientWidth) / ClientHeight;
 	WindowStyle = WS_POPUP;//Alt + F4で閉じる
 	if (windowed) WindowStyle = WS_OVERLAPPEDWINDOW;
@@ -413,14 +418,14 @@ void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowe
 bool quit()
 {
 	MSG msg = { 0 };
-	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-		if(msg.message == WM_QUIT)return true;
+	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+		if (msg.message == WM_QUIT)return true;
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
 	return false;
 }
-void clear(const float* clearColor)
+void beginRender(const float* clearColor)
 {
 	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
 	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
@@ -460,7 +465,7 @@ void clear(const float* clearColor)
 
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
-void present()
+void endRender()
 {
 	//バリアでバックバッファを表示用に切り替える
 	D3D12_RESOURCE_BARRIER barrier;
@@ -481,7 +486,7 @@ void present()
 	waitGPU();
 
 	//バックバッファを表示
-	SwapChain->Present(0, 0);
+	SwapChain->Present(1, 0);
 
 	//コマンドアロケータをリセット
 	Hr = CommandAllocator->Reset();
@@ -510,6 +515,21 @@ void closeEventHandle()
 {
 	CloseHandle(FenceEvent);
 }
+//コンスタント系ディスクリプタヒープ
+HRESULT createDescriptorHeap(UINT numDescriptors)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	desc.NumDescriptors = numDescriptors;
+	desc.NodeMask = 0;
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	HRESULT hr = Device->CreateDescriptorHeap(
+		&desc, IID_PPV_ARGS(CbvTbvHeap.ReleaseAndGetAddressOf()));
+	CbvTbvIncSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	CbvTbvCurrentIdx = 0;
+	return hr;
+}
+
 //バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer)
 {
@@ -689,7 +709,7 @@ HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& Textur
 
 	return S_OK;
 }
-void createVertexBufferView(ComPtr<ID3D12Resource>& vertexBuffer,UINT sizeInBytes, UINT strideInBytes, D3D12_VERTEX_BUFFER_VIEW& vertexBufferView)
+void createVertexBufferView(ComPtr<ID3D12Resource>& vertexBuffer, UINT sizeInBytes, UINT strideInBytes, D3D12_VERTEX_BUFFER_VIEW& vertexBufferView)
 {
 	vertexBufferView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
 	vertexBufferView.SizeInBytes = sizeInBytes;
@@ -701,33 +721,40 @@ void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes
 	indexBufferView.SizeInBytes = sizeInBytes;
 	indexBufferView.Format = DXGI_FORMAT_R16_UINT;
 }
-//ディスクリプタヒープ系
-HRESULT createDescriptorHeap(UINT numDescriptors, ComPtr<ID3D12DescriptorHeap>& cbvTbvHeap)
-{
-	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desc.NumDescriptors = numDescriptors;
-	desc.NodeMask = 0;
-	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	return Device->CreateDescriptorHeap(
-		&desc, IID_PPV_ARGS(cbvTbvHeap.ReleaseAndGetAddressOf()));
-}
-void createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer, D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap)
+UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer)
 {
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 	desc.BufferLocation = constantBuffer->GetGPUVirtualAddress();
 	desc.SizeInBytes = static_cast<UINT>(constantBuffer->GetDesc().Width);
+	auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * CbvTbvCurrentIdx;
 	Device->CreateConstantBufferView(&desc, hCbvTbvHeap);
+	return CbvTbvCurrentIdx++;
 }
-void createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer,	D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap)
+UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 {
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	desc.Format = textureBuffer->GetDesc().Format;
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	desc.Texture2D.MipLevels = 1;//ミップマップは使用しないので1
+	auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * CbvTbvCurrentIdx;
 	Device->CreateShaderResourceView(textureBuffer.Get(), &desc, hCbvTbvHeap);
+	return CbvTbvCurrentIdx++;
 }
+//描画
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvTbvIdx)
+{
+	CommandList->IASetVertexBuffers(0, 1, &vbv);
+	CommandList->IASetIndexBuffer(&ibv);
+	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvTbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+	UINT numIndices = ibv.SizeInBytes / sizeof(UINT16);
+	CommandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
+}
+
 //Get系
 ComPtr<ID3D12Device>& device()
 {

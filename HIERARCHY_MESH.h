@@ -2,19 +2,6 @@
 #include<vector>
 #include"graphic.h"
 
-//コンスタントバッファ構造体
-struct CONST_BUF0 
-{
-	XMFLOAT4 lightPos;
-	XMMATRIX ViewProj;
-	XMMATRIX world;
-};
-struct CONST_BUF1 
-{
-	XMFLOAT4 ambient;
-	XMFLOAT4 diffuse;
-};
-
 //メッシュパーツ
 struct MESH 
 {
@@ -27,14 +14,14 @@ struct MESH
 	ComPtr<ID3D12Resource>  indexBuffer = nullptr;
 	D3D12_INDEX_BUFFER_VIEW	indexBufferView = {};
 	//コンスタントバッファ
-	CONST_BUF0* cb0 = nullptr;
-	CONST_BUF1* cb1 = nullptr;
 	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
 	ComPtr<ID3D12Resource> constBuffer1 = nullptr;
+	CONST_BUF0* cb0 = nullptr;
+	CONST_BUF1* cb1 = nullptr;
 	//テクスチャバッファ
 	ComPtr<ID3D12Resource> textureBuffer = nullptr;
-	//ディスクリプタヒープ(わかりやすさ優先で複数用意してしまいます)
-	ComPtr<ID3D12DescriptorHeap> cbvTbvHeap = nullptr;
+	//ディスクリプタインデックス
+	UINT cbvTbvIdx;
 
 	//階層行列データ
 	//　コンスタントバッファに渡す所謂ワールド行列。行列計算によって最終的に求める。
@@ -58,10 +45,6 @@ private:
 	UINT FrameCount = 0;
 	UINT Interval;//キーフレームの間隔
 
-	//システム系
-	HRESULT Hr = E_FAIL;
-	UINT CbvTbvIncSize = cbvTbvIncSize();
-	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
 public:
 	HIERARCHY_MESH();
 	~HIERARCHY_MESH();
