@@ -425,7 +425,7 @@ bool quit()
 	}
 	return false;
 }
-void clear(const float* clearColor)
+void beginRender(const float* clearColor)
 {
 	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
 	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
@@ -465,7 +465,7 @@ void clear(const float* clearColor)
 
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
-void present()
+void endRender()
 {
 	//バリアでバックバッファを表示用に切り替える
 	D3D12_RESOURCE_BARRIER barrier;

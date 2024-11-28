@@ -22,8 +22,8 @@ struct CONST_BUF1
 //システム系
 void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int clientPosX = -1, int clientPosY = -1);
 bool quit();
-void clear(const float* clearColor);
-void present();
+void beginRender(const float* clearColor);
+void endRender();
 void waitGPU();
 void closeEventHandle();
 //ディスクリプタヒープ

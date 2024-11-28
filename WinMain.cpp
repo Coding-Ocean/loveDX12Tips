@@ -31,9 +31,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		mesh.update(world, view, proj, lightPos);
 
 		//•`‰æ------------------------------------------------------------------
-		clear(ClearColor);
+		beginRender(ClearColor);
 		mesh.draw();
-		present();
+		endRender();
 	}
 	
 	waitGPU();
