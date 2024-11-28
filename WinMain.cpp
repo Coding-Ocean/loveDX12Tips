@@ -8,11 +8,11 @@ const float ClearColor[] = { 0.25f, 0.5f, 0.9f, 1.0f };
 //頂点バッファ
 UINT NumVertices = 0;
 ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
-D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
+D3D12_VERTEX_BUFFER_VIEW Vbv;
 //頂点インデックスバッファ
 UINT NumIndices = 0;
 ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
-D3D12_INDEX_BUFFER_VIEW	IndexBufferView;
+D3D12_INDEX_BUFFER_VIEW	Ibv;
 //コンスタントバッファ
 struct CONST_BUF0 {
 	XMMATRIX worldViewProj;
@@ -28,17 +28,20 @@ constexpr UINT NumConstBuffers = 2;//これも用意しておこう
 //テクスチャバッファ
 constexpr UINT NumTextureBuffers = 8;//複数のバッファを用意する
 ComPtr<ID3D12Resource> TextureBuffers[NumTextureBuffers];//配列にします
-//ディスクリプタヒープ
-ComPtr<ID3D12DescriptorHeap> CbvTbvHeap = nullptr;
-UINT CbvTbvIncSize = 0;
-int TbvIdx = 0;//これでディスクリプタヒープの場所を指す
+//これでディスクリプタヒープの場所を指す
+int CbvIdx = 0;
+int TbvIdx = 0;
 
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Texture Animation", 1280, 720);
+	setClearColor(0.25f, 0.5f, 0.9f);
 
 	HRESULT Hr;
+
+	Hr = createDescriptorHeap(NumConstBuffers + NumTextureBuffers);
+	assert(SUCCEEDED(Hr));
 
 	//リソース初期化
 	{
@@ -55,7 +58,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			Hr = updateBuffer(Vertices, sizeInBytes, VertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファビューをつくる
-			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, VertexBufferView);
+			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, Vbv);
 		}
 		//頂点インデックスバッファ
 		{
@@ -69,7 +72,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			Hr = updateBuffer(Indices, sizeInBytes, IndexBuffer);
 			assert(SUCCEEDED(Hr));
 			//インデックスバッファビューをつくる
-			createIndexBufferView(IndexBuffer, sizeInBytes, IndexBufferView);
+			createIndexBufferView(IndexBuffer, sizeInBytes, Ibv);
 		}
 		//コンスタントバッファ０
 		{
@@ -79,6 +82,8 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//マップしておく
 			Hr = mapBuffer(ConstBuffer0, (void**)&CB0);
 			assert(SUCCEEDED(Hr));
+
+			CbvIdx = createConstantBufferView(ConstBuffer0);
 		}
 		//コンスタントバッファ１
 		{
@@ -90,6 +95,8 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			assert(SUCCEEDED(Hr));
 			//データを入れる
 			CB1->diffuse = {Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3]};
+		
+			createConstantBufferView(ConstBuffer1);
 		}
 		//テクスチャバッファ
 		{
@@ -98,24 +105,8 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				std::ostringstream filename;
 				filename << "assets\\lady\\a" << i << ".png";
 				createTextureBuffer(filename.str().c_str(), TextureBuffers[i]);
-			}
-		}
-		//ディスクリプタヒープ
-		{
-			//ディスクリプタ(ビュー)のヒープをつくる
-			Hr = createDescriptorHeap(NumConstBuffers + NumTextureBuffers, CbvTbvHeap);
-			assert(SUCCEEDED(Hr));
-			CbvTbvIncSize = cbvTbvIncSize();
-			//コンスタントバッファ０のディスクリプタ(ビュー)をヒープにつくる
-			auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
-			createConstantBufferView(ConstBuffer0, hCbvTbvHeap);
-			//コンスタントバッファ１のディスクリプタ(ビュー)をヒープにつくる
-			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createConstantBufferView(ConstBuffer1, hCbvTbvHeap);
-			//テクスチャバッファ配列のディスクリプタ(ビュー)をヒープにつくる
-			for (int i = 0; i < NumTextureBuffers; ++i) {
-				hCbvTbvHeap.ptr += CbvTbvIncSize;
-				createTextureBufferView(TextureBuffers[i], hCbvTbvHeap);
+			
+				TbvIdx = createTextureBufferView(TextureBuffers[i]);
 			}
 		}
 	}
@@ -141,35 +132,23 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 		//一定間隔でテクスチャインデックスをカウントアップする
 		{
-			static UINT64 count = 0;
+			static UINT count = 0;
 			int interval = 7;
 			//countがintervalで割り切れた時にTbvIdxをカウントアップする
 			if (++count % interval == 0) {
-				TbvIdx = count / interval % NumTextureBuffers;
+				count = 0;
+				TbvIdx++;
+				if (TbvIdx >= CbvIdx + NumConstBuffers + NumTextureBuffers) {
+					TbvIdx = CbvIdx + NumConstBuffers;
+				}
 			}
 		}
 
 		//描画------------------------------------------------------------------
-		//バックバッファクリア
-		clear(ClearColor);
-		//頂点をセット
-		CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-		CommandList->IASetIndexBuffer(&IndexBufferView);
-		//ディスクリプタヒープをＧＰＵにセット
-		CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
-		//ディスクリプタヒープをディスクリプタテーブルにセットする
-		{
-			//コンスタントバッファビューヒープをディスクリプタテーブル０にセット
-			auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-			CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-			//テクスチャバッファビューヒープの１つをディスクリプタテーブル１にセット
-			hCbvTbvHeap.ptr += CbvTbvIncSize * (NumConstBuffers + TbvIdx);
-			CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
-		}
-		//描画
-		CommandList->DrawIndexedInstanced(NumIndices, 1, 0, 0, 0);
-		//バックバッファ表示
-		present();
+		beginRender();
+		//！！！この関数を使用するにはルートシグネチャの変更が必要！！！
+		drawMesh(Vbv, Ibv, CbvIdx, TbvIdx);
+		endRender();
 	}
 	
 	//後始末
