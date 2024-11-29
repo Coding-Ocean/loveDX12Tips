@@ -8,13 +8,15 @@ D3D12_VERTEX_BUFFER_VIEW Vbv;
 //　頂点インデックスバッファ
 ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
 D3D12_INDEX_BUFFER_VIEW	Ibv;
-//　コンスタントバッファ
+//　コンスタントバッファ０
 ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
-ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
 CONST_BUF0* CB0 = nullptr;
+//　コンスタントバッファ１
+ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
 CONST_BUF1* CB1 = nullptr;
 //　テクスチャバッファ
 ComPtr<ID3D12Resource> TextureBuffer = nullptr;
+//　ディスクリプタインデックス
 UINT CbvTbvIdx = 0;
 
 //Entry point
@@ -24,15 +26,15 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 	HRESULT Hr;
 
+	//コンスタント・テクスチャ系ディスクリプタヒープ
+	{
+		//メッシュ用3*1 ＋ ディファード用2*2
+		Hr = createDescriptorHeap(3 + 4);
+		assert(SUCCEEDED(Hr));
+	}
+
 	//リソース初期化
 	{
-		//コンスタント・テクスチャ系ディスクリプタヒープ
-		{
-			//メッシュ用3*1 ＋ ディファード用2*2
-			Hr = createDescriptorHeap(3 + 4);
-			assert(SUCCEEDED(Hr));
-		}
-
 		//メッシュをつくる
 		//　頂点バッファ
 		{
