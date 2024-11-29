@@ -9,8 +9,8 @@ HIERARCHY_MESH::HIERARCHY_MESH()
 HIERARCHY_MESH::~HIERARCHY_MESH()
 {
 	for (auto& mesh : Meshes) {
-		mesh.constBuffer0->Unmap(0, nullptr);
-		mesh.constBuffer1->Unmap(0, nullptr);
+		unmapBuffer(mesh.constBuffer0);
+		unmapBuffer(mesh.constBuffer1);
 	}
 }
 
@@ -28,7 +28,6 @@ void HIERARCHY_MESH::create()
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(Vertices[i]);
 			UINT strideInBytes = sizeof(float) * NumVertexElements;
-			mesh.numVertices = sizeInBytes / strideInBytes;
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
@@ -36,13 +35,12 @@ void HIERARCHY_MESH::create()
 			Hr = updateBuffer(Vertices[i], sizeInBytes, mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファビューをつくる
-			createVertexBufferView(mesh.vertexBuffer, sizeInBytes, strideInBytes, mesh.vertexBufferView);
+			createVertexBufferView(mesh.vertexBuffer, sizeInBytes, strideInBytes, mesh.vbv);
 		}
 		//頂点インデックスバッファ
 		{
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(Indices[i]);
-			mesh.numIndices = sizeInBytes / sizeof(UINT16);
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
@@ -50,7 +48,7 @@ void HIERARCHY_MESH::create()
 			Hr = updateBuffer(Indices[i], sizeInBytes, mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
 			//インデックスバッファビューをつくる
-			createIndexBufferView(mesh.indexBuffer, sizeInBytes, mesh.indexBufferView);
+			createIndexBufferView(mesh.indexBuffer, sizeInBytes, mesh.ibv);
 		}
 		//コンスタントバッファ０
 		{
@@ -182,6 +180,6 @@ XMMATRIX HIERARCHY_MESH::LerpMatrix(XMMATRIX& m1, XMMATRIX& m2, float t)
 void HIERARCHY_MESH::draw()
 {
 	for (auto& mesh : Meshes) {
-		drawMesh(mesh.vertexBufferView, mesh.indexBufferView, mesh.cbvTbvIdx);
+		drawMesh(mesh.vbv, mesh.ibv, mesh.cbvTbvIdx);
 	}
 }

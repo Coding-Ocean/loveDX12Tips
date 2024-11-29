@@ -6,17 +6,16 @@
 struct MESH 
 {
 	//頂点バッファ
-	UINT numVertices = 0;
 	ComPtr<ID3D12Resource>   vertexBuffer = nullptr;
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferView = {};
+	D3D12_VERTEX_BUFFER_VIEW vbv = {};
 	//頂点インデックスバッファ
-	UINT numIndices = 0;
 	ComPtr<ID3D12Resource>  indexBuffer = nullptr;
-	D3D12_INDEX_BUFFER_VIEW	indexBufferView = {};
-	//コンスタントバッファ
+	D3D12_INDEX_BUFFER_VIEW	ibv = {};
+	//コンスタントバッファ０
 	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
-	ComPtr<ID3D12Resource> constBuffer1 = nullptr;
 	CONST_BUF0* cb0 = nullptr;
+	//コンスタントバッファ１
+	ComPtr<ID3D12Resource> constBuffer1 = nullptr;
 	CONST_BUF1* cb1 = nullptr;
 	//テクスチャバッファ
 	ComPtr<ID3D12Resource> textureBuffer = nullptr;

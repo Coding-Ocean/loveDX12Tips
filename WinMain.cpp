@@ -1,11 +1,10 @@
 #include"graphic.h"
 #include"HIERARCHY_MESH.h"
 
-const float ClearColor[] = { 0.8f, 0.8f, 0.8f, 1.0f };
-
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Hierarchy Mesh", 1280, 720);
+	setClearColor(0.8f, 0.8f, 0.8f);
 
 	//つくる--------------------------------------------------------------
 	//全てのコンスタントバッファビュー、テクスチャバッファビューの入れ物を用意する
@@ -33,7 +32,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		hierarchyMesh.update(world, view, proj, lightPos);
 
 		//描画------------------------------------------------------------------
-		beginRender(ClearColor);
+		beginRender();
 		hierarchyMesh.draw();
 		endRender();
 	}
