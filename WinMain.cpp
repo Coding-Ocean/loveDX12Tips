@@ -1,7 +1,6 @@
 #include"graphic.h"
 #include"SKELETAL_MESH.h"
 
-const float ClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
@@ -30,7 +29,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		skeletalMesh.update(world, view, proj, lightPos);
 
 		//•`‰æ------------------------------------------------------------------
-		beginRender(ClearColor);
+		beginRender();
 		skeletalMesh.draw();
 		endRender();
 	}

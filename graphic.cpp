@@ -38,6 +38,7 @@ ComPtr<ID3D12Resource> BackBuffers[2];
 UINT BackBufIdx;
 ComPtr<ID3D12DescriptorHeap> BbvHeap;//"Bbv"は"BackBufView"の略
 UINT BbvIncSize;
+float ClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 // デプスステンシルバッファ
 ComPtr<ID3D12Resource> DepthStencilBuffer;
 ComPtr<ID3D12DescriptorHeap> DsvHeap;//"Dsv"は"DepthStencilBufferView"の略
@@ -428,7 +429,11 @@ bool quit()
 	}
 	return false;
 }
-void beginRender(const float* clearColor)
+void setClearColor(float r, float g, float b)
+{
+	ClearColor[0] = r;	ClearColor[1] = g;	ClearColor[2] = b;
+}
+void beginRender()
 {
 	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
 	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
@@ -452,7 +457,7 @@ void beginRender(const float* clearColor)
 	CommandList->OMSetRenderTargets(1, &hBbvHeap, false, &hDsvHeap);
 
 	//描画ターゲットをクリアする
-	CommandList->ClearRenderTargetView(hBbvHeap, clearColor, 0, nullptr);
+	CommandList->ClearRenderTargetView(hBbvHeap, ClearColor, 0, nullptr);
 
 	//デプスステンシルバッファをクリアする
 	CommandList->ClearDepthStencilView(hDsvHeap, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -465,7 +470,9 @@ void beginRender(const float* clearColor)
 	CommandList->SetPipelineState(PipelineState.Get());
 	//ルートシグニチャをセット
 	CommandList->SetGraphicsRootSignature(RootSignature.Get());
-
+	//ディスクリプタヒープをGPUにセット
+	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
+	//トポロジーをセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 void endRender()
@@ -573,6 +580,10 @@ HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffe
 HRESULT mapBuffer(ComPtr<ID3D12Resource>& buffer, void** mappedBuffer)
 {
 	return buffer->Map(0, nullptr, mappedBuffer);
+}
+void unmapBuffer(ComPtr<ID3D12Resource>& buffer)
+{
+	buffer->Unmap(0, nullptr);
 }
 HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuf)
 {

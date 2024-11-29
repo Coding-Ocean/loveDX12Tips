@@ -9,8 +9,8 @@ SKELETAL_MESH::SKELETAL_MESH()
 SKELETAL_MESH::~SKELETAL_MESH()
 {
 	for (auto& mesh : Meshes) {
-		mesh.constBuffer0->Unmap(0, nullptr);
-		mesh.constBuffer1->Unmap(0, nullptr);
+		unmapBuffer(mesh.constBuffer0);
+		unmapBuffer(mesh.constBuffer1);
 	}
 }
 
@@ -28,29 +28,27 @@ void SKELETAL_MESH::create()
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(::Vertices[i]);
 			UINT strideInBytes = sizeof(float) * ::NumVertexElements;
-			mesh.numVertices = sizeInBytes / strideInBytes;
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
 			Hr = updateBuffer(::Vertices[i], sizeInBytes, mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
-			//バッファビューをつくる
-			createVertexBufferView(mesh.vertexBuffer, sizeInBytes, strideInBytes, mesh.vertexBufferView);
+			//ビューをつくる
+			createVertexBufferView(mesh.vertexBuffer, sizeInBytes, strideInBytes, mesh.vbv);
 		}
 		//頂点インデックスバッファ
 		{
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(::Indices[i]);
-			mesh.numIndices = sizeInBytes / sizeof(UINT16);
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
 			Hr = updateBuffer(::Indices[i], sizeInBytes, mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
-			//インデックスバッファビューをつくる
-			createIndexBufferView(mesh.indexBuffer, sizeInBytes, mesh.indexBufferView);
+			//ビューをつくる
+			createIndexBufferView(mesh.indexBuffer, sizeInBytes, mesh.ibv);
 		}
 		//コンスタントバッファ０
 		{
@@ -60,7 +58,7 @@ void SKELETAL_MESH::create()
 			//マップしておく
 			Hr = mapBuffer(mesh.constBuffer0, (void**)&mesh.cb0);
 			assert(SUCCEEDED(Hr));
-
+			//ビューをつくり、インデックスを受け取っておく
 			mesh.cbvTbvIdx = createConstantBufferView(mesh.constBuffer0);
 		}
 		//コンスタントバッファ１
@@ -74,13 +72,14 @@ void SKELETAL_MESH::create()
 			//データを入れる
 			mesh.cb1->ambient = { Ambient[i][0],Ambient[i][1],Ambient[i][2],Ambient[i][3] };
 			mesh.cb1->diffuse = { Diffuse[i][0],Diffuse[i][1],Diffuse[i][2],Diffuse[i][3] };
-		
+			//ビューをつくる
 			createConstantBufferView(mesh.constBuffer1);
 		}
 		//テクスチャバッファ
 		{
 			Hr = createTextureBuffer(TextureFilename, mesh.textureBuffer);
 			assert(SUCCEEDED(Hr));
+			//ビューをつくる
 			createTextureBufferView(mesh.textureBuffer);
 		}
 
@@ -186,6 +185,6 @@ XMMATRIX SKELETAL_MESH::LerpMatrix(XMMATRIX& m1, XMMATRIX& m2, float t)
 void SKELETAL_MESH::draw()
 {
 	for (auto& mesh : Meshes) {//ループしてるけど今回メッシュはひとつ
-		drawMesh(mesh.vertexBufferView, mesh.indexBufferView, mesh.cbvTbvIdx);
+		drawMesh(mesh.vbv, mesh.ibv, mesh.cbvTbvIdx);
 	}
 }
