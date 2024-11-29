@@ -1,74 +1,63 @@
 #include"graphic.h"
 #include"model.h"
 
-//Grobal variables
-//頂点バッファ
-UINT NumVertices = 0;
+//メッシュデータ
+//　頂点バッファ
 ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
-D3D12_VERTEX_BUFFER_VIEW VertexBufferView;
-//頂点インデックスバッファ
-UINT NumIndices = 0;
+D3D12_VERTEX_BUFFER_VIEW Vbv;
+//　頂点インデックスバッファ
 ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
-D3D12_INDEX_BUFFER_VIEW	IndexBufferView;
-//コンスタントバッファ
-struct CONST_BUF0 {
-	XMMATRIX worldViewProj;
-	XMMATRIX world;
-	XMFLOAT4 lightPos;
-	XMFLOAT4 eyePos;
-};
-struct CONST_BUF1 {
-	XMFLOAT4 ambient;
-	XMFLOAT4 diffuse;
-	XMFLOAT4 specular;
-};
-CONST_BUF0* CB0 = nullptr;
-CONST_BUF1* CB1 = nullptr;
+D3D12_INDEX_BUFFER_VIEW	Ibv;
+//　コンスタントバッファ０
 ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
+CONST_BUF0* CB0 = nullptr;
+//　コンスタントバッファ１
 ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
-//テクスチャバッファ
+CONST_BUF1* CB1 = nullptr;
+//　テクスチャバッファ
 ComPtr<ID3D12Resource> TextureBuffer = nullptr;
-//ディスクリプタヒープ
-ComPtr<ID3D12DescriptorHeap> CbvTbvHeap = nullptr;
-UINT CbvTbvIncSize = 0;
+//　ディスクリプタインデックス
+UINT CbvTbvIdx = 0;
 
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Lambert Pixel", 1280, 720);
+	window(L"Phong Pixel", 1280, 720);
 
 	HRESULT Hr;
+
+	//メッシュに必要なコンスタントバッファビュー、テクスチャバッファビューの入れ物を用意しておく。
+	Hr = createDescriptorHeap(3);
+	assert(SUCCEEDED(Hr));
 
 	//リソース初期化
 	{
 		//頂点バッファ
 		{
 			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(Vertices);
+			UINT sizeInBytes = sizeof(::Vertices);
 			UINT strideInBytes = sizeof(float) * NumVertexElements;
-			NumVertices = sizeInBytes / strideInBytes;
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, VertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Vertices, sizeInBytes, VertexBuffer);
+			Hr = updateBuffer(::Vertices, sizeInBytes, VertexBuffer);
 			assert(SUCCEEDED(Hr));
-			//バッファビューをつくる
-			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, VertexBufferView);
+			//ビューをつくる
+			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, Vbv);
 		}
 		//頂点インデックスバッファ
 		{
 			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(Indices);
-			NumIndices =  sizeInBytes / sizeof(UINT16);
+			UINT sizeInBytes = sizeof(::Indices);
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, IndexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Indices, sizeInBytes, IndexBuffer);
+			Hr = updateBuffer(::Indices, sizeInBytes, IndexBuffer);
 			assert(SUCCEEDED(Hr));
-			//インデックスバッファビューをつくる
-			createIndexBufferView(IndexBuffer, sizeInBytes, IndexBufferView);
+			//ビューをつくる
+			createIndexBufferView(IndexBuffer, sizeInBytes, Ibv);
 		}
 		//コンスタントバッファ０
 		{
@@ -78,6 +67,8 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//マップしておく
 			Hr = mapBuffer(ConstBuffer0, (void**)&CB0);
 			assert(SUCCEEDED(Hr));
+			//ビューをつくる
+			CbvTbvIdx = createConstantBufferView(ConstBuffer0);
 		}
 		//コンスタントバッファ１
 		{
@@ -88,35 +79,23 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			Hr = mapBuffer(ConstBuffer1, (void**)&CB1);
 			assert(SUCCEEDED(Hr));
 			//データを入れる
-			CB1->ambient = { Ambient[0],Ambient[1],Ambient[2],Ambient[3] };
-			CB1->diffuse = { Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3] };
-			CB1->specular = { Specular[0],Specular[1],Specular[2],Specular[3] };
+			CB1->ambient = { ::Ambient[0],::Ambient[1],::Ambient[2],::Ambient[3] };
+			CB1->diffuse = { ::Diffuse[0],::Diffuse[1],::Diffuse[2],::Diffuse[3] };
+			CB1->specular = { ::Specular[0],::Specular[1],::Specular[2],::Specular[3] };
+			//変更しないのでアンマップする
+			unmapBuffer(ConstBuffer1);
+			//ビューをつくる
+			createConstantBufferView(ConstBuffer1);
 		}
 		//テクスチャバッファ
 		{
+			//画像ファイルを読み込んで、バッファをつくり、画像データをいれる
 			Hr = createTextureBuffer(TextureFilename, TextureBuffer);
 			assert(SUCCEEDED(Hr));
-		}
-		//ディスクリプタヒープ
-		{
-			//ディスクリプタ(ビュー)３つ分のヒープをつくる
-			Hr = createDescriptorHeap(3, CbvTbvHeap);
-			assert(SUCCEEDED(Hr));
-			CbvTbvIncSize = cbvTbvIncSize();
-			//１つめのディスクリプタ(ビュー)をヒープにつくる
-			auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
-			createConstantBufferView(ConstBuffer0, hCbvTbvHeap);
-			//２つめのディスクリプタ(ビュー)をヒープにつくる
-			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createConstantBufferView(ConstBuffer1, hCbvTbvHeap);
-			//３つめのディスクリプタ(ビュー)をヒープにつくる
-			hCbvTbvHeap.ptr += CbvTbvIncSize;
-			createTextureBufferView(TextureBuffer, hCbvTbvHeap);
+			//ビューをつくる
+			createTextureBufferView(TextureBuffer);
 		}
 	}
-	
-	//描画用にクローンしておく
-	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
 
 	//メインループ
 	while (!quit())
@@ -133,33 +112,21 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//プロジェクションマトリックス
 		XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
 
+		CB0->lightPos = { cosf(r), 0, powf(cosf(r / 6),2)*-1.5f-0.05f, 0 };
+		CB0->eyePos = { eye.x,eye.y,eye.z,0 };
 		CB0->worldViewProj = world * view * proj;
 		CB0->world = world;
-		CB0->lightPos = { cosf(r),0,powf(cosf(r / 6),2) * -1.5f-0.05f,0 };
-		CB0->eyePos = { eye.x,eye.y,eye.z,0 };
 
 		//描画------------------------------------------------------------------
-		//バックバッファクリア
-		clear(ClearColor);
-		//頂点をセット
-		CommandList->IASetVertexBuffers(0, 1, &VertexBufferView);
-		CommandList->IASetIndexBuffer(&IndexBufferView);
-		//ディスクリプタヒープをＧＰＵにセット
-		CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
-		//ディスクリプタヒープをディスクリプタテーブルにセット
-		auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-		CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-		//描画
-		CommandList->DrawIndexedInstanced(NumIndices, 1, 0, 0, 0);
-		//バックバッファ表示
-		present();
+		beginRender();
+		drawMesh(Vbv, Ibv, CbvTbvIdx);
+		endRender();
 	}
 	
 	//後始末
 	{
 		waitGPU();
 		closeEventHandle();
-		ConstBuffer1->Unmap(0, nullptr);
-		ConstBuffer0->Unmap(0, nullptr);
+		unmapBuffer(ConstBuffer0);
 	}
 }

@@ -1,9 +1,9 @@
 cbuffer b0 : register(b0)
 {
-    matrix WorldViewProj;
-    matrix World;
     float4 LightPos;
     float4 EyePos;
+    matrix WorldViewProj;
+    matrix World;
 }
 cbuffer b1 : register(b1)
 {
