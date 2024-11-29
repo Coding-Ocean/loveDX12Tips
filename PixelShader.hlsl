@@ -10,7 +10,7 @@ float4 main(
     
     float3 lightDir = normalize(LightPos.xyz - i_pos.xyz);
     float4 d_col = Ambient + Diffuse * max(0, dot(lightDir, i_normal.xyz));
-    d_col.w = Diffuse.w;
+    d_col.a = Diffuse.a;
     
     return t_col * d_col;
 }
