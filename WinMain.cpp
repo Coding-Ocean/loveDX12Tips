@@ -1,20 +1,22 @@
 #include"graphic.h"
 #include"model.h"
 
-//頂点バッファ
+//メッシュデータ
+//　頂点バッファ
 ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
 D3D12_VERTEX_BUFFER_VIEW Vbv;
-//頂点インデックスバッファ
+//　頂点インデックスバッファ
 ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
 D3D12_INDEX_BUFFER_VIEW	Ibv;
-//コンスタントバッファ
+//　コンスタントバッファ0
 ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
-ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
 CONST_BUF0* CB0 = nullptr;
+//　コンスタントバッファ1
+ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
 CONST_BUF1* CB1 = nullptr;
-//テクスチャバッファ
+//　テクスチャバッファ
 ComPtr<ID3D12Resource> TextureBuffer = nullptr;
-//graphic.cppにあるCbvTbvHeap上のインデックス
+//　ディスクリプタインデックス（graphic.cppにあるCbvTbvHeap上のインデックス）
 UINT CbvTbvIdx;
 
 //Entry point
