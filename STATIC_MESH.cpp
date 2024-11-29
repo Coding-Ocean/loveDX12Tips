@@ -20,7 +20,6 @@ void STATIC_MESH::create()
 		//データサイズを求めておく
 		UINT sizeInBytes = sizeof(Vertices);
 		UINT strideInBytes = sizeof(float) * NumVertexElements;
-		Mesh.numVertices = sizeInBytes / strideInBytes;
 		//バッファをつくる
 		Hr = createBuffer(sizeInBytes, Mesh.vertexBuffer);
 		assert(SUCCEEDED(Hr));
@@ -28,13 +27,12 @@ void STATIC_MESH::create()
 		Hr = updateBuffer(Vertices, sizeInBytes, Mesh.vertexBuffer);
 		assert(SUCCEEDED(Hr));
 		//バッファビューをつくる
-		createVertexBufferView(Mesh.vertexBuffer, sizeInBytes, strideInBytes, Mesh.vertexBufferView);
+		createVertexBufferView(Mesh.vertexBuffer, sizeInBytes, strideInBytes, Mesh.vbv);
 	}
 	//頂点インデックスバッファ
 	{
 		//データサイズを求めておく
 		UINT sizeInBytes = sizeof(Indices);
-		Mesh.numIndices = sizeInBytes / sizeof(UINT16);
 		//バッファをつくる
 		Hr = createBuffer(sizeInBytes, Mesh.indexBuffer);
 		assert(SUCCEEDED(Hr));
@@ -42,7 +40,7 @@ void STATIC_MESH::create()
 		Hr = updateBuffer(Indices, sizeInBytes, Mesh.indexBuffer);
 		assert(SUCCEEDED(Hr));
 		//インデックスバッファビューをつくる
-		createIndexBufferView(Mesh.indexBuffer, sizeInBytes, Mesh.indexBufferView);
+		createIndexBufferView(Mesh.indexBuffer, sizeInBytes, Mesh.ibv);
 	}
 	//コンスタントバッファ０
 	{
@@ -88,5 +86,5 @@ void STATIC_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOA
 
 void STATIC_MESH::draw()
 {
-	drawMesh(Mesh.vertexBufferView, Mesh.indexBufferView, Mesh.cbvTbvIdx);
+	drawMesh(Mesh.vbv, Mesh.ibv, Mesh.cbvTbvIdx);
 }
