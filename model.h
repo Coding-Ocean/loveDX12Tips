@@ -1,7 +1,8 @@
 #pragma once
-const float ClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
+//１頂点の要素数（position3 + normal3 + texcoord2）
 unsigned NumVertexElements = 8;
+
 float Vertices[] = {
 	//position            normal               texcoord
 	-0.5f,  0.5f,  0.0f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f, //左上
