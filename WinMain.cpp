@@ -2,35 +2,28 @@
 #include"graphic.h"
 #include"model.h"
 
-//Grobal variables
-//背景カラー
-const float ClearColor[] = { 0.25f, 0.5f, 0.9f, 1.0f };
-//頂点バッファ
-UINT NumVertices = 0;
+//メッシュデータ
+//　頂点バッファ
 ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
 D3D12_VERTEX_BUFFER_VIEW Vbv;
-//頂点インデックスバッファ
-UINT NumIndices = 0;
+//　頂点インデックスバッファ
 ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
 D3D12_INDEX_BUFFER_VIEW	Ibv;
-//コンスタントバッファ
-struct CONST_BUF0 {
-	XMMATRIX worldViewProj;
-};
-struct CONST_BUF1 {
-	XMFLOAT4 diffuse;
-};
-CONST_BUF0* CB0 = nullptr;
-CONST_BUF1* CB1 = nullptr;
+//　コンスタントバッファの数も用意しておく
+constexpr UINT NumConstBuffers = 2;
+//　コンスタントバッファ０
 ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
+CONST_BUF0* CB0 = nullptr;
+//　コンスタントバッファ１
 ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
-constexpr UINT NumConstBuffers = 2;//これも用意しておこう
-//テクスチャバッファ
+CONST_BUF1* CB1 = nullptr;
+//　テクスチャバッファ
 constexpr UINT NumTextureBuffers = 8;//複数のバッファを用意する
 ComPtr<ID3D12Resource> TextureBuffers[NumTextureBuffers];//配列にします
-//これでディスクリプタヒープの場所を指す
-int CbvIdx = 0;
-int TbvIdx = 0;
+//　これでディスクリプタの場所を指す
+UINT CbvIdx = 0;
+UINT TbvIdxs[NumTextureBuffers] = {};//インデックス配列
+UINT TbvIdx = 0;//インデックス配列を指すインデックス
 
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
@@ -40,38 +33,37 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 	HRESULT Hr;
 
+	//最初に必要なコンスタントバッファビュー、テクスチャバッファビューのヒープを用意しておく
 	Hr = createDescriptorHeap(NumConstBuffers + NumTextureBuffers);
 	assert(SUCCEEDED(Hr));
 
-	//リソース初期化
+	//リソースをつくる
 	{
 		//頂点バッファ
 		{
 			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(Vertices);
+			UINT sizeInBytes = sizeof(::Vertices);
 			UINT strideInBytes = sizeof(float) * NumVertexElements;
-			NumVertices = sizeInBytes / strideInBytes;
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, VertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Vertices, sizeInBytes, VertexBuffer);
+			Hr = updateBuffer(::Vertices, sizeInBytes, VertexBuffer);
 			assert(SUCCEEDED(Hr));
-			//バッファビューをつくる
+			//ビューをつくる
 			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, Vbv);
 		}
 		//頂点インデックスバッファ
 		{
 			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(Indices);
-			NumIndices =  sizeInBytes / sizeof(UINT16);
+			UINT sizeInBytes = sizeof(::Indices);
 			//バッファをつくる
 			Hr = createBuffer(sizeInBytes, IndexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(Indices, sizeInBytes, IndexBuffer);
+			Hr = updateBuffer(::Indices, sizeInBytes, IndexBuffer);
 			assert(SUCCEEDED(Hr));
-			//インデックスバッファビューをつくる
+			//ビューをつくる
 			createIndexBufferView(IndexBuffer, sizeInBytes, Ibv);
 		}
 		//コンスタントバッファ０
@@ -82,7 +74,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//マップしておく
 			Hr = mapBuffer(ConstBuffer0, (void**)&CB0);
 			assert(SUCCEEDED(Hr));
-
+			//ビューをつくって、インデックスをもらっておく
 			CbvIdx = createConstantBufferView(ConstBuffer0);
 		}
 		//コンスタントバッファ１
@@ -94,26 +86,26 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			Hr = mapBuffer(ConstBuffer1, (void**)&CB1);
 			assert(SUCCEEDED(Hr));
 			//データを入れる
-			CB1->diffuse = {Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3]};
-		
+			CB1->diffuse = {::Diffuse[0],::Diffuse[1],::Diffuse[2],::Diffuse[3]};
+			//変更しないのでアンマップする
+			unmapBuffer(ConstBuffer1);
+			//ビューをつくる
 			createConstantBufferView(ConstBuffer1);
 		}
 		//テクスチャバッファ
 		{
 			//ファイルを読み込み、テクスチャバッファをつくる
 			for (int i = 0; i < NumTextureBuffers; ++i) {
+				//バッファをつくる
 				std::ostringstream filename;
 				filename << "assets\\lady\\a" << i << ".png";
 				createTextureBuffer(filename.str().c_str(), TextureBuffers[i]);
-			
-				TbvIdx = createTextureBufferView(TextureBuffers[i]);
+				//ビューをつくって、インデックスをもらっておく
+				TbvIdxs[i] = createTextureBufferView(TextureBuffers[i]);
 			}
 		}
 	}
 	
-	//描画用にクローンしておく
-	ComPtr<ID3D12GraphicsCommandList>& CommandList = commandList();
-
 	//メインループ
 	while (!quit())
 	{
@@ -137,17 +129,14 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//countがintervalで割り切れた時にTbvIdxをカウントアップする
 			if (++count % interval == 0) {
 				count = 0;
-				TbvIdx++;
-				if (TbvIdx >= CbvIdx + NumConstBuffers + NumTextureBuffers) {
-					TbvIdx = CbvIdx + NumConstBuffers;
-				}
+				++TbvIdx %= NumTextureBuffers;
 			}
 		}
 
 		//描画------------------------------------------------------------------
 		beginRender();
 		//！！！この関数を使用するにはルートシグネチャの変更が必要！！！
-		drawMesh(Vbv, Ibv, CbvIdx, TbvIdx);
+		drawMesh(Vbv, Ibv, CbvIdx, TbvIdxs[TbvIdx]);
 		endRender();
 	}
 	
@@ -155,7 +144,6 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	{
 		waitGPU();
 		closeEventHandle();
-		ConstBuffer1->Unmap(0, nullptr);
-		ConstBuffer0->Unmap(0, nullptr);
+		unmapBuffer(ConstBuffer0);
 	}
 }

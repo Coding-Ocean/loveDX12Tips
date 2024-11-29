@@ -1,6 +1,7 @@
 #pragma once
 
 unsigned NumVertexElements = 5;
+
 float Vertices[] = {
 	//position            texcoord
 	-0.25f,  0.5f,  0.0f,  0.0f,  0.0f, //ç∂è„
