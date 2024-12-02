@@ -22,11 +22,9 @@ struct CONST_BUF1
 //システム系
 void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int clientPosX = -1, int clientPosY = -1);
 bool quit();
-void beginRender(const float* clearColor);
-void endRender();
 void waitGPU();
 void closeEventHandle();
-//ディスクリプタヒープ
+//コンスタントおよびテクスチャ用ディスクリプタヒープ
 HRESULT createDescriptorHeap(UINT numDescriptors);
 //リソースバッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
@@ -38,12 +36,11 @@ void createVertexBufferView(ComPtr<ID3D12Resource>& vertexBuffer, UINT sizeInByt
 void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes, D3D12_INDEX_BUFFER_VIEW& indexBufferView);
 UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer);
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
-//ディスクリプタヒープ系
-//HRESULT createDescriptorHeap(UINT numDescriptors, ComPtr<ID3D12DescriptorHeap>& cbvTbvHeap);
-//void createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer, D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap);
-//void createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer, D3D12_CPU_DESCRIPTOR_HANDLE& hCbvTbvHeap);
 //描画
+void setClearColor(float r, float g, float b);
+void beginRender();
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& indexBufferView, UINT cbvTbvIdx);
+void endRender();
 //Get系
 ComPtr<ID3D12Device>& device();
 ComPtr<ID3D12GraphicsCommandList>& commandList();

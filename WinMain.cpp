@@ -1,11 +1,10 @@
 #include"graphic.h"
 #include"STATIC_MESH.h"
 
-const float ClearColor[] = { 0.25f, 0.5f, 0.8f, 1.0f };
-
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Lambert Vertex", 1280, 720);
+	window(L"Static Mesh", 1280, 720);
+	setClearColor(0.25f, 0.5f, 1.0f);
 
 	//‚Â‚­‚é--------------------------------------------------------------
 	createDescriptorHeap(3);
@@ -31,7 +30,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		mesh.update(world, view, proj, lightPos);
 
 		//•`‰æ------------------------------------------------------------------
-		beginRender(ClearColor);
+		beginRender();
 		mesh.draw();
 		endRender();
 	}

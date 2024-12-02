@@ -18,13 +18,13 @@ void STATIC_MESH::create()
 	//頂点バッファ
 	{
 		//データサイズを求めておく
-		UINT sizeInBytes = sizeof(Vertices);
+		UINT sizeInBytes = sizeof(::Vertices);
 		UINT strideInBytes = sizeof(float) * NumVertexElements;
 		//バッファをつくる
 		Hr = createBuffer(sizeInBytes, Mesh.vertexBuffer);
 		assert(SUCCEEDED(Hr));
 		//バッファにデータを入れる
-		Hr = updateBuffer(Vertices, sizeInBytes, Mesh.vertexBuffer);
+		Hr = updateBuffer(::Vertices, sizeInBytes, Mesh.vertexBuffer);
 		assert(SUCCEEDED(Hr));
 		//バッファビューをつくる
 		createVertexBufferView(Mesh.vertexBuffer, sizeInBytes, strideInBytes, Mesh.vbv);
@@ -32,12 +32,12 @@ void STATIC_MESH::create()
 	//頂点インデックスバッファ
 	{
 		//データサイズを求めておく
-		UINT sizeInBytes = sizeof(Indices);
+		UINT sizeInBytes = sizeof(::Indices);
 		//バッファをつくる
 		Hr = createBuffer(sizeInBytes, Mesh.indexBuffer);
 		assert(SUCCEEDED(Hr));
 		//バッファにデータを入れる
-		Hr = updateBuffer(Indices, sizeInBytes, Mesh.indexBuffer);
+		Hr = updateBuffer(::Indices, sizeInBytes, Mesh.indexBuffer);
 		assert(SUCCEEDED(Hr));
 		//インデックスバッファビューをつくる
 		createIndexBufferView(Mesh.indexBuffer, sizeInBytes, Mesh.ibv);
@@ -62,15 +62,15 @@ void STATIC_MESH::create()
 		Hr = mapBuffer(Mesh.constBuffer1, (void**)&Mesh.cb1);
 		assert(SUCCEEDED(Hr));
 		//データを入れる
-		Mesh.cb1->ambient = { Ambient[0],Ambient[1],Ambient[2],Ambient[3] };
-		Mesh.cb1->diffuse = { Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3] };
+		Mesh.cb1->ambient = { ::Ambient[0],::Ambient[1],::Ambient[2],::Ambient[3] };
+		Mesh.cb1->diffuse = { ::Diffuse[0],::Diffuse[1],::Diffuse[2],::Diffuse[3] };
 		//ビューをつくる
 		createConstantBufferView(Mesh.constBuffer1);
 	}
 	//テクスチャバッファ
 	{
 		//ファイルを読み込んで、バッファをつくる
-		Hr = createTextureBuffer(TextureFilename, Mesh.textureBuffer);
+		Hr = createTextureBuffer(::TextureFilename, Mesh.textureBuffer);
 		assert(SUCCEEDED(Hr));
 		//ビューをつくる
 		createTextureBufferView(Mesh.textureBuffer);
