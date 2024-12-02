@@ -1,4 +1,3 @@
-#pragma once
 #pragma comment(lib,"dxgi.lib")
 #pragma comment(lib,"d3d12.lib")
 
@@ -21,7 +20,8 @@ using namespace Microsoft::WRL;//ComPtr
 void waitGPU();
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
 
-//ウィンドウ--------------------------------------------------------------------
+//システム----------------------------------------------------------------------
+//　ウィンドウ
 LPCWSTR	WindowTitle = L"ComPtr";
 int ClientWidth = 1280;
 int ClientHeight = 720;
@@ -34,43 +34,41 @@ DWORD WindowStyle = WS_OVERLAPPEDWINDOW;
 DWORD WindowStyle = WS_POPUP;//Alt + F4で閉じる
 #endif
 HWND HWnd;
-//デバイス----------------------------------------------------------------------
+//　デバイス
 ComPtr<ID3D12Device> Device;
-//コマンド
+//　コマンド
 ComPtr<ID3D12CommandAllocator> CommandAllocator;
 ComPtr<ID3D12GraphicsCommandList> CommandList;
 ComPtr<ID3D12CommandQueue> CommandQueue;
-//フェンス
+//　フェンス
 ComPtr<ID3D12Fence> Fence;
 HANDLE FenceEvent;
 UINT64 FenceValue;
-//デバッグ
+//　デバッグ
 HRESULT Hr;
-//レンダーターゲット--------------------------------------------------------------
-//バックバッファ
+//　バックバッファ
 ComPtr<IDXGISwapChain4> SwapChain;
 ComPtr<ID3D12Resource> BackBuffers[2];
 UINT BackBufIdx;
 ComPtr<ID3D12DescriptorHeap> BbvHeap;//"Bbv"は"BackBufferView"の略
 UINT BbvIncSize;
 float ClearColor[] = { 0.25f, 0.5f, 0.9f, 1.0f };
-//デプスステンシルバッファ
+//　デプスステンシルバッファ
 ComPtr<ID3D12Resource> DepthStencilBuffer;
 ComPtr<ID3D12DescriptorHeap> DsvHeap;//"Dsv"は"DepthStencilBufferView"の略
-//パイプライン-------------------------------------------------------------------
+//　パイプライン
 ComPtr<ID3D12RootSignature> RootSignature;
 ComPtr<ID3D12PipelineState> PipelineState;
 D3D12_VIEWPORT Viewport;
 D3D12_RECT ScissorRect;
 
 //ディスクリプタヒープ------------------------------------------------------------
-ComPtr<ID3D12DescriptorHeap> CbvTbvHeap;//ConstBufferView と TextureBufferView の ヒープ
+ComPtr<ID3D12DescriptorHeap> CbvTbvHeap;//"Cbv"はConstBufferView、"Tbv"はTextureBufferViewの略
 UINT NumCbvTbv = 3;//Viewの数によってここを変えねばならない！！！！
 UINT CurrentCbvTbvIdx = 0;//Viewを１つ作ったらカウントアップしていく
 UINT CbvTbvIncSize;
 
-//リソース----------------------------------------------------------------------
-//コンスタントバッファマップ用構造体
+//コンスタントバッファマップ用構造体------------------------------------------------
 struct CONST_BUF0 {
 	XMMATRIX worldViewProj;
 };
@@ -78,19 +76,20 @@ struct CONST_BUF1 {
 	XMFLOAT4 diffuse;
 };
 
-//頂点バッファ
+//メッシュリソース---------------------------------------------------------------
+//　頂点バッファ
 ComPtr<ID3D12Resource> VertexBuffer = nullptr;
 D3D12_VERTEX_BUFFER_VIEW Vbv;
-//頂点インデックスバッファ
+//　頂点インデックスバッファ
 ComPtr<ID3D12Resource> IndexBuffer = nullptr;
 D3D12_INDEX_BUFFER_VIEW	Ibv;
-//コンスタントバッファ０
+//　コンスタントバッファ０
 ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
 CONST_BUF0* CB0 = nullptr;
-//コンスタントバッファ１
+//　コンスタントバッファ１
 ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
 CONST_BUF1* CB1 = nullptr;
-//テクスチャバッファ
+//　テクスチャバッファ
 ComPtr<ID3D12Resource> TextureBuffer = nullptr;
 
 //エントリーポイント
@@ -442,7 +441,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//ハンドル(ポインタ)増分サイズを取得しておく
 		CbvTbvIncSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	}
-	//リソース
+	//メッシュリソース
 	{
 		//頂点バッファ
 		{
@@ -811,7 +810,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, Aspect, 1.0f, 10.0f);
 			CB0->worldViewProj = world * view * proj;
 		}
-		//バックバッファをクリア
+		//描画前処理
 		{
 			//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
 			BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
@@ -846,7 +845,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//                                 ↓ここだけは "&CbvTbvHeap" ではだめだった
 			CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 		}
-		//バックバッファに描画
+		//メッシュを描画
 		{
 			//頂点をセット
 			CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -859,7 +858,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			UINT numIndices = Ibv.SizeInBytes / sizeof(UINT16);
 			CommandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
 		}
-		//バックバッファを表示
+		//描画終了処理
 		{
 			//バリアでバックバッファを表示用に切り替える
 			D3D12_RESOURCE_BARRIER barrier;
