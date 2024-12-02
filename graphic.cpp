@@ -272,15 +272,19 @@ void CreatePipeline()
 
 //===ここを変更
 		//ルートパラメタをディスクリプタテーブルとして使用
-		D3D12_ROOT_PARAMETER rootParam[2] = {};
+		D3D12_ROOT_PARAMETER rootParam[3] = {};
 		rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		rootParam[0].DescriptorTable.pDescriptorRanges = &range[0];
-		rootParam[0].DescriptorTable.NumDescriptorRanges = 2;
+		rootParam[0].DescriptorTable.NumDescriptorRanges = 1;
 		rootParam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 		rootParam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-		rootParam[1].DescriptorTable.pDescriptorRanges = &range[2];
+		rootParam[1].DescriptorTable.pDescriptorRanges = &range[1];
 		rootParam[1].DescriptorTable.NumDescriptorRanges = 1;
-		rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+		rootParam[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParam[2].DescriptorTable.pDescriptorRanges = &range[2];
+		rootParam[2].DescriptorTable.NumDescriptorRanges = 1;
+		rootParam[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 		//サンプラの記述。このサンプラがシェーダーの s0 にセットされる
 		D3D12_STATIC_SAMPLER_DESC samplerDesc[1] = {};
@@ -727,6 +731,8 @@ void beginRender()
 	CommandList->SetGraphicsRootSignature(RootSignature.Get());
 
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//ディスクリプタヒープをＧＰＵにセット
+	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 }
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvTbvIdx)
 {
@@ -739,23 +745,26 @@ void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT 
 	CommandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
 }
 //===ここを追加
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvIdx, UINT tbvIdx)
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, 
+	UINT cb0vIdx, UINT cb1vIdx, UINT tbvIdx)
 {
 	//頂点をセット
 	CommandList->IASetVertexBuffers(0, 1, &vbv);
 	CommandList->IASetIndexBuffer(&ibv);
-	//ディスクリプタヒープをＧＰＵにセット
-	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 	//ディスクリプタヒープをディスクリプタテーブルにセットする
 	{
-		//コンスタントバッファビューをディスクリプタテーブル０にセット
+		//コンスタントバッファ0ビューをディスクリプタテーブル０にセット
 		auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-		hCbvTbvHeap.ptr += CbvTbvIncSize * cbvIdx;
+		hCbvTbvHeap.ptr += CbvTbvIncSize * cb0vIdx;
 		CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+		//コンスタントバッファビューをディスクリプタテーブル０にセット
+		hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+		hCbvTbvHeap.ptr += CbvTbvIncSize * cb1vIdx;
+		CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
 		//テクスチャバッファビューの１つをディスクリプタテーブル１にセット
 		hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 		hCbvTbvHeap.ptr += CbvTbvIncSize * tbvIdx;
-		CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
+		CommandList->SetGraphicsRootDescriptorTable(2, hCbvTbvHeap);
 	}
 	//描画
 	UINT numIndices = ibv.SizeInBytes / sizeof(UINT16);

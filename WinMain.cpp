@@ -9,19 +9,25 @@ D3D12_VERTEX_BUFFER_VIEW Vbv;
 //　頂点インデックスバッファ
 ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
 D3D12_INDEX_BUFFER_VIEW	Ibv;
-//　コンスタントバッファの数も用意しておく
-constexpr UINT NumConstBuffers = 2;
-//　コンスタントバッファ０
-ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
-CONST_BUF0* CB0 = nullptr;
-//　コンスタントバッファ１
+
+//　コンスタントバッファ０（行列）
+constexpr UINT NumCharactor = 2;
+ComPtr<ID3D12Resource> ConstBuffer0[NumCharactor];
+CONST_BUF0* CB0[NumCharactor] = {};
+
+//　コンスタントバッファ１（色）
 ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
 CONST_BUF1* CB1 = nullptr;
+
+//　コンスタントバッファの数も用意しておく
+constexpr UINT NumConstBuffers = NumCharactor + 1;
+
 //　テクスチャバッファ
 constexpr UINT NumTextureBuffers = 8;//複数のバッファを用意する
 ComPtr<ID3D12Resource> TextureBuffers[NumTextureBuffers];//配列にします
 //　これでディスクリプタの場所を指す
-UINT CbvIdx = 0;
+UINT Cb0vIdx[2] = {};
+UINT Cb1vIdx = 0;
 UINT TbvIdxs[NumTextureBuffers] = {};//インデックス配列
 UINT TbvIdx = 0;//インデックス配列を指すインデックス
 
@@ -68,14 +74,16 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		}
 		//コンスタントバッファ０
 		{
-			//バッファをつくる
-			Hr = createBuffer(256, ConstBuffer0);
-			assert(SUCCEEDED(Hr));
-			//マップしておく
-			Hr = mapBuffer(ConstBuffer0, (void**)&CB0);
-			assert(SUCCEEDED(Hr));
-			//ビューをつくって、インデックスをもらっておく
-			CbvIdx = createConstantBufferView(ConstBuffer0);
+			for (UINT i = 0; i < NumCharactor; ++i) {
+				//バッファをつくる
+				Hr = createBuffer(256, ConstBuffer0[i]);
+				assert(SUCCEEDED(Hr));
+				//マップしておく
+				Hr = mapBuffer(ConstBuffer0[i], (void**)&CB0[i]);
+				assert(SUCCEEDED(Hr));
+				//ビューをつくって、インデックスをもらっておく
+				Cb0vIdx[0] = createConstantBufferView(ConstBuffer0[i]);
+			}
 		}
 		//コンスタントバッファ１
 		{
@@ -90,7 +98,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//変更しないのでアンマップする
 			unmapBuffer(ConstBuffer1);
 			//ビューをつくる
-			createConstantBufferView(ConstBuffer1);
+			Cb1vIdx = createConstantBufferView(ConstBuffer1);
 		}
 		//テクスチャバッファ
 		{
@@ -110,17 +118,23 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	while (!quit())
 	{
 		//更新------------------------------------------------------------------
-		//回転用ラジアン
-		static float r = 0;
-		r += 0.01f;
-		//ワールドマトリックス
-		XMMATRIX world = XMMatrixRotationY(r)*XMMatrixTranslation(-sin(r),0,-cos(r));
 		//ビューマトリックス
 		XMFLOAT3 eye = { 0, 0, -2.1f }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
 		XMMATRIX view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&focus), XMLoadFloat3(&up));
 		//プロジェクションマトリックス
 		XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
-		CB0->worldViewProj = world * view * proj;
+
+		//ワールドマトリックス
+		//回転用ラジアン
+		static float r = 0;
+		r += 0.01f;
+		XMMATRIX world;
+
+		world = XMMatrixRotationY(r) * XMMatrixTranslation(-sin(r), 0, -cos(r));
+		CB0[0]->worldViewProj = world * view * proj;
+
+		world = XMMatrixRotationY(-r-3.14f) * XMMatrixTranslation(-sin(-r), 0, -cos(-r));
+		CB0[1]->worldViewProj = world * view * proj;
 
 		//一定間隔でテクスチャインデックスをカウントアップする
 		{
@@ -135,8 +149,10 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 		//描画------------------------------------------------------------------
 		beginRender();
-		//！！！この関数を使用するにはルートシグネチャの変更が必要！！！
-		drawMesh(Vbv, Ibv, CbvIdx, TbvIdxs[TbvIdx]);
+		for (UINT i = 0; i < NumCharactor; ++i) {
+			//！！！この関数を使用するにはルートシグネチャの変更が必要！！！
+			drawMesh(Vbv, Ibv, Cb0vIdx[i], Cb1vIdx, TbvIdxs[TbvIdx]);
+		}
 		endRender();
 	}
 	
@@ -144,6 +160,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	{
 		waitGPU();
 		closeEventHandle();
-		unmapBuffer(ConstBuffer0);
+		unmapBuffer(ConstBuffer0[0]);
+		unmapBuffer(ConstBuffer0[1]);
 	}
 }

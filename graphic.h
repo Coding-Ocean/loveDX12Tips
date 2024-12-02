@@ -39,6 +39,8 @@ void beginRender();
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvTbvIdx);
 //===‚±‚±‚ð’Ç‰Á
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvIdx, UINT tbvIdx);
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv,
+	UINT cb0vIdx, UINT cb1vIdx, UINT tbvIdx);
 void endRender();
 //GetŒn
 ComPtr<ID3D12Device>& device();
