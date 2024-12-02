@@ -11,22 +11,22 @@ ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
 D3D12_INDEX_BUFFER_VIEW	Ibv;
 
 //　コンスタントバッファ０（行列）
-constexpr UINT NumCharactor = 2;
-ComPtr<ID3D12Resource> ConstBuffer0[NumCharactor];
-CONST_BUF0* CB0[NumCharactor] = {};
+constexpr UINT NumCharactors = 2;
+ComPtr<ID3D12Resource> ConstBuffer0[NumCharactors];
+CONST_BUF0* CB0[NumCharactors] = {};
 
 //　コンスタントバッファ１（色）
 ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
 CONST_BUF1* CB1 = nullptr;
 
 //　コンスタントバッファの数も用意しておく
-constexpr UINT NumConstBuffers = NumCharactor + 1;
+constexpr UINT NumConstBuffers = NumCharactors + 1;
 
 //　テクスチャバッファ
 constexpr UINT NumTextureBuffers = 8;//複数のバッファを用意する
 ComPtr<ID3D12Resource> TextureBuffers[NumTextureBuffers];//配列にします
 //　これでディスクリプタの場所を指す
-UINT Cb0vIdx[2] = {};
+UINT Cb0vIdx[NumCharactors] = {};
 UINT Cb1vIdx = 0;
 UINT TbvIdxs[NumTextureBuffers] = {};//インデックス配列
 UINT TbvIdx = 0;//インデックス配列を指すインデックス
@@ -74,7 +74,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		}
 		//コンスタントバッファ０
 		{
-			for (UINT i = 0; i < NumCharactor; ++i) {
+			for (UINT i = 0; i < NumCharactors; ++i) {
 				//バッファをつくる
 				Hr = createBuffer(256, ConstBuffer0[i]);
 				assert(SUCCEEDED(Hr));
@@ -149,7 +149,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 		//描画------------------------------------------------------------------
 		beginRender();
-		for (UINT i = 0; i < NumCharactor; ++i) {
+		for (UINT i = 0; i < NumCharactors; ++i) {
 			//！！！この関数を使用するにはルートシグネチャの変更が必要！！！
 			drawMesh(Vbv, Ibv, Cb0vIdx[i], Cb1vIdx, TbvIdxs[TbvIdx]);
 		}

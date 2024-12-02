@@ -714,10 +714,8 @@ void beginRender()
 	auto hDsvHeap = DsvHeap->GetCPUDescriptorHandleForHeapStart();
 	//バックバッファとデプスステンシルバッファを描画ターゲットとして設定する
 	CommandList->OMSetRenderTargets(1, &hBbvHeap, false, &hDsvHeap);
-
 	//描画ターゲットをクリアする
 	CommandList->ClearRenderTargetView(hBbvHeap, ClearColor, 0, nullptr);
-
 	//デプスステンシルバッファをクリアする
 	CommandList->ClearDepthStencilView(hDsvHeap, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -729,22 +727,12 @@ void beginRender()
 	CommandList->SetPipelineState(PipelineState.Get());
 	//ルートシグニチャをセット
 	CommandList->SetGraphicsRootSignature(RootSignature.Get());
-
+	//トポロジーをセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	//ディスクリプタヒープをＧＰＵにセット
 	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 }
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvTbvIdx)
-{
-	CommandList->IASetVertexBuffers(0, 1, &vbv);
-	CommandList->IASetIndexBuffer(&ibv);
-	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvTbvIdx;
-	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-	UINT numIndices = ibv.SizeInBytes / sizeof(UINT16);
-	CommandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
-}
-//===ここを追加
+//===これに変更
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, 
 	UINT cb0vIdx, UINT cb1vIdx, UINT tbvIdx)
 {
@@ -757,11 +745,11 @@ void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv,
 		auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 		hCbvTbvHeap.ptr += CbvTbvIncSize * cb0vIdx;
 		CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-		//コンスタントバッファビューをディスクリプタテーブル０にセット
+		//コンスタントバッファ１ビューをディスクリプタテーブル１にセット
 		hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 		hCbvTbvHeap.ptr += CbvTbvIncSize * cb1vIdx;
 		CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
-		//テクスチャバッファビューの１つをディスクリプタテーブル１にセット
+		//テクスチャバッファビューの１つをディスクリプタテーブル２にセット
 		hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 		hCbvTbvHeap.ptr += CbvTbvIncSize * tbvIdx;
 		CommandList->SetGraphicsRootDescriptorTable(2, hCbvTbvHeap);
