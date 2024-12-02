@@ -125,7 +125,7 @@ void HIERARCHY_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMF
 		FrameCount = 0;
 	}
 	//キーフレーム行列の線形補間
-	float t = FrameCount % Interval;
+	float t = static_cast<float>(FrameCount % Interval);
 	t /= Interval;
 	for (int i = 0; i < ::NumMeshes; i++) {
 		XMMATRIX a = Meshes[i].keyframeWorlds[keyFrameIdx];
