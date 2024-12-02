@@ -49,7 +49,6 @@ D3D12_VIEWPORT Viewport;
 D3D12_RECT ScissorRect;
 //　コンスタントバッファ系ディスクリプタヒープ
 ComPtr<ID3D12DescriptorHeap> CbvTbvHeap = nullptr;
-D3D12_CPU_DESCRIPTOR_HANDLE HCbvTbvHeapStart;
 UINT CbvTbvIncSize = 0;
 UINT CbvTbvCurrentIdx = 0;
 
@@ -429,82 +428,6 @@ bool quit()
 	}
 	return false;
 }
-void setClearColor(float r, float g, float b)
-{
-	ClearColor[0] = r;	ClearColor[1] = g;	ClearColor[2] = b;
-}
-void beginRender()
-{
-	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
-	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
-
-	//バリアでバックバッファを描画ターゲットに切り替える
-	D3D12_RESOURCE_BARRIER barrier;
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;//このバリアは状態遷移タイプ
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = BackBuffers[BackBufIdx].Get();//リソースはバックバッファ
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;//遷移前はPresent
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;//遷移後は描画ターゲット
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	CommandList->ResourceBarrier(1, &barrier);
-
-	//バックバッファの場所を指すディスクリプタヒープハンドルを用意する
-	auto hBbvHeap = BbvHeap->GetCPUDescriptorHandleForHeapStart();
-	hBbvHeap.ptr += BackBufIdx * BbvIncSize;
-	//デプスステンシルバッファのディスクリプタハンドルを用意する
-	auto hDsvHeap = DsvHeap->GetCPUDescriptorHandleForHeapStart();
-	//バックバッファとデプスステンシルバッファを描画ターゲットとして設定する
-	CommandList->OMSetRenderTargets(1, &hBbvHeap, false, &hDsvHeap);
-
-	//描画ターゲットをクリアする
-	CommandList->ClearRenderTargetView(hBbvHeap, ClearColor, 0, nullptr);
-
-	//デプスステンシルバッファをクリアする
-	CommandList->ClearDepthStencilView(hDsvHeap, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
-	//ビューポートとシザー矩形をセット
-	CommandList->RSSetViewports(1, &Viewport);
-	CommandList->RSSetScissorRects(1, &ScissorRect);
-
-	//パイプラインステートをセット
-	CommandList->SetPipelineState(PipelineState.Get());
-	//ルートシグニチャをセット
-	CommandList->SetGraphicsRootSignature(RootSignature.Get());
-	//ディスクリプタヒープをGPUにセット
-	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
-	//トポロジーをセット
-	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-}
-void endRender()
-{
-	//バリアでバックバッファを表示用に切り替える
-	D3D12_RESOURCE_BARRIER barrier;
-	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;//このバリアは状態遷移タイプ
-	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = BackBuffers[BackBufIdx].Get();//リソースはバックバッファ
-	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;//遷移前は描画ターゲット
-	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;//遷移後はPresent
-	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-	CommandList->ResourceBarrier(1, &barrier);
-
-	//コマンドリストをクローズする
-	CommandList->Close();
-	//コマンドリストを実行する
-	ID3D12CommandList* commandLists[] = { CommandList.Get() };
-	CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
-	//描画完了を待つ
-	waitGPU();
-
-	//バックバッファを表示
-	SwapChain->Present(0, 0);
-
-	//コマンドアロケータをリセット
-	Hr = CommandAllocator->Reset();
-	assert(SUCCEEDED(Hr));
-	//コマンドリストをリセット
-	Hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
-	assert(SUCCEEDED(Hr));
-}
 void waitGPU()
 {
 	//現在のFence値がコマンド終了後にFenceに書き込まれるようにする
@@ -528,17 +451,16 @@ void closeEventHandle()
 //コンスタント系ディスクリプタヒープを最初にまとめて用意する
 HRESULT createDescriptorHeap(UINT numDescriptors)
 {
+	CbvTbvIncSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	
+	CbvTbvCurrentIdx = 0;
+
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	desc.NumDescriptors = numDescriptors;
 	desc.NodeMask = 0;
 	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	HRESULT hr = Device->CreateDescriptorHeap(
-		&desc, IID_PPV_ARGS(CbvTbvHeap.ReleaseAndGetAddressOf()));
-	HCbvTbvHeapStart = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
-	CbvTbvIncSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	CbvTbvCurrentIdx = 0;
-	return hr;
+	return Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(CbvTbvHeap.ReleaseAndGetAddressOf()));
 }
 //バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer)
@@ -741,8 +663,8 @@ UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer)
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 	desc.BufferLocation = constantBuffer->GetGPUVirtualAddress();
 	desc.SizeInBytes = static_cast<UINT>(constantBuffer->GetDesc().Width);
-	D3D12_CPU_DESCRIPTOR_HANDLE hCbvTbvHeap;
-	hCbvTbvHeap.ptr = HCbvTbvHeapStart.ptr + CbvTbvIncSize * CbvTbvCurrentIdx;
+	auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * CbvTbvCurrentIdx;
 	Device->CreateConstantBufferView(&desc, hCbvTbvHeap);
 	return CbvTbvCurrentIdx++;
 }
@@ -753,21 +675,99 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	desc.Texture2D.MipLevels = 1;//ミップマップは使用しないので1
-	D3D12_CPU_DESCRIPTOR_HANDLE hCbvTbvHeap;
-	hCbvTbvHeap.ptr = HCbvTbvHeapStart.ptr + CbvTbvIncSize * CbvTbvCurrentIdx;
+	auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * CbvTbvCurrentIdx;
 	Device->CreateShaderResourceView(textureBuffer.Get(), &desc, hCbvTbvHeap);
 	return CbvTbvCurrentIdx++;
 }
 //描画
+void setClearColor(float r, float g, float b)
+{
+	ClearColor[0] = r;	ClearColor[1] = g;	ClearColor[2] = b;
+}
+void beginRender()
+{
+	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
+	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
+
+	//バリアでバックバッファを描画ターゲットに切り替える
+	D3D12_RESOURCE_BARRIER barrier;
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;//このバリアは状態遷移タイプ
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = BackBuffers[BackBufIdx].Get();//リソースはバックバッファ
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;//遷移前はPresent
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;//遷移後は描画ターゲット
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	CommandList->ResourceBarrier(1, &barrier);
+
+	//バックバッファの場所を指すディスクリプタヒープハンドルを用意する
+	auto hBbvHeap = BbvHeap->GetCPUDescriptorHandleForHeapStart();
+	hBbvHeap.ptr += BackBufIdx * BbvIncSize;
+	//デプスステンシルバッファのディスクリプタハンドルを用意する
+	auto hDsvHeap = DsvHeap->GetCPUDescriptorHandleForHeapStart();
+	//バックバッファとデプスステンシルバッファを描画ターゲットとして設定する
+	CommandList->OMSetRenderTargets(1, &hBbvHeap, false, &hDsvHeap);
+
+	//描画ターゲットをクリアする
+	CommandList->ClearRenderTargetView(hBbvHeap, ClearColor, 0, nullptr);
+
+	//デプスステンシルバッファをクリアする
+	CommandList->ClearDepthStencilView(hDsvHeap, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+	//ビューポートとシザー矩形をセット
+	CommandList->RSSetViewports(1, &Viewport);
+	CommandList->RSSetScissorRects(1, &ScissorRect);
+
+	//パイプラインステートをセット
+	CommandList->SetPipelineState(PipelineState.Get());
+	//ルートシグニチャをセット
+	CommandList->SetGraphicsRootSignature(RootSignature.Get());
+	//ディスクリプタヒープをGPUにセット
+	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
+	//トポロジーをセット
+	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+}
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvTbvIdx)
 {
 	CommandList->IASetVertexBuffers(0, 1, &vbv);
 	CommandList->IASetIndexBuffer(&ibv);
+
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvTbvIdx;
 	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+	
 	UINT numIndices = ibv.SizeInBytes / sizeof(UINT16);
 	CommandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
+}
+void endRender()
+{
+	//バリアでバックバッファを表示用に切り替える
+	D3D12_RESOURCE_BARRIER barrier;
+	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;//このバリアは状態遷移タイプ
+	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	barrier.Transition.pResource = BackBuffers[BackBufIdx].Get();//リソースはバックバッファ
+	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;//遷移前は描画ターゲット
+	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;//遷移後はPresent
+	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	CommandList->ResourceBarrier(1, &barrier);
+
+	//コマンドリストをクローズする
+	CommandList->Close();
+	//コマンドリストを実行する
+	ID3D12CommandList* commandLists[] = { CommandList.Get() };
+	CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+	//描画完了を待つ
+	waitGPU();
+
+	//バックバッファを表示
+	SwapChain->Present(1, 0);
+
+	//コマンドアロケータをリセット
+	Hr = CommandAllocator->Reset();
+	assert(SUCCEEDED(Hr));
+	//コマンドリストをリセット
+	Hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
+	assert(SUCCEEDED(Hr));
 }
 //Get系
 ComPtr<ID3D12Device>& device()
