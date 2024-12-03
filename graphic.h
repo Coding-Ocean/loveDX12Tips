@@ -28,6 +28,7 @@ void closeEventHandle();
 HRESULT createDescriptorHeap(UINT numDescriptors);
 //リソースバッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
+UINT alignedSize(size_t size);
 HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT mapBuffer(ComPtr<ID3D12Resource>& buffer, void** mappedBuffer);
 HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuf);

@@ -45,7 +45,7 @@ void STATIC_MESH::create()
 	//コンスタントバッファ０
 	{
 		//バッファをつくる
-		Hr = createBuffer(256, Mesh.constBuffer0);
+		Hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), Mesh.constBuffer0);
 		assert(SUCCEEDED(Hr));
 		//マップしておく
 		Hr = mapBuffer(Mesh.constBuffer0, (void**)&Mesh.cb0);
@@ -56,7 +56,7 @@ void STATIC_MESH::create()
 	//コンスタントバッファ１
 	{
 		//バッファをつくる
-		Hr = createBuffer(256, Mesh.constBuffer1);
+		Hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), Mesh.constBuffer1);
 		assert(SUCCEEDED(Hr));
 		//マップしておく
 		Hr = mapBuffer(Mesh.constBuffer1, (void**)&Mesh.cb1);
