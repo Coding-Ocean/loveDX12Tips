@@ -25,8 +25,9 @@ constexpr UINT NumConstBuffers = NumCharactors + 1;
 //　テクスチャバッファ
 constexpr UINT NumTextureBuffers = 8;//複数のバッファを用意する
 ComPtr<ID3D12Resource> TextureBuffers[NumTextureBuffers];//配列にします
-//　これでディスクリプタの場所を指す
-UINT Cb0vIdx[NumCharactors] = {};
+
+//　これらのインデックスでディスクリプタの場所を指す
+UINT Cb0vIdxs[NumCharactors] = {};
 UINT Cb1vIdx = 0;
 UINT TbvIdxs[NumTextureBuffers] = {};//インデックス配列
 UINT TbvIdx = 0;//インデックス配列を指すインデックス
@@ -82,7 +83,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				Hr = mapBuffer(ConstBuffer0[i], (void**)&CB0[i]);
 				assert(SUCCEEDED(Hr));
 				//ビューをつくって、インデックスをもらっておく
-				Cb0vIdx[0] = createConstantBufferView(ConstBuffer0[i]);
+				Cb0vIdxs[i] = createConstantBufferView(ConstBuffer0[i]);
 			}
 		}
 		//コンスタントバッファ１
@@ -151,7 +152,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		beginRender();
 		for (UINT i = 0; i < NumCharactors; ++i) {
 			//！！！この関数を使用するにはルートシグネチャの変更が必要！！！
-			drawMesh(Vbv, Ibv, Cb0vIdx[i], Cb1vIdx, TbvIdxs[TbvIdx]);
+			drawMesh(Vbv, Ibv, Cb0vIdxs[i], Cb1vIdx, TbvIdxs[TbvIdx]);
 		}
 		endRender();
 	}
@@ -160,7 +161,8 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	{
 		waitGPU();
 		closeEventHandle();
-		unmapBuffer(ConstBuffer0[0]);
-		unmapBuffer(ConstBuffer0[1]);
+		for (UINT i = 0; i < NumCharactors; ++i) {
+			unmapBuffer(ConstBuffer0[i]);
+		}
 	}
 }
