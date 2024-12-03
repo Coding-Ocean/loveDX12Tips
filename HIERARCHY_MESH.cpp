@@ -53,7 +53,7 @@ void HIERARCHY_MESH::create()
 		//コンスタントバッファ０
 		{
 			//バッファをつくる
-			Hr = createBuffer(256, mesh.constBuffer0);
+			Hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), mesh.constBuffer0);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
 			Hr = mapBuffer(mesh.constBuffer0, (void**)&mesh.cb0);
@@ -64,7 +64,7 @@ void HIERARCHY_MESH::create()
 		//コンスタントバッファ１
 		{
 			//バッファをつくる
-			Hr = createBuffer(256, mesh.constBuffer1);
+			Hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), mesh.constBuffer1);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
 			Hr = mapBuffer(mesh.constBuffer1, (void**)&mesh.cb1);

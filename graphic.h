@@ -28,8 +28,9 @@ void waitGPU();
 void closeEventHandle();
 //全てのコンスタントバッファビュー、テクスチャバッファビューの入れ物を用意する
 HRESULT createDescriptorHeap(UINT numDescriptors);
-//リソースバッファ系
+//バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
+UINT alignedSize(size_t size);
 HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT mapBuffer(ComPtr<ID3D12Resource>& buffer, void** mappedBuffer);
 void unmapBuffer(ComPtr<ID3D12Resource>& buffer);
