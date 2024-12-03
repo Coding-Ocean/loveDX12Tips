@@ -33,7 +33,7 @@ UINT alignedSize(size_t size);
 HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT mapBuffer(ComPtr<ID3D12Resource>& buffer, void** mappedBuffer);
 void unmapBuffer(ComPtr<ID3D12Resource>& buffer);
-HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuf);
+HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuffer);
 //ディスクリプタ系
 void createVertexBufferView(ComPtr<ID3D12Resource>& vertexBuffer, UINT sizeInBytes, UINT strideInBytes, D3D12_VERTEX_BUFFER_VIEW& vertexBufferView);
 void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes, D3D12_INDEX_BUFFER_VIEW& indexBufferView);

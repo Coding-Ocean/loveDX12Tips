@@ -118,7 +118,7 @@ void SKELETAL_MESH::create()
 	}
 }
 
-void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos)
+void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& lightPos)
 {
 	//どのキーフレームの間にいるのか
 	int keyFrameIdx = FrameCount / Interval;
@@ -141,8 +141,8 @@ void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFL
 
 	//コンスタントバッファ0更新(ループしてるけど今回メッシュはひとつ)
 	for (auto& mesh : Meshes) {
-		mesh.cb0->viewProj = view * proj;
 		mesh.cb0->lightPos = lightPos;
+		mesh.cb0->viewProj = viewProj;
 		for (int i = 0; i < ::NumBones; ++i) {
 			mesh.cb0->boneWorlds[i] = Bones[i].world;
 		}

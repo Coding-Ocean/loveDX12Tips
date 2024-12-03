@@ -51,7 +51,7 @@ public:
 	SKELETAL_MESH();
 	~SKELETAL_MESH();
 	void create();
-	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& light);
+	void update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& light);
 	void draw();
 private:
 	//update()‚Ì’†‚©‚çŒÄ‚Ño‚³‚ê‚é‚Q‚Â‚ÌŠÖ”

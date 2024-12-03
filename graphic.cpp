@@ -511,7 +511,7 @@ void unmapBuffer(ComPtr<ID3D12Resource>& buffer)
 {
 	buffer->Unmap(0, nullptr);
 }
-HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuf)
+HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuffer)
 {
 	//ファイルを読み込み、生データを取り出す
 	unsigned char* pixels = nullptr;
@@ -595,7 +595,7 @@ HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& Textur
 			&desc,
 			D3D12_RESOURCE_STATE_COPY_DEST,
 			nullptr,
-			IID_PPV_ARGS(TextureBuf.ReleaseAndGetAddressOf()));
+			IID_PPV_ARGS(TextureBuffer.ReleaseAndGetAddressOf()));
 		assert(SUCCEEDED(Hr));
 	}
 
@@ -612,7 +612,7 @@ HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& Textur
 	src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	//コピー先ロケーションの準備・サブリソースインデックス指定
 	D3D12_TEXTURE_COPY_LOCATION dst = {};
-	dst.pResource = TextureBuf.Get();
+	dst.pResource = TextureBuffer.Get();
 	dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 	dst.SubresourceIndex = 0;
 
@@ -622,7 +622,7 @@ HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& Textur
 	D3D12_RESOURCE_BARRIER barrier = {};
 	barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 	barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-	barrier.Transition.pResource = TextureBuf.Get();
+	barrier.Transition.pResource = TextureBuffer.Get();
 	barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 	barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
 	barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
