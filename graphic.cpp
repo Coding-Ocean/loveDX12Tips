@@ -497,6 +497,10 @@ HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer)
 		nullptr,
 		IID_PPV_ARGS(buffer.ReleaseAndGetAddressOf()));
 }
+UINT alignedSize(size_t size)
+{
+	return (size + 0xff) & ~0xff;
+}
 HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer)
 {
 	UINT8* mappedBuffer;

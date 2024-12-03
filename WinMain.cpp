@@ -77,7 +77,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		{
 			for (UINT i = 0; i < NumCharactors; ++i) {
 				//バッファをつくる
-				Hr = createBuffer(256, ConstBuffer0[i]);
+				Hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), ConstBuffer0[i]);
 				assert(SUCCEEDED(Hr));
 				//マップしておく
 				Hr = mapBuffer(ConstBuffer0[i], (void**)&CB0[i]);
@@ -89,7 +89,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//コンスタントバッファ１
 		{
 			//バッファをつくる
-			Hr = createBuffer(256, ConstBuffer1);
+			Hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), ConstBuffer1);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
 			Hr = mapBuffer(ConstBuffer1, (void**)&CB1);
