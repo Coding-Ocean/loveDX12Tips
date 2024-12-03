@@ -62,7 +62,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//コンスタントバッファ０
 		{
 			//バッファをつくる
-			Hr = createBuffer(256, ConstBuffer0);
+			Hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), ConstBuffer0);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
 			Hr = mapBuffer(ConstBuffer0, (void**)&CB0);
@@ -73,7 +73,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//コンスタントバッファ１
 		{
 			//バッファをつくる
-			Hr = createBuffer(256, ConstBuffer1);
+			Hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), ConstBuffer1);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
 			Hr = mapBuffer(ConstBuffer1, (void**)&CB1);
