@@ -1,4 +1,3 @@
-#pragma once
 #pragma comment(lib,"dxgi.lib")
 #pragma comment(lib,"d3d12.lib")
 
@@ -8,19 +7,21 @@
 #include<cassert>
 #include<Windows.h>
 #include<DirectXMath.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
 #include"BIN_FILE12.h"
 #include"model.h"
+
 using namespace DirectX;
 
-void WaitDrawDone();
+void WaitGpu();
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
 
-//バックバッファをクリアする色
+//システム----------------------------------------------------------------------
+//　バックバッファをクリアする色
 const float ClearColor[] = { 0.25f, 0.5f, 0.9f, 1.0f };
-
-//ウィンドウ--------------------------------------------------------------------
+//　ウィンドウ
 LPCWSTR	WindowTitle = L"loveDX12";
 const int ClientWidth = 1280;
 const int ClientHeight = 720;
@@ -33,38 +34,39 @@ DWORD WindowStyle = WS_OVERLAPPEDWINDOW;
 DWORD WindowStyle = WS_POPUP;//Alt + F4で閉じる
 #endif
 HWND HWnd;
-//デバイス----------------------------------------------------------------------
+//　デバイス
 ID3D12Device* Device;
-//コマンド
+//　コマンド
 ID3D12CommandAllocator* CommandAllocator;
 ID3D12GraphicsCommandList* CommandList;
 ID3D12CommandQueue* CommandQueue;
-//フェンス
+//　フェンス
 ID3D12Fence* Fence;
 HANDLE FenceEvent;
 UINT64 FenceValue;
-//デバッグ
+//　デバッグ
 HRESULT Hr;
-//レンダーターゲット--------------------------------------------------------------
-//バックバッファ
+//　バックバッファ
 IDXGISwapChain4* SwapChain;
-ID3D12Resource* BackBufs[2];
-UINT BackBufIdx;
-ID3D12DescriptorHeap* BbvHeap;//"Bbv"は"BackBufView"の略
+const UINT NumBackBuffers = 2;
+ID3D12Resource* BackBuffers[NumBackBuffers];
+ID3D12DescriptorHeap* BbvHeap;//"Bbv"は"BackBufferView"の略
 UINT BbvIncSize;
-//デプスステンシルバッファ
-ID3D12Resource* DepthStencilBuf;
-ID3D12DescriptorHeap* DsvHeap;//"Dsv"は"DepthStencilBufView"の略
-//パイプライン-------------------------------------------------------------------
+UINT BackBufferIdx;
+//　デプスステンシルバッファ
+ID3D12Resource* DepthStencilBuffer;
+ID3D12DescriptorHeap* DsvHeap;//"Dsv"は"DepthStencilBufferView"の略
+//　パイプライン
 ID3D12RootSignature* RootSignature;
 ID3D12PipelineState* PipelineState;
 D3D12_VIEWPORT Viewport;
 D3D12_RECT ScissorRect;
 
 //コンスタント、テクスチャ用　ディスクリプタヒープ------------------------------------
-ID3D12DescriptorHeap* CbvTbvHeap;// Const Buf View と Texture Buf View の Heap
+ID3D12DescriptorHeap* CbvTbvHeap;//"Cbv"は"ConstBufferView"、"Tbv"は"TextureBufferView"の略
 UINT CbvTbvIncSize;
 UINT CbvTbvCurrentIdx = 0;
+
 //コンスタントバッファマップ用構造体------------------------------------------------
 struct CONST_BUF0 {
 	XMMATRIX worldViewProj;
@@ -73,23 +75,21 @@ struct CONST_BUF1 {
 	XMFLOAT4 diffuse;
 };
 
-//キャラクタごとのリソース--------------------------------------------------------
-//頂点バッファ
-UINT NumVertices;
-ID3D12Resource* VertexBuf;
+//メッシュリソース---------------------------------------------------------------
+//　頂点バッファ
+ID3D12Resource* VertexBuffer;
 D3D12_VERTEX_BUFFER_VIEW Vbv;
-//頂点インデックスバッファ
-UINT NumIndices;
-ID3D12Resource* IndexBuf;
+//　頂点インデックスバッファ
+ID3D12Resource* IndexBuffer;
 D3D12_INDEX_BUFFER_VIEW	Ibv;
-//コンスタントバッファ0
-ID3D12Resource* ConstBuf0;
+//　コンスタントバッファ0
+ID3D12Resource* ConstBuffer0;
 CONST_BUF0* CB0;
-//コンスタントバッファ1
-ID3D12Resource* ConstBuf1;
+//　コンスタントバッファ1
+ID3D12Resource* ConstBuffer1;
 CONST_BUF1* CB1;
-//テクスチャバッファ
-ID3D12Resource* TextureBuf;
+//　テクスチャバッファ
+ID3D12Resource* TextureBuffer;
 
 //エントリーポイント
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
@@ -129,8 +129,6 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				NULL,		//メニューなし
 				GetModuleHandle(0),
 				NULL);		//複数ウィンドウなし
-			//ウィンドウ表示
-			ShowWindow(HWnd, SW_SHOW);
 		}
 		//デバイス
 		{
@@ -176,7 +174,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				FenceValue = 1;
 			}
 		}
-		//レンダーターゲット		
+		//レンダーターゲット（バックバッファ、デプスステンシルバッファ）		
 		{
 			//スワップチェインをつくる(ここにバックバッファが含まれている)
 			{
@@ -187,7 +185,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 				//スワップチェインをつくる
 				DXGI_SWAP_CHAIN_DESC1 desc = {};
-				desc.BufferCount = 2; //バックバッファ2枚
+				desc.BufferCount = NumBackBuffers;
 				desc.Width = ClientWidth;
 				desc.Height = ClientHeight;
 				desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -209,7 +207,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//バックバッファ「ビュー」の入れ物である「ディスクリプタヒープ」をつくる
 			{
 				D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-				desc.NumDescriptors = 2;//バックバッファビュー２つ
+				desc.NumDescriptors = NumBackBuffers;
 				desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;//RenderTargetView
 				desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;//シェーダからアクセスしないのでNONEでOK
 				Hr = Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&BbvHeap));
@@ -217,20 +215,21 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			}
 			//バックバッファ「ビュー」を「ディスクリプタヒープ」につくる
 			{
+				//ビューのつくり先のアドレスをゲット
 				D3D12_CPU_DESCRIPTOR_HANDLE hBbvHeap
 					= BbvHeap->GetCPUDescriptorHandleForHeapStart();
-
+				//次のアドレスを指すためのサイズ
 				BbvIncSize
 					= Device->GetDescriptorHandleIncrementSize(
 						D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
-				for (UINT idx = 0; idx < 2; idx++) {
+				for (UINT idx = 0; idx < NumBackBuffers; idx++) {
 					//バックバッファを取り出す
-					Hr = SwapChain->GetBuffer(idx, IID_PPV_ARGS(&BackBufs[idx]));
+					Hr = SwapChain->GetBuffer(idx, IID_PPV_ARGS(&BackBuffers[idx]));
 					assert(SUCCEEDED(Hr));
 					//バックバッファのビューをヒープにつくる
-					hBbvHeap.ptr += idx * BbvIncSize;
-					Device->CreateRenderTargetView(BackBufs[idx], nullptr, hBbvHeap);
+					hBbvHeap.ptr += BbvIncSize * idx;
+					Device->CreateRenderTargetView(BackBuffers[idx], nullptr, hBbvHeap);
 				}
 			}
 			//デプスステンシルバッファをつくる
@@ -260,7 +259,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 					&desc,
 					D3D12_RESOURCE_STATE_DEPTH_WRITE, //デプス書き込みに使用
 					&depthClearValue,
-					IID_PPV_ARGS(&DepthStencilBuf));
+					IID_PPV_ARGS(&DepthStencilBuffer));
 				assert(SUCCEEDED(Hr));
 			}
 			//デプスステンシルバッファ「ビュー」の入れ物である「デスクリプタヒープ」をつくる
@@ -274,13 +273,15 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			}
 			//デプスステンシルバッファ「ビュー」を「ディスクリプタヒープ」につくる
 			{
+				//ビューのつくり先のアドレスをゲット
+				D3D12_CPU_DESCRIPTOR_HANDLE hDsvHeap
+					= DsvHeap->GetCPUDescriptorHandleForHeapStart();
+
 				D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
 				desc.Format = DXGI_FORMAT_D32_FLOAT;//デプス値に32bit使用
 				desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;//2Dテクスチャ
 				desc.Flags = D3D12_DSV_FLAG_NONE;//フラグは特になし
-				D3D12_CPU_DESCRIPTOR_HANDLE hDsvHeap
-					= DsvHeap->GetCPUDescriptorHandleForHeapStart();
-				Device->CreateDepthStencilView(DepthStencilBuf, &desc, hDsvHeap);
+				Device->CreateDepthStencilView(DepthStencilBuffer, &desc, hDsvHeap);
 			}
 		}{}
 		//パイプライン
@@ -430,8 +431,9 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			ScissorRect.right = ClientWidth;
 			ScissorRect.bottom = ClientHeight;
 		}
+		//ウィンドウ表示
+		ShowWindow(HWnd, SW_SHOW);
 	}{}
-
 	//コンスタントおよびテクスチャの「ディスクリプタヒープ」をつくる
 	{
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -445,8 +447,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		CbvTbvIncSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		CbvTbvCurrentIdx = 0;
 	}
-
-	//リソース
+	//メッシュリソース
 	{
 		//頂点バッファ
 		{
@@ -477,20 +478,20 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 					&desc,
 					D3D12_RESOURCE_STATE_GENERIC_READ,
 					nullptr,
-					IID_PPV_ARGS(&VertexBuf));
+					IID_PPV_ARGS(&VertexBuffer));
 				assert(SUCCEEDED(Hr));
 			}
 			//マップしてデータをコピー
 			{
-				UINT8* mappedBuf;
-				Hr = VertexBuf->Map(0, nullptr, reinterpret_cast<void**>(&mappedBuf));
+				UINT8* mappedBuffer;
+				Hr = VertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mappedBuffer));
 				assert(SUCCEEDED(Hr));
-				memcpy(mappedBuf, ::Vertices, sizeInBytes);
-				VertexBuf->Unmap(0, nullptr);
+				memcpy(mappedBuffer, ::Vertices, sizeInBytes);
+				VertexBuffer->Unmap(0, nullptr);
 			}
 			//ビュー構造体をつくる(ディスクリプタヒープに作らなくてよい）
 			{
-				Vbv.BufferLocation = VertexBuf->GetGPUVirtualAddress();
+				Vbv.BufferLocation = VertexBuffer->GetGPUVirtualAddress();
 				Vbv.SizeInBytes = sizeInBytes;
 				Vbv.StrideInBytes = strideInBytes;
 			}
@@ -523,20 +524,20 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 					&desc,
 					D3D12_RESOURCE_STATE_GENERIC_READ,
 					nullptr,
-					IID_PPV_ARGS(&IndexBuf));
+					IID_PPV_ARGS(&IndexBuffer));
 				assert(SUCCEEDED(Hr));
 			}
 			//マップしてデータをコピー
 			{
-				UINT8* mappedBuf = nullptr;
-				Hr = IndexBuf->Map(0, nullptr, (void**)&mappedBuf);
+				UINT8* mappedBuffer = nullptr;
+				Hr = IndexBuffer->Map(0, nullptr, (void**)&mappedBuffer);
 				assert(SUCCEEDED(Hr));
-				memcpy(mappedBuf, ::Indices, sizeInBytes);
-				IndexBuf->Unmap(0, nullptr);
+				memcpy(mappedBuffer, ::Indices, sizeInBytes);
+				IndexBuffer->Unmap(0, nullptr);
 			}
 			//ビュー構造体をつくる(ディスクリプタヒープに作らなくてよい）
 			{
-				Ibv.BufferLocation = IndexBuf->GetGPUVirtualAddress();
+				Ibv.BufferLocation = IndexBuffer->GetGPUVirtualAddress();
 				Ibv.SizeInBytes = sizeInBytes;
 				Ibv.Format = DXGI_FORMAT_R16_UINT;
 			}
@@ -568,22 +569,23 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 					&desc,
 					D3D12_RESOURCE_STATE_GENERIC_READ,
 					nullptr,
-					IID_PPV_ARGS(&ConstBuf0)
+					IID_PPV_ARGS(&ConstBuffer0)
 				);
 				assert(SUCCEEDED(Hr));
 			}
 			//マップする。コンスタントバッファはUnmapしない
 			{
-				Hr = ConstBuf0->Map(0, nullptr, (void**)&CB0);
+				Hr = ConstBuffer0->Map(0, nullptr, (void**)&CB0);
 				assert(SUCCEEDED(Hr));
 			}
 			//ビューをディスクリプタヒープにつくる
 			{
-				D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
-				desc.BufferLocation = ConstBuf0->GetGPUVirtualAddress();
-				desc.SizeInBytes = static_cast<UINT>(ConstBuf0->GetDesc().Width);
 				auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
 				hCbvTbvHeap.ptr += CbvTbvIncSize * CbvTbvCurrentIdx++;
+
+				D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
+				desc.BufferLocation = ConstBuffer0->GetGPUVirtualAddress();
+				desc.SizeInBytes = static_cast<UINT>(ConstBuffer0->GetDesc().Width);
 				Device->CreateConstantBufferView(&desc, hCbvTbvHeap);
 			}
 		}
@@ -614,28 +616,29 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 					&desc,
 					D3D12_RESOURCE_STATE_GENERIC_READ,
 					nullptr,
-					IID_PPV_ARGS(&ConstBuf1)
+					IID_PPV_ARGS(&ConstBuffer1)
 				);
 				assert(SUCCEEDED(Hr));
 			}
 			//マップする。コンスタントバッファはUnmapしない。
 			{
-				Hr = ConstBuf1->Map(0, nullptr, (void**)&CB1);
+				Hr = ConstBuffer1->Map(0, nullptr, (void**)&CB1);
 				assert(SUCCEEDED(Hr));
 				//コンスタントバッファ１更新
 				CB1->diffuse = {::Diffuse[0],::Diffuse[1],::Diffuse[2],::Diffuse[3]};
 			}
 			//ビューをディスクリプタヒープにつくる
 			{
-				D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
-				desc.BufferLocation = ConstBuf1->GetGPUVirtualAddress();
-				desc.SizeInBytes = static_cast<UINT>(ConstBuf1->GetDesc().Width);
 				auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
 				hCbvTbvHeap.ptr += CbvTbvIncSize * CbvTbvCurrentIdx++;
+
+				D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
+				desc.BufferLocation = ConstBuffer1->GetGPUVirtualAddress();
+				desc.SizeInBytes = static_cast<UINT>(ConstBuffer1->GetDesc().Width);
 				Device->CreateConstantBufferView(&desc, hCbvTbvHeap);
 			}
 		}
-		//テクスチャバッファ(Unified Memory Accessバージョン)
+		//テクスチャバッファ
 		{
 			//ファイルを読み込んで、バッファをつくり、データを詰め込む
 			{
@@ -649,7 +652,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				const UINT64 alignedRowPitch = (width * bytePerPixel + 0xff) & ~0xff;
 
 				//アップロード用中間バッファをつくり、生データをコピーしておく
-				ID3D12Resource* uploadBuf;
+				ID3D12Resource* uploadBuffer;
 				{
 					//テクスチャではなくフツーのバッファとしてつくる
 					D3D12_HEAP_PROPERTIES prop = {};
@@ -675,12 +678,12 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 						&desc,
 						D3D12_RESOURCE_STATE_GENERIC_READ,
 						nullptr,
-						IID_PPV_ARGS(&uploadBuf));
+						IID_PPV_ARGS(&uploadBuffer));
 					assert(SUCCEEDED(Hr));
 
 					//生データをuploadbuffに一旦コピーします
 					uint8_t* mapBuf = nullptr;
-					Hr = uploadBuf->Map(0, nullptr, (void**)&mapBuf);//マップ
+					Hr = uploadBuffer->Map(0, nullptr, (void**)&mapBuf);//マップ
 					auto srcAddress = pixels;
 					auto originalRowPitch = width * bytePerPixel;
 					for (int y = 0; y < height; ++y) {
@@ -689,7 +692,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 						srcAddress += originalRowPitch;
 						mapBuf += alignedRowPitch;
 					}
-					uploadBuf->Unmap(0, nullptr);//アンマップ
+					uploadBuffer->Unmap(0, nullptr);//アンマップ
 				}
 
 				//そして、最終コピー先であるテクスチャバッファを作る
@@ -716,15 +719,15 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 						&desc,
 						D3D12_RESOURCE_STATE_COPY_DEST,
 						nullptr,
-						IID_PPV_ARGS(&TextureBuf));
+						IID_PPV_ARGS(&TextureBuffer));
 					assert(SUCCEEDED(Hr));
 				}
 
-				//uploadBufからtextureBufへコピーする長い道のりが始まります
+				//uploadBufferからtextureBufferへコピーする長い道のりが始まります
 
 				//まずコピー元ロケーションの準備・フットプリント指定
 				D3D12_TEXTURE_COPY_LOCATION src = {};
-				src.pResource = uploadBuf;
+				src.pResource = uploadBuffer;
 				src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 				src.PlacedFootprint.Footprint.Width = static_cast<UINT>(width);
 				src.PlacedFootprint.Footprint.Height = static_cast<UINT>(height);
@@ -733,7 +736,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 				//コピー先ロケーションの準備・サブリソースインデックス指定
 				D3D12_TEXTURE_COPY_LOCATION dst = {};
-				dst.pResource = TextureBuf;
+				dst.pResource = TextureBuffer;
 				dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 				dst.SubresourceIndex = 0;
 
@@ -743,20 +746,20 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				D3D12_RESOURCE_BARRIER barrier = {};
 				barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 				barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-				barrier.Transition.pResource = TextureBuf;
+				barrier.Transition.pResource = TextureBuffer;
 				barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 				barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
 				barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 				CommandList->ResourceBarrier(1, &barrier);
-				//uploadBufアンロード
-				CommandList->DiscardResource(uploadBuf, nullptr);
+				//uploadBufferアンロード
+				CommandList->DiscardResource(uploadBuffer, nullptr);
 				//コマンドリストを閉じて
 				CommandList->Close();
 				//実行
 				ID3D12CommandList* commandLists[] = { CommandList };
 				CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
 				//リソースがGPUに転送されるまで待機する
-				WaitDrawDone();
+				WaitGpu();
 
 				//コマンドアロケータをリセット
 				HRESULT Hr = CommandAllocator->Reset();
@@ -766,19 +769,20 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				assert(SUCCEEDED(Hr));
 
 				//開放
-				uploadBuf->Release();
+				uploadBuffer->Release();
 				stbi_image_free(pixels);
 			}{}
 			//ビューをディスクリプタヒープにつくる
 			{
+				auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
+				hCbvTbvHeap.ptr += CbvTbvIncSize * CbvTbvCurrentIdx++;
+
 				D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-				desc.Format = TextureBuf->GetDesc().Format;
+				desc.Format = TextureBuffer->GetDesc().Format;
 				desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 				desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;//2Dテクスチャ
 				desc.Texture2D.MipLevels = 1;//ミップマップは使用しないので1
-				auto hCbvTbvHeap = CbvTbvHeap->GetCPUDescriptorHandleForHeapStart();
-				hCbvTbvHeap.ptr += CbvTbvIncSize * CbvTbvCurrentIdx++;
-				Device->CreateShaderResourceView(TextureBuf, &desc, hCbvTbvHeap);
+				Device->CreateShaderResourceView(TextureBuffer, &desc, hCbvTbvHeap);
 			}
 		}{}
 	}{}
@@ -796,7 +800,6 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				continue;
 			}
 		}
-
 		//コンスタントバッファ更新
 		{
 			//回転用ラジアン
@@ -811,17 +814,16 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, Aspect, 1.0f, 10.0f);
 			CB0->worldViewProj = world * view * proj;
 		}
-
 		//描画開始処理
 		{
 			//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
-			BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
+			BackBufferIdx = SwapChain->GetCurrentBackBufferIndex();
 
 			//バリアでバックバッファを描画ターゲットに切り替える
 			D3D12_RESOURCE_BARRIER barrier;
 			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;//このバリアは状態遷移タイプ
 			barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			barrier.Transition.pResource = BackBufs[BackBufIdx];//リソースはバックバッファ
+			barrier.Transition.pResource = BackBuffers[BackBufferIdx];//リソースはバックバッファ
 			barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;//遷移前はPresent
 			barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;//遷移後は描画ターゲット
 			barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -829,7 +831,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 			//バックバッファの場所を指すディスクリプタヒープハンドルを用意する
 			auto hBbvHeap = BbvHeap->GetCPUDescriptorHandleForHeapStart();
-			hBbvHeap.ptr += BackBufIdx * BbvIncSize;
+			hBbvHeap.ptr += BackBufferIdx * BbvIncSize;
 			//デプスステンシルバッファのディスクリプタハンドルを用意する
 			auto hDsvHeap = DsvHeap->GetCPUDescriptorHandleForHeapStart();
 			//バックバッファとデプスステンシルバッファを描画ターゲットとして設定する
@@ -850,7 +852,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//ディスクリプタヒープをＧＰＵにセット
 			CommandList->SetDescriptorHeaps(1, &CbvTbvHeap);
 		}
-		//キャラクタの描画
+		//メッシュの描画
 		{
 			//頂点をセット
 			CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -869,7 +871,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			D3D12_RESOURCE_BARRIER barrier;
 			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;//このバリアは状態遷移タイプ
 			barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			barrier.Transition.pResource = BackBufs[BackBufIdx];//リソースはバックバッファ
+			barrier.Transition.pResource = BackBuffers[BackBufferIdx];//リソースはバックバッファ
 			barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;//遷移前は描画ターゲット
 			barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;//遷移後はPresent
 			barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -881,7 +883,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			ID3D12CommandList* commandLists[] = { CommandList };
 			CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
 			//描画完了を待つ
-			WaitDrawDone();
+			WaitGpu();
 
 			//バックバッファを表示
 			SwapChain->Present(1, 0);
@@ -896,16 +898,16 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	}{}
 	//解放
 	{
-		WaitDrawDone();
+		WaitGpu();
 
 		//リソース
-		ConstBuf1->Unmap(0, nullptr);
-		ConstBuf0->Unmap(0, nullptr);
-		TextureBuf->Release();
-		ConstBuf1->Release();
-		ConstBuf0->Release();
-		IndexBuf->Release();
-		VertexBuf->Release();
+		ConstBuffer1->Unmap(0, nullptr);
+		ConstBuffer0->Unmap(0, nullptr);
+		TextureBuffer->Release();
+		ConstBuffer1->Release();
+		ConstBuffer0->Release();
+		IndexBuffer->Release();
+		VertexBuffer->Release();
 
 		CbvTbvHeap->Release();
 
@@ -914,10 +916,10 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		RootSignature->Release();
 
 		DsvHeap->Release();
-		DepthStencilBuf->Release();
+		DepthStencilBuffer->Release();
 		BbvHeap->Release();
-		BackBufs[0]->Release();
-		BackBufs[1]->Release();
+		BackBuffers[0]->Release();
+		BackBuffers[1]->Release();
 		SwapChain->Release();
 
 		CloseHandle(FenceEvent);
@@ -930,7 +932,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 }
 
 //描画完了を待つ
-void WaitDrawDone()
+void WaitGpu()
 {
 	//現在のFence値がコマンド終了後にFenceに書き込まれるようにする
 	UINT64 fvalue = FenceValue;
