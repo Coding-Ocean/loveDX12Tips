@@ -36,9 +36,9 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
 //ï`âÊån
 void setClearColor(float r, float g, float b);
 void beginRender();
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvTbvIdx);
-//===Ç±Ç±Çí«â¡
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvIdx, UINT tbvIdx);
+//===Ç±ÇÍÇ…ïœçX
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, 
+	UINT cbvIdx, UINT tbvIdx);
 void endRender();
 //Getån
 ComPtr<ID3D12Device>& device();
