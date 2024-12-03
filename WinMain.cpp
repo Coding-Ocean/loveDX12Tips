@@ -1,7 +1,7 @@
 #include"graphic.h"
 #include"model.h"
 
-//メッシュデータ
+//メッシュリソース
 //　頂点バッファ
 ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
 D3D12_VERTEX_BUFFER_VIEW Vbv;
@@ -22,21 +22,20 @@ UINT CbvTbvIdx;
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Graphic Functions2", 1280, 720);
+	window(L"Graphic Functions", 1280, 720);
 	setClearColor(0.25f, 0.5f, 0.9f);
 
 	HRESULT Hr;
 
-	//リソース初期化
+	//最初に必要な数のコンスタント・テクスチャ用ディスクリプタヒープをつくる
 	{
-		//最初に必要な数のコンスタントバッファ系ディスクリプタヒープをつくっておく
-		{
-			Hr = createDescriptorHeap(3);
-			assert(SUCCEEDED(Hr));
-		}
+		Hr = createDescriptorHeap(3);
+		assert(SUCCEEDED(Hr));
+	}
 
-		//１つのメッシュをつくっていく
-		//　頂点バッファ
+	//１つのメッシュをつくる
+	{
+		//頂点バッファ
 		{
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(::Vertices);
@@ -50,7 +49,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//ビューをつくる
 			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, Vbv);
 		}
-		//　頂点インデックスバッファ
+		//頂点インデックスバッファ
 		{
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(::Indices);
@@ -63,10 +62,10 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//ビューをつくる
 			createIndexBufferView(IndexBuffer, sizeInBytes, Ibv);
 		}
-		//　コンスタントバッファ０
+		//コンスタントバッファ０
 		{
 			//バッファをつくる
-			Hr = createBuffer(alignedSize(sizeof(CB0)), ConstBuffer0);
+			Hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), ConstBuffer0);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
 			Hr = mapBuffer(ConstBuffer0, (void**)&CB0);
@@ -74,10 +73,10 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//ビューを作り、そのインデックスを取得しておく
 			CbvTbvIdx = createConstantBufferView(ConstBuffer0);
 		}
-		//　コンスタントバッファ１
+		//コンスタントバッファ１
 		{
 			//バッファをつくる
-			Hr = createBuffer(alignedSize(sizeof(CB1)), ConstBuffer1);
+			Hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), ConstBuffer1);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
 			Hr = mapBuffer(ConstBuffer1, (void**)&CB1);
@@ -87,7 +86,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//ビューをつくる
 			createConstantBufferView(ConstBuffer1);
 		}
-		//　テクスチャバッファ
+		//テクスチャバッファ
 		{
 			//バッファをつくる
 			Hr = createTextureBuffer(::TextureFilename, TextureBuffer);
