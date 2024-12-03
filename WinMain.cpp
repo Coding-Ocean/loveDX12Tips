@@ -25,11 +25,11 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		XMFLOAT3 eye = {-sin(r)*radius, 0.7f, -cos(r)*radius}, focus = {0, 0, 0}, up = {0, 1, 0};
 		XMMATRIX view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&focus), XMLoadFloat3(&up));
 		//プロジェクションマトリックス
-		XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
+		XMMATRIX viewProj = view * XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
 		//ライトの位置
 		XMFLOAT4 lightPos(0, 1, 0, 0);
 		//アニメーションメッシュの行列とコンスタントバッファ更新
-		hierarchyMesh.update(world, view, proj, lightPos);
+		hierarchyMesh.update(world, viewProj, lightPos);
 
 		//描画------------------------------------------------------------------
 		beginRender();

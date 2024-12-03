@@ -12,7 +12,7 @@ using namespace Microsoft::WRL;
 struct CONST_BUF0
 {
 	XMFLOAT4 lightPos;
-	XMMATRIX ViewProj;
+	XMMATRIX viewProj;
 	XMMATRIX world;
 };
 struct CONST_BUF1

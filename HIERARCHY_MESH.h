@@ -48,7 +48,7 @@ public:
 	HIERARCHY_MESH();
 	~HIERARCHY_MESH();
 	void create();
-	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& light);
+	void update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& light);
 	void draw();
 private:
 	void UpdateWorlds(MESH& mesh, XMMATRIX& parentWorld);

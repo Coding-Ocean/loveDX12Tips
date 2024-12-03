@@ -115,7 +115,7 @@ void HIERARCHY_MESH::create()
 	}
 }
 
-void HIERARCHY_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos)
+void HIERARCHY_MESH::update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& lightPos)
 {
 	//どのキーフレームの間にいるのか
 	int keyFrameIdx = FrameCount / Interval;
@@ -139,9 +139,9 @@ void HIERARCHY_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMF
 
 	//コンスタントバッファ更新
 	for (auto& mesh : Meshes) {
-		mesh.cb0->ViewProj = view * proj;
-		mesh.cb0->world = mesh.world;
 		mesh.cb0->lightPos = lightPos;
+		mesh.cb0->viewProj = viewProj;
+		mesh.cb0->world = mesh.world;
 	}
 }
 void HIERARCHY_MESH::UpdateWorlds(MESH& mesh, XMMATRIX& parentWorld)
