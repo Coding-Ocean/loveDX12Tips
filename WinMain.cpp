@@ -1,7 +1,6 @@
 #include"graphic.h"
 #include"SKELETAL_MESH.h"
 
-
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Skeletal Mesh", 1280, 720);

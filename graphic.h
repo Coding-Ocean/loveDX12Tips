@@ -29,6 +29,7 @@ void closeEventHandle();
 HRESULT createDescriptorHeap(UINT numDescriptors);
 //バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
+UINT alignedSize(size_t size);
 HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT mapBuffer(ComPtr<ID3D12Resource>& buffer, void** mappedBuffer);
 void unmapBuffer(ComPtr<ID3D12Resource>& buffer);
