@@ -5,7 +5,6 @@
     <ClCompile Include="graphic.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="model.h" />
     <ClInclude Include="BIN_FILE12.h">
       <Filter>utility</Filter>
     </ClInclude>

@@ -10,8 +10,6 @@ using namespace Microsoft::WRL;
 //マップ用コンスタントバッファ構造体
 struct CONST_BUF0 {
 	XMMATRIX worldViewProj;
-};
-struct CONST_BUF1 {
 	XMFLOAT4 diffuse;
 };
 
@@ -28,20 +26,24 @@ HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffe
 HRESULT mapBuffer(ComPtr<ID3D12Resource>& buffer, void** mappedBuffer);
 void unmapBuffer(ComPtr<ID3D12Resource>& buffer);
 UINT alignedSize(size_t size);
-HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuf);
+HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuf,int* w=nullptr, int* h=nullptr);
 //ディスクリプタ系
 void createVertexBufferView(ComPtr<ID3D12Resource>& vertexBuffer, UINT sizeInBytes, UINT strideInBytes, D3D12_VERTEX_BUFFER_VIEW& vertexBufferView);
 void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes, D3D12_INDEX_BUFFER_VIEW& indexBufferView);
 UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer);
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
+UINT createTextureBufferAndView(const char* filename, ComPtr<ID3D12Resource>& TextureBuf, int* w = nullptr, int* h = nullptr);
 //描画系
 void setClearColor(float r, float g, float b);
 void beginRender();
+void drawImage(UINT cbvIdx, UINT tbvIdx);
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& vndexBufferView, UINT cbvTbvIdx);
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW* vertexBufferView, UINT cbvTbvIdx);
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, UINT cbvTbvIdx);
 void endRender();
 //Get系
 ComPtr<ID3D12Device>& device();
 ComPtr<ID3D12GraphicsCommandList>& commandList();
 UINT cbvTbvIncSize();
+float clientWidth();
+float clientHeight();
 float aspect();

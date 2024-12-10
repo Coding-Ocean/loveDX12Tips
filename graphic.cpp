@@ -4,6 +4,7 @@
 #include<Windows.h>
 #include<dxgi1_6.h>
 #include<cassert>
+#include<map>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
@@ -51,6 +52,9 @@ D3D12_RECT ScissorRect;
 ComPtr<ID3D12DescriptorHeap> CbvTbvHeap;
 UINT CbvTbvIncSize = 0;
 UINT CurrentCbvTbvIdx = 0;
+//===共有使用する２D頂点バッファ
+ComPtr<ID3D12Resource>   SquareVertexBuffer = nullptr;
+D3D12_VERTEX_BUFFER_VIEW SquareVbv;
 
 //プライベートな関数--------------------------------------------------------------
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -245,37 +249,34 @@ void CreateRenderTarget()
 		Device->CreateDepthStencilView(DepthStencilBuffer.Get(), &desc, hDsvHeap);
 	}
 }
+//===2D用
 void CreatePipeline()
 {
 	//ルートシグネチャ
 	{
 		//ディスクリプタレンジ。ディスクリプタヒープとシェーダを紐づける役割をもつ。
-		D3D12_DESCRIPTOR_RANGE  range[3] = {};
-		UINT b0 = 0;
+		D3D12_DESCRIPTOR_RANGE  range[2] = {};
 		range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-		range[0].BaseShaderRegister = b0;
+		range[0].BaseShaderRegister = 0;
 		range[0].NumDescriptors = 1;
 		range[0].RegisterSpace = 0;
 		range[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-		UINT b1 = 1;
-		range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-		range[1].BaseShaderRegister = b1;
+		range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		range[1].BaseShaderRegister = 0;
 		range[1].NumDescriptors = 1;
 		range[1].RegisterSpace = 0;
 		range[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-		UINT t0 = 0;
-		range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-		range[2].BaseShaderRegister = t0;
-		range[2].NumDescriptors = 1;
-		range[2].RegisterSpace = 0;
-		range[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 		//ルートパラメタをディスクリプタテーブルとして使用
-		D3D12_ROOT_PARAMETER rootParam[1] = {};
+		D3D12_ROOT_PARAMETER rootParam[2] = {};
 		rootParam[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-		rootParam[0].DescriptorTable.pDescriptorRanges = range;
-		rootParam[0].DescriptorTable.NumDescriptorRanges = _countof(range);
+		rootParam[0].DescriptorTable.pDescriptorRanges = &range[0];
+		rootParam[0].DescriptorTable.NumDescriptorRanges = 1;
 		rootParam[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+		rootParam[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParam[1].DescriptorTable.pDescriptorRanges = &range[1];
+		rootParam[1].DescriptorTable.NumDescriptorRanges = 1;
+		rootParam[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
 		//サンプラの記述。このサンプラがシェーダーの s0 にセットされる
 		D3D12_STATIC_SAMPLER_DESC samplerDesc[1] = {};
@@ -350,7 +351,7 @@ void CreatePipeline()
 	D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
 	depthStencilDesc.DepthEnable = true;
 	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;//全て書き込み
-	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;//小さい方を採用
+	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;//小さい方を採用
 	depthStencilDesc.StencilEnable = false;//ステンシルバッファは使わない
 
 	//ここまでの記述をまとめてパイプラインステートオブジェクトをつくる
@@ -381,14 +382,39 @@ void CreatePipeline()
 	Viewport.Height = (float)ClientHeight;
 	Viewport.MinDepth = 0.0f;
 	Viewport.MaxDepth = 1.0f;
-
+	
 	//切り取り矩形を設定
 	ScissorRect.left = 0;
 	ScissorRect.top = 0;
 	ScissorRect.right = ClientWidth;
 	ScissorRect.bottom = ClientHeight;
 }
-
+//===
+void CreateSquareVertexBuffer()
+{
+	//共有する頂点バッファ
+	{
+		unsigned numVertexElements = 5;//１頂点の要素数
+		float vertices[] = {
+			//position            texcoord
+			-0.5f,  0.5f,  0.0f,  0.0f,  0.0f, //左上
+			-0.5f, -0.5f,  0.0f,  0.0f,  1.0f, //左下
+			 0.5f,  0.5f,  0.0f,  1.0f,  0.0f, //右上
+			 0.5f, -0.5f,  0.0f,  1.0f,  1.0f, //右下
+		};
+		//データサイズを求めておく
+		UINT sizeInBytes = sizeof(vertices);
+		UINT strideInBytes = sizeof(float) * numVertexElements;
+		//バッファをつくる
+		Hr = createBuffer(sizeInBytes, SquareVertexBuffer);
+		assert(SUCCEEDED(Hr));
+		//バッファにデータを入れる
+		Hr = updateBuffer(vertices, sizeInBytes, SquareVertexBuffer);
+		assert(SUCCEEDED(Hr));
+		//ビューをつくる
+		createVertexBufferView(SquareVertexBuffer, sizeInBytes, strideInBytes, SquareVbv);
+	}
+}
 //パブリックな関数---------------------------------------------------------------
 //システム系
 void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed, int clientPosX, int clientPosY)
@@ -408,6 +434,8 @@ void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowe
 	CreateDevice();
 	CreateRenderTarget();
 	CreatePipeline();
+	//===
+	CreateSquareVertexBuffer();
 
 	ShowWindow(HWnd, SW_SHOW);
 }
@@ -504,7 +532,7 @@ UINT alignedSize(size_t size)
 {
 	return (size+0xff)&~0xff;
 }
-HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuf)
+HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuf, int* w, int*h)
 {
 	//ファイルを読み込み、生データを取り出す
 	unsigned char* pixels = nullptr;
@@ -515,7 +543,8 @@ HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& Textur
 		MessageBoxA(0, filename, "ファイルがないっす", 0);
 		exit(0);
 	}
-
+	if (w)*w = width;
+	if (h)*h = height;
 	//１行のピッチを256の倍数にしておく(バッファサイズは256の倍数でなければいけない)
 	const UINT64 alignedRowPitch = (width * bytePerPixel + 0xff) & ~0xff;
 
@@ -677,6 +706,28 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 	Device->CreateShaderResourceView(textureBuffer.Get(), &desc, hCbvTbvHeap);
 	return CurrentCbvTbvIdx++;
 }
+//===
+struct TEXTURE_DATA {
+	UINT idx;
+	int width;
+	int height;
+};
+std::map<std::string, TEXTURE_DATA>TextureNameMap;//DuplicateCheckTextureMap
+UINT createTextureBufferAndView(const char* filename, ComPtr<ID3D12Resource>& TextureBuffer, int* w, int* h)
+{
+	if (TextureNameMap.find(filename) != TextureNameMap.end()) {
+		TEXTURE_DATA td = TextureNameMap[filename];
+		*w = td.width;
+		*h = td.height;
+		return td.idx;
+	}
+	
+	createTextureBuffer(filename, TextureBuffer, w, h);
+	UINT idx = createTextureBufferView(TextureBuffer); 
+	TEXTURE_DATA td = { idx,*w,*h };
+	TextureNameMap[filename] = td;
+	return idx;
+}
 //描画系
 void setClearColor(float r, float g, float b)
 {
@@ -723,16 +774,34 @@ void beginRender()
 	//ディスクリプタヒープをＧＰＵにセット
 	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 }
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW* vertexBufferView, UINT cbvTbvIdx)
+//===
+void drawImage(UINT cbvIdx, UINT tbvIdx)
 {
 	//頂点をセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	CommandList->IASetVertexBuffers(0, 1, vertexBufferView);
+	CommandList->IASetVertexBuffers(0, 1, &SquareVbv);
+	//コンスタントをセット
+	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+	//テクスチャをセット
+	hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * tbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
+	//描画
+	UINT numVertices = SquareVbv.SizeInBytes / SquareVbv.StrideInBytes;
+	CommandList->DrawInstanced(numVertices, 1, 0, 0);
+}
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, UINT cbvTbvIdx)
+{
+	//頂点をセット
+	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	CommandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 	//ディスクリプタヒープをディスクリプタテーブルにセット
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvTbvIdx;
 	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-	UINT numVertices = vertexBufferView->SizeInBytes / vertexBufferView->StrideInBytes;
+	UINT numVertices = vertexBufferView.SizeInBytes / vertexBufferView.StrideInBytes;
 	CommandList->DrawInstanced(numVertices, 1, 0, 0);
 }
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& indexBufferView, UINT cbvTbvIdx)
@@ -795,4 +864,13 @@ UINT cbvTbvIncSize()
 float aspect()
 {
 	return Aspect;
+}
+//===
+float clientWidth()
+{
+	return (float)ClientWidth;
+}
+float clientHeight()
+{
+	return (float)ClientHeight;
 }
