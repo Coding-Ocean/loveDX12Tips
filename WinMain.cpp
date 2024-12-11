@@ -90,7 +90,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 	//最初に必要な数のコンスタント・テクスチャ用ディスクリプタヒープをつくる
 	{
-		HRESULT hr = createDescriptorHeap(3 * numImages);
+		HRESULT hr = createDescriptorHeap(3 * numImages+100);
 		assert(SUCCEEDED(hr));
 	}
 
@@ -141,8 +141,11 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//描画------------------------------------------------------------------
 		beginRender();//rootSignatureを変更してます！
 		for (auto& image : images) {
-			image.draw();
+			//image.draw();
 		}
+
+		text("あいうえお", 0, 0, 1, 0, 1, 1);
+		
 		endRender();
 	}
 	

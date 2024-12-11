@@ -5,6 +5,7 @@
 #include<dxgi1_6.h>
 #include<cassert>
 #include<map>
+#include<unordered_map>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
@@ -874,3 +875,326 @@ float clientHeight()
 {
 	return (float)ClientHeight;
 }
+
+//font
+//現在描画中のフォントフェイス構造体
+struct CURRENT_FONT_FACE {
+	std::string name;
+	unsigned long charset;
+	int id;
+	int size;
+};
+static CURRENT_FONT_FACE CurFontFace{ "ＭＳ ゴシック",SHIFTJIS_CHARSET,0,50 };
+
+//FontFace名ごとにｉｄを付けて管理するマップ
+static std::unordered_map<std::string, int> FontIdMap{ {CurFontFace.name, 0} };
+static int FontIdCnt = 0;
+
+//描画するフォントを設定する
+void fontFace(const char* fontname, unsigned charset)
+{
+	//フォント名とcharset
+	CurFontFace.name = fontname;
+	CurFontFace.charset = charset;
+
+	//CurFontFace.idをセットする
+	auto itr = FontIdMap.find(fontname);
+	if (itr == FontIdMap.end()) {
+		FontIdCnt++;
+		assert(FontIdCnt < 32);//FontFaceこれ以上追加できません;
+		FontIdMap[fontname] = FontIdCnt;
+		CurFontFace.id = FontIdCnt;
+	}
+	else {
+		CurFontFace.id = itr->second;
+	}
+}
+
+//フォントサイズを設定する
+void fontSize(int size)
+{
+	assert(size <= 2048);//"FontSize","2048より大きいサイズは指定できません";
+	CurFontFace.size = size;
+}
+
+//FONT_TEXTURE構造体(下のマップに保存していくフォントの描画に必要なデータ達)
+struct FONT_TEXTURE {
+	//コンスタントバッファ0
+	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
+	CONST_BUF0* cb0 = nullptr;
+	//テクスチャバッファ
+	ComPtr<ID3D12Resource> textureBuffer = nullptr;
+	//ディスクリプタインデックス（graphic.cppにあるCbvTbvHeap上のインデックス）
+	UINT cbvIdx = 0;
+	UINT tbvIdx = 0;
+	float texWidth=0, texHeight=0;//テクスチャの幅、高さ
+	float width=0, height=0;//描画幅、高さ
+	float ofstX=0, ofstY=0;//描画するときにずらす値
+
+	////デフォルトコンストラクタ
+	//FONT_TEXTURE()
+	//{
+	//}
+	////コンストラクタ。描画用にint型をfloat型に変換して保持する
+	//FONT_TEXTURE(
+	//	IDirect3DTexture9* obj,
+	//	int texWidth, int texHeight,
+	//	int width, int height,
+	//	int ofstX, int ofstY)
+	//	: obj(obj)
+	//	, width((float)width), height((float)height)
+	//	, texWidth((float)texWidth), texHeight((float)texHeight)
+	//	, ofstX((float)ofstX), ofstY((float)ofstY)
+	//{
+	//}
+};
+//フォントテクスチャデータを管理するマップ
+static std::unordered_map<DWORD, FONT_TEXTURE> FontTextureMap;
+
+//１文字分のフォントテクスチャをつくって上のマップに追加する
+FONT_TEXTURE* createFontTexture(DWORD key)
+{
+	//フォント（サイズやフォントの種類）を決める！
+	HFONT hFont = CreateFontA(
+		CurFontFace.size, 0, 0, 0, 0, 0, 0, 0,
+		CurFontFace.charset,
+		OUT_TT_ONLY_PRECIS, CLIP_DEFAULT_PRECIS,
+		PROOF_QUALITY, FIXED_PITCH | FF_MODERN,
+		CurFontFace.name.c_str()
+	);
+	assert(hFont); //"Font", "Create error"
+
+	//デバイスコンテキスト取得
+	HDC hdc = GetDC(NULL);
+	//デバイスコンテキストにフォントを設定
+	HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
+
+	//フォントの各種寸法とビットマップを取得
+	TEXTMETRIC tm;
+	GetTextMetrics(hdc, &tm);
+	GLYPHMETRICS gm;
+	CONST MAT2 mat = { {0,1},{0,0},{0,0},{0,1} };
+	UINT code = key & 0xffff;//keyから文字コードを取り出す
+	DWORD alphaBmpSize = GetGlyphOutline(hdc, code, GGO_GRAY4_BITMAP, &gm, 0, NULL, &mat);
+	BYTE* alphaBmpBuf = new BYTE[alphaBmpSize];
+	GetGlyphOutline(hdc, code, GGO_GRAY4_BITMAP, &gm, alphaBmpSize, alphaBmpBuf, &mat);
+	//α値の階調 (GGO_GRAY4_BITMAPは17階調。alphaBmpBuf[i]は０～１６の値となる)
+	DWORD tone = 16;//最大値
+
+	//デバイスコンテキストとフォントハンドルの開放
+	DeleteObject(hFont);
+	SelectObject(hdc, oldFont);
+	ReleaseDC(NULL, hdc);
+
+	//画像の幅と高さ
+	DWORD texWidth = (gm.gmBlackBoxX + 3) & 0xfffc;//4の倍数にする
+	DWORD texHeight = gm.gmBlackBoxY;
+
+	//１行のピッチを256の倍数にしておく（横長長方形バッファになる）
+	DWORD bytePerPixel = 4;//バッファは１ピクセル４バイト
+	const UINT64 alignedRowPitch = (bytePerPixel * texWidth + 0xff) & ~0xff;
+	//アップロード用中間バッファをつくり、フォント画像をつくる
+	ID3D12Resource* uploadBuffer;
+	{
+		//テクスチャではなく１次元の配列バッファとしてつくる
+		D3D12_HEAP_PROPERTIES prop = {};
+		prop.Type = D3D12_HEAP_TYPE_UPLOAD;
+		prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		prop.CreationNodeMask = 0;
+		prop.VisibleNodeMask = 0;
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		desc.Format = DXGI_FORMAT_UNKNOWN;
+		desc.Width = alignedRowPitch * texHeight;
+		desc.Height = 1;
+		desc.DepthOrArraySize = 1;
+		desc.MipLevels = 1;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;//連続したデータですよ
+		desc.Flags = D3D12_RESOURCE_FLAG_NONE;//とくにフラグなし
+		desc.SampleDesc.Count = 1;//通常テクスチャなのでアンチェリしない
+		desc.SampleDesc.Quality = 0;
+		Hr = Device->CreateCommittedResource(
+			&prop,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			nullptr,
+			IID_PPV_ARGS(&uploadBuffer));
+		assert(SUCCEEDED(Hr));
+
+		//アルファビットマップをもとにuploadbuffにフォント画像をつくる
+		//横長長方形バッファの左部分に寄せてデータを入れていくイメージ
+		DWORD* mapBuf = nullptr;
+		Hr = uploadBuffer->Map(0, nullptr, (void**)&mapBuf);
+		DWORD x, y, i, alpha;
+		for (y = 0; y < texHeight; ++y) {
+			for (x = 0; x < texWidth; x++) {
+				i = y * texWidth + x;
+				if (i < alphaBmpSize) {
+					alpha = alphaBmpBuf[i] * 255 / tone;//0～16を0～255に変換
+					mapBuf[x] = (alpha << 24) | 0x00ffffff;//ABGR(リトルエンディアン)
+				}
+			}
+			mapBuf += alignedRowPitch / 4;//1行ごとの辻褄を合わせてやる
+		}
+		uploadBuffer->Unmap(0, nullptr);//アンマップ
+	}
+
+	//そして、最終コピー先であるテクスチャバッファを作る
+	{
+		D3D12_HEAP_PROPERTIES prop = {};
+		prop.Type = D3D12_HEAP_TYPE_DEFAULT;
+		prop.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		prop.CreationNodeMask = 0;
+		prop.VisibleNodeMask = 0;
+		D3D12_RESOURCE_DESC desc = {};
+		desc.MipLevels = 1;
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.Width = texWidth;
+		desc.Height = texHeight;
+		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		desc.DepthOrArraySize = 1;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		Hr = Device->CreateCommittedResource(
+			&prop,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(FontTextureMap[key].textureBuffer.GetAddressOf()));
+		assert(SUCCEEDED(Hr));
+	}
+
+	//uploadBufferからtextureBufへコピーする長い道のり
+	{
+		//まずコピー元ロケーションの準備・フットプリント指定
+		D3D12_TEXTURE_COPY_LOCATION src = {};
+		src.pResource = uploadBuffer;
+		src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		src.PlacedFootprint.Footprint.Width = static_cast<UINT>(texWidth);
+		src.PlacedFootprint.Footprint.Height = static_cast<UINT>(texHeight);
+		src.PlacedFootprint.Footprint.Depth = static_cast<UINT>(1);
+		src.PlacedFootprint.Footprint.RowPitch = static_cast<UINT>(alignedRowPitch);
+		src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		//コピー先ロケーションの準備・サブリソースインデックス指定
+		D3D12_TEXTURE_COPY_LOCATION dst = {};
+		dst.pResource = FontTextureMap[key].textureBuffer.Get();
+		dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		dst.SubresourceIndex = 0;
+		//uploadBufferからTextureBufferにコピーする
+		CommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+		//TextureBufferをコピー先からシェーダリソースに遷移する
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource = FontTextureMap[key].textureBuffer.Get();
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		CommandList->ResourceBarrier(1, &barrier);
+		//uploadBufferアンロード
+		CommandList->DiscardResource(uploadBuffer, nullptr);
+		//コマンドリストを閉じて
+		//CommandList->Close();
+		//実行
+		//ID3D12CommandList* commandLists[] = { CommandList.Get()};
+		//CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+		//uploadBufferがTextureBufferにコピーされるまで待機する
+		//waitGPU();
+
+		////コマンドアロケータをリセット
+		//HRESULT Hr = CommandAllocator->Reset();
+		//assert(SUCCEEDED(Hr));
+		////コマンドリストをリセット
+		//Hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
+		//assert(SUCCEEDED(Hr));
+	}
+	//開放
+	uploadBuffer->Release();
+	delete[] alphaBmpBuf;
+
+
+	//FONT_TEXTURE(描画に必要なデータ達)をマップに登録
+	createBuffer(alignedSize(sizeof(CONST_BUF0)), FontTextureMap[key].constBuffer0);
+	mapBuffer(FontTextureMap[key].constBuffer0, (void**)&FontTextureMap[key].cb0);
+	
+	FontTextureMap[key].cbvIdx = createConstantBufferView(FontTextureMap[key].constBuffer0);
+	FontTextureMap[key].tbvIdx = createTextureBufferView(FontTextureMap[key].textureBuffer);
+
+	FontTextureMap[key].texWidth = (float)texWidth;
+	FontTextureMap[key].texHeight = (float)texHeight;//テクスチャの幅と高さ
+	FontTextureMap[key].width = (float)gm.gmCellIncX;
+	FontTextureMap[key].height = (float)tm.tmHeight;//描画する幅と高さ
+	FontTextureMap[key].ofstX = (float)gm.gmptGlyphOrigin.x;
+	FontTextureMap[key].ofstY = (float)tm.tmAscent - gm.gmptGlyphOrigin.y;//描画する時にずらす値
+
+	return &FontTextureMap[key];
+}
+
+//指定した文字列を指定したスクリーン座標で描画する
+float text(const char* str, float x, float y, float r, float g, float b, float a)
+{
+	int len = (int)strlen(str);
+
+	//ループしながら１文字ずつ描画していく
+	for (int i = 0; i < len; i++) {
+
+		//文字コードの決定(マルチバイトコードしか扱わない前提)
+		WORD code;
+		if (IsDBCSLeadByte(str[i])) {
+			//2バイト文字のコードは[先導コード] + [文字コード]です
+			code = (BYTE)str[i] << 8 | (BYTE)str[i + 1];
+			i++;
+		}
+		else {
+			//1バイト文字のコード
+			code = str[i];
+		}
+
+		//マップ検索用key(フォントID＋フォントサイズ＋文字コード)をつくる
+		DWORD key = CurFontFace.id << 27 | CurFontFace.size << 16 | code;
+
+		//keyでマップ内にテクスチャがあるか探す
+		FONT_TEXTURE* tex = 0;
+		auto itr = FontTextureMap.find(key);
+		if (itr == FontTextureMap.end()) {
+			//なかったのでフォントのテクスチャをこの場でつくってアドレスをもらう
+			tex = createFontTexture(key);
+		}
+		else {
+			//あったのでアドレスを取得する
+			tex = &itr->second;
+		}
+
+		//2D用マトリックス
+		float chw = clientWidth() / 2;//client half width
+		float chh = clientHeight() / 2;//client half height
+		XMMATRIX world;
+		if (1) {
+			world = XMMatrixTranslation(0.5f, -0.5f, 0);//Px,Pyの位置に画像の左上がくる
+		}
+		else {
+			world = XMMatrixIdentity();
+		}
+		world *=
+			XMMatrixScaling(tex->texWidth, tex->texHeight, 1)
+			* XMMatrixTranslation(tex->ofstX, -tex->ofstY, 0)
+			* XMMatrixScaling(1.0f / chw, 1.0f / chh, 1)
+			* XMMatrixTranslation(x / chw - 1, y / -chh + 1, 0);
+		tex->cb0->worldViewProj = world;
+		tex->cb0->diffuse = { r,g,b,a };
+		
+		//描画
+		drawImage(tex->cbvIdx, tex->tbvIdx);
+
+		//次の文字の描画位置ｘを求めておく
+		x += tex->width;
+	}
+	//横に続けて別の文字列を表示するための座標を返す
+	return x;
+}
+

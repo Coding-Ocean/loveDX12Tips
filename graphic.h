@@ -47,3 +47,6 @@ UINT cbvTbvIncSize();
 float clientWidth();
 float clientHeight();
 float aspect();
+
+float text(const char* str, float x, float y, float r, float g, float b, float a);
+
