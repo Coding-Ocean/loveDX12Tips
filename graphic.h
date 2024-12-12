@@ -2,11 +2,13 @@
 #include<d3d12.h>
 #include<DirectXMath.h>
 #include<wrl.h>
+#include<string>
 using namespace DirectX;
 using namespace Microsoft::WRL;
 #define WINDOW true
 #define NO_WINDOW false
 
+//===
 //マップ用コンスタントバッファ構造体
 struct CONST_BUF0 {
 	XMMATRIX worldViewProj;
@@ -48,5 +50,26 @@ float clientWidth();
 float clientHeight();
 float aspect();
 
+//===
+constexpr ULONG JP = 128;
+constexpr ULONG EN = 0;
+void initFontConstantIdx();//quit内で呼び出す
+void createFontConstants(UINT numFontConstants);
+void fontFace(const char* fontname, unsigned charset);
+void fontSize(int size);
 float text(const char* str, float x, float y, float r, float g, float b, float a);
 
+void setPrintInitX(float initX);
+void setPrintInitY(float initY);
+void initPrintPosY();
+void printColor(float r, float g, float b, float a=1);
+void print(const char* format, ...);
+
+class USER_FONT
+{
+private:
+	std::string Filename;
+public:
+	USER_FONT(const char* filename);
+	~USER_FONT();
+};

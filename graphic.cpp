@@ -6,6 +6,7 @@
 #include<cassert>
 #include<map>
 #include<unordered_map>
+#include<memory>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
@@ -28,6 +29,9 @@ ComPtr<ID3D12Device> Device;
 ComPtr<ID3D12CommandAllocator> CommandAllocator;
 ComPtr<ID3D12GraphicsCommandList> CommandList;
 ComPtr<ID3D12CommandQueue> CommandQueue;
+
+ComPtr<ID3D12CommandAllocator> CommandAllocator2;
+ComPtr<ID3D12GraphicsCommandList> CommandList2;
 // フェンス
 ComPtr<ID3D12Fence> Fence;
 HANDLE FenceEvent;
@@ -135,6 +139,17 @@ void CreateDevice()
 		desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;		//直接コマンドキュー
 		Hr = Device->CreateCommandQueue(&desc, IID_PPV_ARGS(CommandQueue.GetAddressOf()));
 		assert(SUCCEEDED(Hr));
+
+		//コマンドアロケータをつくる
+		Hr = Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+			IID_PPV_ARGS(CommandAllocator2.GetAddressOf()));
+		assert(SUCCEEDED(Hr));
+
+		//コマンドリストをつくる
+		Hr = Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
+			CommandAllocator2.Get(), nullptr, IID_PPV_ARGS(CommandList2.GetAddressOf()));
+		assert(SUCCEEDED(Hr));
+
 	}
 	//フェンス
 	{
@@ -253,6 +268,7 @@ void CreateRenderTarget()
 //===2D用
 void CreatePipeline()
 {
+	//===
 	//ルートシグネチャ
 	{
 		//ディスクリプタレンジ。ディスクリプタヒープとシェーダを紐づける役割をもつ。
@@ -448,6 +464,11 @@ bool quit()
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+
+	//===
+	initFontConstantIdx();
+	initPrintPosY();
+
 	return false;
 }
 void waitGPU()
@@ -774,6 +795,7 @@ void beginRender()
 	CommandList->SetGraphicsRootSignature(RootSignature.Get());
 	//ディスクリプタヒープをＧＰＵにセット
 	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
+
 }
 //===
 void drawImage(UINT cbvIdx, UINT tbvIdx)
@@ -790,8 +812,7 @@ void drawImage(UINT cbvIdx, UINT tbvIdx)
 	hCbvTbvHeap.ptr += CbvTbvIncSize * tbvIdx;
 	CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
 	//描画
-	UINT numVertices = SquareVbv.SizeInBytes / SquareVbv.StrideInBytes;
-	CommandList->DrawInstanced(numVertices, 1, 0, 0);
+	CommandList->DrawInstanced(4, 1, 0, 0);
 }
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, UINT cbvTbvIdx)
 {
@@ -876,20 +897,17 @@ float clientHeight()
 	return (float)ClientHeight;
 }
 
+//===
 //font
+
 //現在描画中のフォントフェイス構造体
 struct CURRENT_FONT_FACE {
-	std::string name;
-	unsigned long charset;
-	int id;
-	int size;
+	std::string name; unsigned long charset; int id; int size;
 };
-static CURRENT_FONT_FACE CurFontFace{ "ＭＳ ゴシック",SHIFTJIS_CHARSET,0,50 };
-
+CURRENT_FONT_FACE CurFontFace{ "ＭＳ ゴシック",SHIFTJIS_CHARSET,0,50 };
 //FontFace名ごとにｉｄを付けて管理するマップ
-static std::unordered_map<std::string, int> FontIdMap{ {CurFontFace.name, 0} };
-static int FontIdCnt = 0;
-
+std::unordered_map<std::string, int> FontIdMap{ {CurFontFace.name, 0} };
+int FontIdCnt = 0;
 //描画するフォントを設定する
 void fontFace(const char* fontname, unsigned charset)
 {
@@ -919,34 +937,11 @@ void fontSize(int size)
 
 //FONT_TEXTURE構造体(下のマップに保存していくフォントの描画に必要なデータ達)
 struct FONT_TEXTURE {
-	//コンスタントバッファ0
-	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
-	CONST_BUF0* cb0 = nullptr;
-	//テクスチャバッファ
 	ComPtr<ID3D12Resource> textureBuffer = nullptr;
-	//ディスクリプタインデックス（graphic.cppにあるCbvTbvHeap上のインデックス）
-	UINT cbvIdx = 0;
 	UINT tbvIdx = 0;
 	float texWidth=0, texHeight=0;//テクスチャの幅、高さ
 	float width=0, height=0;//描画幅、高さ
 	float ofstX=0, ofstY=0;//描画するときにずらす値
-
-	////デフォルトコンストラクタ
-	//FONT_TEXTURE()
-	//{
-	//}
-	////コンストラクタ。描画用にint型をfloat型に変換して保持する
-	//FONT_TEXTURE(
-	//	IDirect3DTexture9* obj,
-	//	int texWidth, int texHeight,
-	//	int width, int height,
-	//	int ofstX, int ofstY)
-	//	: obj(obj)
-	//	, width((float)width), height((float)height)
-	//	, texWidth((float)texWidth), texHeight((float)texHeight)
-	//	, ofstX((float)ofstX), ofstY((float)ofstY)
-	//{
-	//}
 };
 //フォントテクスチャデータを管理するマップ
 static std::unordered_map<DWORD, FONT_TEXTURE> FontTextureMap;
@@ -969,15 +964,15 @@ FONT_TEXTURE* createFontTexture(DWORD key)
 	//デバイスコンテキストにフォントを設定
 	HFONT oldFont = (HFONT)SelectObject(hdc, hFont);
 
-	//フォントの各種寸法とビットマップを取得
+	//フォントの各種寸法とアルファビットマップを取得
 	TEXTMETRIC tm;
 	GetTextMetrics(hdc, &tm);
 	GLYPHMETRICS gm;
 	CONST MAT2 mat = { {0,1},{0,0},{0,0},{0,1} };
 	UINT code = key & 0xffff;//keyから文字コードを取り出す
-	DWORD alphaBmpSize = GetGlyphOutline(hdc, code, GGO_GRAY4_BITMAP, &gm, 0, NULL, &mat);
+	DWORD alphaBmpSize = GetGlyphOutlineA(hdc, code, GGO_GRAY4_BITMAP, &gm, 0, NULL, &mat);
 	BYTE* alphaBmpBuf = new BYTE[alphaBmpSize];
-	GetGlyphOutline(hdc, code, GGO_GRAY4_BITMAP, &gm, alphaBmpSize, alphaBmpBuf, &mat);
+	GetGlyphOutlineA(hdc, code, GGO_GRAY4_BITMAP, &gm, alphaBmpSize, alphaBmpBuf, &mat);
 	//α値の階調 (GGO_GRAY4_BITMAPは17階調。alphaBmpBuf[i]は０～１６の値となる)
 	DWORD tone = 16;//最大値
 
@@ -1086,7 +1081,7 @@ FONT_TEXTURE* createFontTexture(DWORD key)
 		dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 		dst.SubresourceIndex = 0;
 		//uploadBufferからTextureBufferにコピーする
-		CommandList->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+		CommandList2->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
 		//TextureBufferをコピー先からシェーダリソースに遷移する
 		D3D12_RESOURCE_BARRIER barrier = {};
 		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -1095,23 +1090,23 @@ FONT_TEXTURE* createFontTexture(DWORD key)
 		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
 		barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-		CommandList->ResourceBarrier(1, &barrier);
+		CommandList2->ResourceBarrier(1, &barrier);
 		//uploadBufferアンロード
-		CommandList->DiscardResource(uploadBuffer, nullptr);
+		CommandList2->DiscardResource(uploadBuffer, nullptr);
 		//コマンドリストを閉じて
-		//CommandList->Close();
+		CommandList2->Close();
 		//実行
-		//ID3D12CommandList* commandLists[] = { CommandList.Get()};
-		//CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+		ID3D12CommandList* commandLists[] = { CommandList2.Get()};
+		CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
 		//uploadBufferがTextureBufferにコピーされるまで待機する
-		//waitGPU();
+		waitGPU();
 
-		////コマンドアロケータをリセット
-		//HRESULT Hr = CommandAllocator->Reset();
-		//assert(SUCCEEDED(Hr));
-		////コマンドリストをリセット
-		//Hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
-		//assert(SUCCEEDED(Hr));
+		//コマンドアロケータをリセット
+		HRESULT Hr = CommandAllocator2->Reset();
+		assert(SUCCEEDED(Hr));
+		//コマンドリストをリセット
+		Hr = CommandList2->Reset(CommandAllocator2.Get(), nullptr);
+		assert(SUCCEEDED(Hr));
 	}
 	//開放
 	uploadBuffer->Release();
@@ -1119,10 +1114,7 @@ FONT_TEXTURE* createFontTexture(DWORD key)
 
 
 	//FONT_TEXTURE(描画に必要なデータ達)をマップに登録
-	createBuffer(alignedSize(sizeof(CONST_BUF0)), FontTextureMap[key].constBuffer0);
-	mapBuffer(FontTextureMap[key].constBuffer0, (void**)&FontTextureMap[key].cb0);
 	
-	FontTextureMap[key].cbvIdx = createConstantBufferView(FontTextureMap[key].constBuffer0);
 	FontTextureMap[key].tbvIdx = createTextureBufferView(FontTextureMap[key].textureBuffer);
 
 	FontTextureMap[key].texWidth = (float)texWidth;
@@ -1133,6 +1125,29 @@ FONT_TEXTURE* createFontTexture(DWORD key)
 	FontTextureMap[key].ofstY = (float)tm.tmAscent - gm.gmptGlyphOrigin.y;//描画する時にずらす値
 
 	return &FontTextureMap[key];
+}
+
+
+struct FONT_CONSTANT {
+	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
+	CONST_BUF0* cb0 = nullptr;
+	UINT cbvIdx = 0;
+};
+std::unique_ptr<FONT_CONSTANT[]>FontConstants;
+void createFontConstants(UINT numFontConstants)
+{
+	FontConstants = std::make_unique<FONT_CONSTANT[]>(numFontConstants);
+
+	for (UINT i = 0; i < numFontConstants; ++i) {
+		createBuffer(alignedSize(sizeof(CONST_BUF0)), FontConstants[i].constBuffer0);
+		mapBuffer(FontConstants[i].constBuffer0, (void**)&FontConstants[i].cb0);
+		FontConstants[i].cbvIdx = createConstantBufferView(FontConstants[i].constBuffer0);
+	}
+}
+UINT FontConstantIdx = 0;
+void initFontConstantIdx()
+{
+	FontConstantIdx = 0;
 }
 
 //指定した文字列を指定したスクリーン座標で描画する
@@ -1185,11 +1200,11 @@ float text(const char* str, float x, float y, float r, float g, float b, float a
 			* XMMatrixTranslation(tex->ofstX, -tex->ofstY, 0)
 			* XMMatrixScaling(1.0f / chw, 1.0f / chh, 1)
 			* XMMatrixTranslation(x / chw - 1, y / -chh + 1, 0);
-		tex->cb0->worldViewProj = world;
-		tex->cb0->diffuse = { r,g,b,a };
-		
+		FontConstants[FontConstantIdx].cb0->worldViewProj = world;
+		FontConstants[FontConstantIdx].cb0->diffuse = { r,g,b,a };
 		//描画
-		drawImage(tex->cbvIdx, tex->tbvIdx);
+		drawImage(FontConstants[FontConstantIdx].cbvIdx, tex->tbvIdx);
+		FontConstantIdx++;
 
 		//次の文字の描画位置ｘを求めておく
 		x += tex->width;
@@ -1197,4 +1212,47 @@ float text(const char* str, float x, float y, float r, float g, float b, float a
 	//横に続けて別の文字列を表示するための座標を返す
 	return x;
 }
+
+static float PrintInitX = 10;
+static float PrintInitY = 10;
+static float PrintY = PrintInitY;
+static float PrintR = 1, PrintG = 1, PrintB = 1, PrintA=1;
+void setPrintInitX(float initX)
+{
+	PrintInitX = initX;
+}
+void setPrintInitY(float initY)
+{
+	PrintInitY = initY;
+}
+void printColor(float r, float g, float b, float a)
+{
+	PrintR = r; PrintG = g; PrintB = b; PrintA = a;
+}
+void initPrintPosY()
+{
+	PrintY = PrintInitY;
+}
+void print(const char* format, ...)
+{
+	char str[256];
+	va_list args;
+	va_start(args, format);
+	vsprintf_s(str, format, args);
+	va_end(args);
+
+	float printX = PrintInitX;
+	text(str, printX, PrintY, PrintR, PrintG, PrintB, PrintA);
+	PrintY += CurFontFace.size;
+}
+
+USER_FONT::USER_FONT(const char* filename)
+	:Filename(filename)
+{
+	AddFontResourceExA(filename, FR_PRIVATE, 0);
+}
+USER_FONT::~USER_FONT() {
+	RemoveFontResourceExA(Filename.c_str(), FR_PRIVATE, 0);
+}
+
 
