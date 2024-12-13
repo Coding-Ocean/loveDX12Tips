@@ -3,27 +3,34 @@
 #include"graphic.h"
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Font", 1280, 720);
+	window(L"rect", 500, 500);
+	setClearColor(1, 0.8f, 0);
 
 	//最初に、必要な数のコンスタント・テクスチャ用ディスクリプタヒープをつくる
 	int numDescriptors = 2;
-	int numFonts = 60;
-	createDescriptorHeap(numDescriptors * numFonts);//この数を超えるとぶっ止まります
+	int numShapes = 60;
+	createDescriptorHeap(numDescriptors * numShapes);//この数を超えるとぶっ止まります
 
-	int num = 0, cnt = 0, interval = 10;
+	fontSize(30); fontColor(1, 1, 1);
+	
+	createWhiteTexture();
+	float rad = 0;
 	while (!quit())
 	{
-		//interval回ループするごとにnumをカウントアップ
-		if (++cnt % interval == 0)num++;
-
 		beginRender();//rootSignatureを変更してます！
 
-		//text 座標指定
-		fontColor(1, 0.2f, 0.6f); text("釈迦", 590, 310);
-		//print 自動改行
-		fontColor(0, 1, 1); print("乃木坂%d", 46);
-		fontColor(0, 1, 0); print("ＡＫＢ%d", 48);
-		fontColor(1, 1, 0); print("num:%d", num);
+		rad += 0.01f;
+		for (int y = 0; y < 5; ++y) {
+			for (int x = 0; x < 5; ++x) {
+				if ((x + y) % 2)
+					fill(0, 0.4f, 0);
+				else
+					fill(0.f, 0.f, 0.f);
+				rect(100.0f * x + 50, 100.0f * y + 50, 100, 100, rad);
+			}
+		}
+
+		print("rad:%.2f", rad);
 
 		endRender();
 	}

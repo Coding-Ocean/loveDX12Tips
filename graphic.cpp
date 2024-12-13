@@ -62,7 +62,9 @@ UINT CurrentCbvTbvIdx = 0;
 // 共有使用する２D頂点バッファ
 ComPtr<ID3D12Resource>   SquareVertexBuffer = nullptr;
 D3D12_VERTEX_BUFFER_VIEW SquareVbv;
-
+//===
+ComPtr<ID3D12Resource> WhiteTexture;
+int WhiteTbvIdx;
 //プライベートな関数--------------------------------------------------------------
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -508,6 +510,7 @@ HRESULT createDescriptorHeap(UINT numDescriptors)
 	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	return Device->CreateDescriptorHeap(
 		&desc, IID_PPV_ARGS(CbvTbvHeap.ReleaseAndGetAddressOf()));
+
 }
 //バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer)
@@ -1254,4 +1257,60 @@ USER_FONT::~USER_FONT() {
 	RemoveFontResourceExA(Filename.c_str(), FR_PRIVATE, 0);
 }
 
+//===
+//rect
+static float FillR = 1, FillG = 1, FillB = 1, FillA = 1;
+void fill(float r, float g, float b, float a)
+{
+	FillR = r; FillG = g; FillB = b; FillA = a;
+}
 
+void createWhiteTexture()
+{
+	int w, h;
+	WhiteTbvIdx = createTextureBufferAndView("assets\\white.png", WhiteTexture, &w, &h);
+}
+void rect(float px, float py, float w, float h, float rad)
+{
+	if (ConstantIdx == Constants.size()) {
+		CONSTANT tmp;
+		createBuffer(alignedSize(sizeof(CONST_BUF0)), tmp.constBuffer0);
+		mapBuffer(tmp.constBuffer0, (void**)&tmp.cb0);
+		tmp.cbvIdx = createConstantBufferView(tmp.constBuffer0);
+		Constants.emplace_back(tmp);
+	}
+
+	//2D用マトリックス
+	float chw = clientWidth() / 2;//client half width
+	float chh = clientHeight() / 2;//client half height
+	XMMATRIX world;
+	if (0) {
+		world = XMMatrixTranslation(0.5f, -0.5f, 0);//Px,Pyの位置に画像の左上がくる
+	}
+	else {
+		world = XMMatrixIdentity();
+	}
+	world *=
+		XMMatrixScaling(w, h, 1)
+		* XMMatrixRotationZ(rad)
+		* XMMatrixScaling(1.0f / chw, 1.0f / chh, 1)
+		* XMMatrixTranslation(px / chw - 1, py / -chh + 1, 0);
+	Constants[ConstantIdx].cb0->worldViewProj = world;
+	Constants[ConstantIdx].cb0->diffuse = { FillR,FillG,FillB,FillA };
+
+	//頂点をセット
+	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	CommandList->IASetVertexBuffers(0, 1, &SquareVbv);
+	//コンスタントをセット
+	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * Constants[ConstantIdx].cbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+	//テクスチャをセット
+	hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * WhiteTbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
+	//描画
+	CommandList->DrawInstanced(4, 1, 0, 0);
+
+	ConstantIdx++;
+}
