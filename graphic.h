@@ -39,8 +39,8 @@ UINT createTextureBufferAndView(const char* filename, ComPtr<ID3D12Resource>& Te
 void setClearColor(float r, float g, float b);
 void beginRender();
 void drawImage(UINT cbvIdx, UINT tbvIdx);
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& vndexBufferView, UINT cbvTbvIdx);
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, UINT cbvTbvIdx);
+//void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& vndexBufferView, UINT cbvTbvIdx);
+//void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, UINT cbvTbvIdx);
 void endRender();
 //Getån
 ComPtr<ID3D12Device>& device();
@@ -53,16 +53,13 @@ float aspect();
 //===
 constexpr ULONG JP = 128;
 constexpr ULONG EN = 0;
-void initFontConstantIdx();//quitì‡Ç≈åƒÇ—èoÇ∑
-void createFontConstants(UINT numFontConstants);
 void fontFace(const char* fontname, unsigned charset);
 void fontSize(int size);
-float text(const char* str, float x, float y, float r, float g, float b, float a);
+void fontColor(float r, float g, float b, float a=1);
+float text(const char* str, float x, float y);
 
 void setPrintInitX(float initX);
 void setPrintInitY(float initY);
-void initPrintPosY();
-void printColor(float r, float g, float b, float a=1);
 void print(const char* format, ...);
 
 class USER_FONT

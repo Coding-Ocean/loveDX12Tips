@@ -29,7 +29,8 @@ ComPtr<ID3D12Device> Device;
 ComPtr<ID3D12CommandAllocator> CommandAllocator;
 ComPtr<ID3D12GraphicsCommandList> CommandList;
 ComPtr<ID3D12CommandQueue> CommandQueue;
-
+//===
+// フォントテクスチャをつくる時に使用
 ComPtr<ID3D12CommandAllocator> CommandAllocator2;
 ComPtr<ID3D12GraphicsCommandList> CommandList2;
 // フェンス
@@ -57,7 +58,8 @@ D3D12_RECT ScissorRect;
 ComPtr<ID3D12DescriptorHeap> CbvTbvHeap;
 UINT CbvTbvIncSize = 0;
 UINT CurrentCbvTbvIdx = 0;
-//===共有使用する２D頂点バッファ
+//===
+// 共有使用する２D頂点バッファ
 ComPtr<ID3D12Resource>   SquareVertexBuffer = nullptr;
 D3D12_VERTEX_BUFFER_VIEW SquareVbv;
 
@@ -432,6 +434,8 @@ void CreateSquareVertexBuffer()
 		createVertexBufferView(SquareVertexBuffer, sizeInBytes, strideInBytes, SquareVbv);
 	}
 }
+void InitConstantIdx();
+void InitPrintPosY();
 //パブリックな関数---------------------------------------------------------------
 //システム系
 void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed, int clientPosX, int clientPosY)
@@ -466,8 +470,8 @@ bool quit()
 	}
 
 	//===
-	initFontConstantIdx();
-	initPrintPosY();
+	InitConstantIdx();
+	InitPrintPosY();
 
 	return false;
 }
@@ -777,13 +781,10 @@ void beginRender()
 	auto hDsvHeap = DsvHeap->GetCPUDescriptorHandleForHeapStart();
 	//バックバッファとデプスステンシルバッファを描画ターゲットとして設定する
 	CommandList->OMSetRenderTargets(1, &hBbvHeap, false, &hDsvHeap);
-
-	//描画ターゲットをクリアする
+	//バックバッファをクリアする
 	CommandList->ClearRenderTargetView(hBbvHeap, ClearColor, 0, nullptr);
-
 	//デプスステンシルバッファをクリアする
 	CommandList->ClearDepthStencilView(hDsvHeap, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
 
 	//ビューポートとシザー矩形をセット
 	CommandList->RSSetViewports(1, &Viewport);
@@ -795,7 +796,6 @@ void beginRender()
 	CommandList->SetGraphicsRootSignature(RootSignature.Get());
 	//ディスクリプタヒープをＧＰＵにセット
 	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
-
 }
 //===
 void drawImage(UINT cbvIdx, UINT tbvIdx)
@@ -814,6 +814,7 @@ void drawImage(UINT cbvIdx, UINT tbvIdx)
 	//描画
 	CommandList->DrawInstanced(4, 1, 0, 0);
 }
+/*
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, UINT cbvTbvIdx)
 {
 	//頂点をセット
@@ -840,6 +841,7 @@ void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIE
 	UINT numIndices = indexBufferView.SizeInBytes / sizeof(UINT16);
 	CommandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
 }
+*/
 void endRender()
 {
 	//バリアでバックバッファを表示用に切り替える
@@ -927,7 +929,6 @@ void fontFace(const char* fontname, unsigned charset)
 		CurFontFace.id = itr->second;
 	}
 }
-
 //フォントサイズを設定する
 void fontSize(int size)
 {
@@ -945,9 +946,8 @@ struct FONT_TEXTURE {
 };
 //フォントテクスチャデータを管理するマップ
 static std::unordered_map<DWORD, FONT_TEXTURE> FontTextureMap;
-
 //１文字分のフォントテクスチャをつくって上のマップに追加する
-FONT_TEXTURE* createFontTexture(DWORD key)
+FONT_TEXTURE* CreateFontTexture(DWORD key)
 {
 	//フォント（サイズやフォントの種類）を決める！
 	HFONT hFont = CreateFontA(
@@ -1127,31 +1127,27 @@ FONT_TEXTURE* createFontTexture(DWORD key)
 	return &FontTextureMap[key];
 }
 
-
-struct FONT_CONSTANT {
+struct CONSTANT {
 	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
 	CONST_BUF0* cb0 = nullptr;
 	UINT cbvIdx = 0;
 };
-std::unique_ptr<FONT_CONSTANT[]>FontConstants;
-void createFontConstants(UINT numFontConstants)
-{
-	FontConstants = std::make_unique<FONT_CONSTANT[]>(numFontConstants);
+std::vector<CONSTANT>Constants;
 
-	for (UINT i = 0; i < numFontConstants; ++i) {
-		createBuffer(alignedSize(sizeof(CONST_BUF0)), FontConstants[i].constBuffer0);
-		mapBuffer(FontConstants[i].constBuffer0, (void**)&FontConstants[i].cb0);
-		FontConstants[i].cbvIdx = createConstantBufferView(FontConstants[i].constBuffer0);
-	}
-}
-UINT FontConstantIdx = 0;
-void initFontConstantIdx()
+UINT ConstantIdx = 0;
+void InitConstantIdx()//quit内で呼び出す
 {
-	FontConstantIdx = 0;
+	ConstantIdx = 0;
+}
+
+static float FontR = 1, FontG = 1, FontB = 1, FontA = 1;
+void fontColor(float r, float g, float b, float a)
+{
+	FontR = r; FontG = g; FontB = b; FontA = a;
 }
 
 //指定した文字列を指定したスクリーン座標で描画する
-float text(const char* str, float x, float y, float r, float g, float b, float a)
+float text(const char* str, float x, float y)
 {
 	int len = (int)strlen(str);
 
@@ -1178,11 +1174,19 @@ float text(const char* str, float x, float y, float r, float g, float b, float a
 		auto itr = FontTextureMap.find(key);
 		if (itr == FontTextureMap.end()) {
 			//なかったのでフォントのテクスチャをこの場でつくってアドレスをもらう
-			tex = createFontTexture(key);
+			tex = CreateFontTexture(key);
 		}
 		else {
 			//あったのでアドレスを取得する
 			tex = &itr->second;
+		}
+
+		if (ConstantIdx == Constants.size()) {
+			CONSTANT tmp;
+			createBuffer(alignedSize(sizeof(CONST_BUF0)), tmp.constBuffer0);
+			mapBuffer(tmp.constBuffer0, (void**)&tmp.cb0);
+			tmp.cbvIdx = createConstantBufferView(tmp.constBuffer0);
+			Constants.emplace_back(tmp);
 		}
 
 		//2D用マトリックス
@@ -1200,11 +1204,11 @@ float text(const char* str, float x, float y, float r, float g, float b, float a
 			* XMMatrixTranslation(tex->ofstX, -tex->ofstY, 0)
 			* XMMatrixScaling(1.0f / chw, 1.0f / chh, 1)
 			* XMMatrixTranslation(x / chw - 1, y / -chh + 1, 0);
-		FontConstants[FontConstantIdx].cb0->worldViewProj = world;
-		FontConstants[FontConstantIdx].cb0->diffuse = { r,g,b,a };
+		Constants[ConstantIdx].cb0->worldViewProj = world;
+		Constants[ConstantIdx].cb0->diffuse = { FontR,FontG,FontB,FontA };
 		//描画
-		drawImage(FontConstants[FontConstantIdx].cbvIdx, tex->tbvIdx);
-		FontConstantIdx++;
+		drawImage(Constants[ConstantIdx].cbvIdx, tex->tbvIdx);
+		ConstantIdx++;
 
 		//次の文字の描画位置ｘを求めておく
 		x += tex->width;
@@ -1216,7 +1220,6 @@ float text(const char* str, float x, float y, float r, float g, float b, float a
 static float PrintInitX = 10;
 static float PrintInitY = 10;
 static float PrintY = PrintInitY;
-static float PrintR = 1, PrintG = 1, PrintB = 1, PrintA=1;
 void setPrintInitX(float initX)
 {
 	PrintInitX = initX;
@@ -1225,11 +1228,7 @@ void setPrintInitY(float initY)
 {
 	PrintInitY = initY;
 }
-void printColor(float r, float g, float b, float a)
-{
-	PrintR = r; PrintG = g; PrintB = b; PrintA = a;
-}
-void initPrintPosY()
+void InitPrintPosY()
 {
 	PrintY = PrintInitY;
 }
@@ -1242,7 +1241,7 @@ void print(const char* format, ...)
 	va_end(args);
 
 	float printX = PrintInitX;
-	text(str, printX, PrintY, PrintR, PrintG, PrintB, PrintA);
+	text(str, printX, PrintY);
 	PrintY += CurFontFace.size;
 }
 

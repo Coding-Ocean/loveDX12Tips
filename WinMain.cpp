@@ -1,47 +1,29 @@
 //text, print
 #if 1
 #include"graphic.h"
-#include<sstream>
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Font", 1280, 720);
-	setClearColor(0.f, 0.f, 0.f);
 
+	//最初に、必要な数のコンスタント・テクスチャ用ディスクリプタヒープをつくる
+	int numDescriptors = 2;
 	int numFonts = 60;
+	createDescriptorHeap(numDescriptors * numFonts);//この数を超えるとぶっ止まります
 
-	//最初に必要な数のコンスタント・テクスチャ用ディスクリプタヒープをつくる
-	HRESULT hr = createDescriptorHeap(2 * numFonts);
-	assert(SUCCEEDED(hr));
-	//===
-	//フォント用のコンスタントバッファを用意しておく必要があります。
-	createFontConstants(numFonts);
-
-	//メインループ
+	int num = 0, cnt = 0, interval = 10;
 	while (!quit())
 	{
+		//interval回ループするごとにnumをカウントアップ
+		if (++cnt % interval == 0)num++;
+
 		beginRender();//rootSignatureを変更してます！
 
-		static int num = 0;
-		static int cnt = 0;
-		if (++cnt % 20 == 0)num++;
-		std::ostringstream ostr;
-		ostr << "釈迦" << num;
-
-		float r, g, b, a;
-		r = 1, g = 51.0f / 255, b = 153.0f / 255, a = 1;
-
 		//text 座標指定
-		text(ostr.str().c_str(), 300, 200, r, g, b, a);
-
+		fontColor(1, 0.2f, 0.6f); text("釈迦", 590, 310);
 		//print 自動改行
-		printColor(1, 1, 0);
-		print("num=%d", num);
-
-		printColor(1, 0, 0);
-		print("乃木坂%d", 46);
-
-		printColor(0, 1, 0);
-		print("ＡＫＢ%d", 48);
+		fontColor(0, 1, 1); print("乃木坂%d", 46);
+		fontColor(0, 1, 0); print("ＡＫＢ%d", 48);
+		fontColor(1, 1, 0); print("num:%d", num);
 
 		endRender();
 	}
@@ -56,18 +38,14 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Love", 1280, 720);
-	setClearColor(0.f, 0.f, 0.f);
-
-	int numFonts = 15*7;
 
 	//最初に必要な数のコンスタント・テクスチャ用ディスクリプタヒープをつくる
-	HRESULT hr = createDescriptorHeap(2 * numFonts);
-	assert(SUCCEEDED(hr));
-	//===
-	//フォント用のコンスタントバッファを用意しておく必要があります。
-	createFontConstants(numFonts);
+	int numDescriptors = 2;
+	int numFonts = 120;
+	createDescriptorHeap(numDescriptors * numFonts);
 
 	setPrintInitX(330);
+	fontSize(100);
 	while (!quit()) {
 		beginRender();
 
@@ -81,8 +59,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			case 5:fontFace("Showcard Gothic", EN); break;
 			case 6:fontFace("jokerman", EN); break;
 			}
-			fontSize(100);
-			printColor(1, 1.0f / 6 * i, 1);
+			fontColor(1, 1.0f / 6 * i, 1);
 			print("%d.Coding Ocean", i);
 		}
 		
@@ -98,29 +75,24 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Love", 1280, 720);
-	setClearColor(0.f, 0.f, 0.f);
 	
-	int numFonts = 30;
-
 	//最初に必要な数のコンスタント・テクスチャ用ディスクリプタヒープをつくる
-	HRESULT hr = createDescriptorHeap(2 * numFonts);
-	assert(SUCCEEDED(hr));
-	//===
-	//フォント用のコンスタントバッファを用意しておく必要があります。
-	createFontConstants(numFonts);
+	int numDescriptors = 2;
+	int numFonts = 30;
+	createDescriptorHeap(numDescriptors * numFonts);
 
 	while (!quit()) {
 		beginRender();
+
 		fontFace("HGP明朝E", JP);
 		fontSize(150);
-		printColor(1, 1, 1);
+		fontColor(1, 1, 1);
 		print("エヴァンゲリオン");
 		print("時に、西暦%d年", 2057);
 		print("使徒、襲来");
-
-		//fontSize(150);
 		fontFace("HG丸ｺﾞｼｯｸM-Pro", JP);
-		text("綾波レイ", 0, 150*3+20,1,1,1,1);
+		text("綾波レイ", 0, 150*3+20);
+		
 		endRender();
 	}
 	waitGPU();
@@ -134,26 +106,20 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Love", 1280, 720);
-	setClearColor(0.f, 0.f, 0.f);
-
-	int numFonts = 30;
 
 	//最初に必要な数のコンスタント・テクスチャ用ディスクリプタヒープをつくる
-	HRESULT hr = createDescriptorHeap(2 * numFonts);
-	assert(SUCCEEDED(hr));
-	//===
-	//フォント用のコンスタントバッファを用意しておく必要があります。
-	createFontConstants(numFonts);
+	int numDescriptors = 2;
+	int numFonts = 30;
+	createDescriptorHeap(numDescriptors * numFonts);
 
-	//これでインストールされていないフォントが使える
-	//（ループ中にいれてはいけない）
+	//インストールされていないプロジェクトフォルダ内に用意したフォントが使える（ループ中にいれてはいけない）
 	USER_FONT uf("PixelMplus12-Bold.ttf");
 
 	fontFace("PixelMplus12", JP);
 	fontSize(70);
 
 	//文字列（全角文字前提）
-	const char* src{ "白魔導士はエリクサーを落とした" };
+	const char* src{ "白魔導士はエリクサーをなくして死んだ" };
 	size_t len = strlen(src);
 	auto disp = std::make_unique<char[]>(len + 1);//表示する文字だけここにコピーする
 	len /= 2;//全角文字数にする
@@ -178,7 +144,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		}
 
 		beginRender();
-		text(disp.get(), 0, 0, 1,1,0,1);
+		text(disp.get(), 10, 10);
 		endRender();
 	}
 	waitGPU();
