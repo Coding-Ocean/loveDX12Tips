@@ -4,6 +4,5 @@ float4 main(
     in float2 i_uv : TEXCOORD
 ) : SV_TARGET
 {
-    //return Diffuse;
     return float4(Texture.Sample(Sampler, i_uv)) * Diffuse;
 }

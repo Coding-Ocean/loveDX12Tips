@@ -21,47 +21,43 @@ bool quit();
 void waitGPU();
 void closeEventHandle();
 //コンスタントバッファ、テクスチャバッファ用ディスクリプタヒープ
-HRESULT createDescriptorHeap(UINT numDescriptors);
+HRESULT createDescriptorHeap(UINT numDescriptors=400);
 //バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT mapBuffer(ComPtr<ID3D12Resource>& buffer, void** mappedBuffer);
 void unmapBuffer(ComPtr<ID3D12Resource>& buffer);
 UINT alignedSize(size_t size);
-HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& TextureBuf,int* w=nullptr, int* h=nullptr);
 //ディスクリプタ系
 void createVertexBufferView(ComPtr<ID3D12Resource>& vertexBuffer, UINT sizeInBytes, UINT strideInBytes, D3D12_VERTEX_BUFFER_VIEW& vertexBufferView);
 void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes, D3D12_INDEX_BUFFER_VIEW& indexBufferView);
 UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer);
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
-UINT createTextureBufferAndView(const char* filename, ComPtr<ID3D12Resource>& TextureBuf, int* w = nullptr, int* h = nullptr);
 //描画系
-void setClearColor(float r, float g, float b);
+void clearColor(float r, float g, float b);
 void beginRender();
-void drawImage(UINT cbvIdx, UINT tbvIdx);
-//void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& vndexBufferView, UINT cbvTbvIdx);
-//void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, UINT cbvTbvIdx);
 void endRender();
-//Get系
-ComPtr<ID3D12Device>& device();
-ComPtr<ID3D12GraphicsCommandList>& commandList();
-UINT cbvTbvIncSize();
-float clientWidth();
-float clientHeight();
-float aspect();
 
 //===
+void rectModeCorner();
+void rectModeCenter();
+void fill(float r, float g, float b, float a = 1);
+//image
+int loadImage(const char* filename);
+void image(int textureIdx, float px, float py, float rad=0, float sx = 1, float sy = 1);
+void image(const char* filename, float px, float py, float rad=0, float sx=1, float sy=1);
+size_t numLoadTextures();//#####debug#####
+//shapes
+void rect(float px, float py, float w, float h, float rad = 0);
+//font
 constexpr ULONG JP = 128;
 constexpr ULONG EN = 0;
 void fontFace(const char* fontname, unsigned charset);
 void fontSize(int size);
-void fontColor(float r, float g, float b, float a=1);
 float text(const char* str, float x, float y);
-
 void setPrintInitX(float initX);
 void setPrintInitY(float initY);
 void print(const char* format, ...);
-
 class USER_FONT
 {
 private:
@@ -71,6 +67,3 @@ public:
 	~USER_FONT();
 };
 
-void fill(float r, float g, float b, float a=1);
-void createWhiteTexture();
-void rect(float px, float py, float w, float h, float rad = 0);
