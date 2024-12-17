@@ -851,6 +851,11 @@ void fill(float r, float g, float b, float a)
 {
 	FillR = r; FillG = g; FillB = b; FillA = a;
 }
+float StrokeR = 1, StrokeG = 1, StrokeB = 1, StrokeA = 1;
+void stroke(float r, float g, float b, float a)
+{
+	StrokeR = r; StrokeG = g; StrokeB = b; StrokeA = a;
+}
 
 int RectMode = 0;
 void rectModeCorner()
@@ -887,6 +892,8 @@ void AutoCreateConstant()
 		Constants.emplace_back(tmp);
 	}
 }
+//#####debug#####
+size_t numConstants() { return Constants.size(); }
 
 //テクスチャ構造体
 struct TEXTURE {
@@ -928,20 +935,18 @@ void image(int textureIdx, float px, float py, float rad, float sx, float sy)
 	//コンスタントが足りなかったらつくる
 	AutoCreateConstant();
 	//マトリックス⇒コンスタントにセット
-	float chw = ClientWidth / 2.0f;//client half width
-	float chh = ClientHeight / 2.0f;//client half height
-	XMMATRIX world;
-	if (RectMode) {
-		world = XMMatrixTranslation(0.5f, -0.5f, 0);//Px,Pyの位置に画像の左上がくる
+	XMMATRIX world =
+		XMMatrixScaling(Textures[textureIdx].width*sx, Textures[textureIdx].height*sy, 1)
+		* XMMatrixRotationZ(rad);
+	if (RectMode) {//Corner
+		world *= XMMatrixTranslation(px + Textures[textureIdx].width  / 2, -(py + Textures[textureIdx].height / 2), 0);
 	}
 	else {
-		world = XMMatrixIdentity();
+		world *= XMMatrixTranslation(px, -py, 0);
 	}
 	world *=
-		XMMatrixScaling(Textures[textureIdx].width*sx, Textures[textureIdx].height*sy, 1)
-		* XMMatrixRotationZ(rad)
-		* XMMatrixScaling(1.0f / chw, 1.0f / chh, 1)
-		* XMMatrixTranslation(px / chw - 1, py / -chh + 1, 0);
+		XMMatrixScaling(2.0f / ClientWidth, 2.0f / ClientHeight, 1)
+		* XMMatrixTranslation(-1, +1, 0);
 	Constants[ConstantIdxCnt].cb0->worldViewProj = world;
 	//ディフューズカラー⇒コンスタントにセット
 	Constants[ConstantIdxCnt].cb0->diffuse = { FillR,FillG,FillB,FillA };
@@ -976,35 +981,91 @@ void CreateWhiteTexture()//createDescriptorHeapから呼び出される
 	WhiteTbvIdx = createTextureBufferView(WhiteTexture);
 }
 
+//line
+float StrokeWeight = 1;
+void strokeWeight(float sw)
+{
+	StrokeWeight = sw;
+}
+void line(float sx, float sy, float ex, float ey)
+{
+	//コンスタントが足りなかったらつくる
+	AutoCreateConstant();
+//	float chw = ClientWidth / 2.0f;//client half width
+//	float chh = ClientHeight / 2.0f;//client half height
+
+	float dx = ex - sx;
+	float dy = ey - sy;
+	float length = sqrtf(dx * dx + dy * dy);
+	float rad = -atan2f(dy, dx);
+	XMMATRIX world =
+		XMMatrixTranslation(0.5f, 0, 0)
+		* XMMatrixScaling(length, StrokeWeight, 1)
+		* XMMatrixRotationZ(rad)
+		* XMMatrixTranslation(sx, -sy, 0)
+		* XMMatrixScaling(2.0f / ClientWidth, 2.0f / ClientHeight, 1)
+		* XMMatrixTranslation(-1.0f, 1.0f, 0);
+
+		//* XMMatrixScaling(1.0f / chw, 1.0f / chh, 1)
+		//* XMMatrixTranslation(- 0.5, 0.5, 0);
+	Constants[ConstantIdxCnt].cb0->worldViewProj = world;
+	//ディフューズカラー⇒コンスタントにセット
+	Constants[ConstantIdxCnt].cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
+
+	//描画
+	drawImage(Constants[ConstantIdxCnt].cbvIdx, WhiteTbvIdx);
+	//drawしたら必ずカウントアップ
+	ConstantIdxCnt++;
+}
+
 //四角形描画
 void rect(float px, float py, float w, float h, float rad)
 {
 	//コンスタントが足りなかったらつくる
 	AutoCreateConstant();
 	//2D用マトリックス⇒コンスタントにセット
-	float chw = ClientWidth / 2.0f;//client half width
-	float chh = ClientHeight / 2.0f;//client half height
-	XMMATRIX world;
+	XMMATRIX world=
+		XMMatrixScaling(w, h, 1)
+		* XMMatrixRotationZ(rad);
 	if (RectMode) {//Corner
-		world = XMMatrixTranslation(0.5f, -0.5f, 0);//Px,Pyの位置に画像の左上がくる
+		world *= XMMatrixTranslation(px + w / 2, -(py + h / 2), 0);
 	}
 	else {
-		world = XMMatrixIdentity();
+		world *= XMMatrixTranslation(px, -py, 0);
 	}
-	world *=
-		XMMatrixScaling(w, h, 1)
-		* XMMatrixRotationZ(rad)
-		* XMMatrixScaling(1.0f / chw, 1.0f / chh, 1)
-		* XMMatrixTranslation(px / chw - 1, py / -chh + 1, 0);
-	Constants[ConstantIdxCnt].cb0->worldViewProj = world;
+	XMMATRIX proj =
+		XMMatrixScaling(2.0f / ClientWidth, 2.0f / ClientHeight, 1)
+		* XMMatrixTranslation(-1.0f, 1.0f, 0)
+		;
+	Constants[ConstantIdxCnt].cb0->worldViewProj = world*proj;
 	//ディフューズカラー⇒コンスタントにセット
 	Constants[ConstantIdxCnt].cb0->diffuse = { FillR,FillG,FillB,FillA };
 
 	//描画
-	drawImage(Constants[ConstantIdxCnt].cbvIdx, WhiteTbvIdx);
+	if (FillA > 0.0f) {
+		drawImage(Constants[ConstantIdxCnt].cbvIdx, WhiteTbvIdx);
+		//drawしたら必ずカウントアップ
+		ConstantIdxCnt++;
+	}
+
+	if (StrokeWeight > 0) {
+		XMVECTOR v0= XMVectorSet( -0.5f, 0.5f, 0.0f,1.0f );
+		XMVECTOR v1= XMVectorSet( -0.5f,-0.5f, 0.0f,1.0f );
+		XMVECTOR v2= XMVectorSet( 0.5f, 0.5f, 0.0f,1.0f );
+		XMVECTOR v3= XMVectorSet( 0.5f,-0.5f, 0.0f,1.0f );
+		XMVECTOR lt = XMVector4Transform(v0, world); 
+		XMVECTOR lb = XMVector4Transform(v1, world);
+		XMVECTOR rt = XMVector4Transform(v2, world);
+		XMVECTOR rb = XMVector4Transform(v3, world);
+		//DrawEndPointFlag = false;
+		line(XMVectorGetX(lt), -XMVectorGetY(lt), XMVectorGetX(lb), -XMVectorGetY(lb));
+		line(XMVectorGetX(lb), -XMVectorGetY(lb), XMVectorGetX(rb), -XMVectorGetY(rb));
+		line(XMVectorGetX(rb), -XMVectorGetY(rb), XMVectorGetX(rt), -XMVectorGetY(rt));
+		line(XMVectorGetX(rt), -XMVectorGetY(rt), XMVectorGetX(lt), -XMVectorGetY(lt));
+		//DrawEndPointFlag = true;
+	}
+
 	
-	//drawしたら必ずカウントアップ
-	ConstantIdxCnt++;
 }
 
 //font

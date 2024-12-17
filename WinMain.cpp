@@ -16,34 +16,44 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 		beginRender();
 
-		for (int y = 0; y < 5; ++y) {
-			for (int x = 0; x < 5; ++x) {
-				if ((x + y) % 2) {
-					fill(0.f, 0.4f, 0.f);
-				}
-				else {
-					fill(0.f, 0.f, 0.f);
-				}
-				rect(100.0f * x + 50, 100.0f * y + 50, 100, 100, rad);
+		stroke(0, 0, 0);
+		strokeWeight(3);
+		fill(1, 1, 1,0);
+		rectModeCorner();
+		for (int y = 0; y < 3; ++y) {
+			for (int x = 0; x < 3; ++x) {
+				//if ((x + y) % 2) {
+				//	fill(0.f, 0.4f, 0.f);
+				//}
+				//else {
+				//	fill(0.f, 0.f, 0.f);
+				//}
+				rect(200.0f * x, 200.0f * y, 200, 200, rad);
 			}
 		}
 
-		fill(1, 0.3f, 0.7f);
-		image(img, 900 - 100, 256, rad * 2, 0.4f, 0.4f);
-		fill(0, 0.7f, 0);
-		image("assets/penguin1.png", 900, 256, rad * 2, 0.3f, 0.3f);
-		fill(0, 0.7f, 1);
-		image("assets/penguin1.png", 900 + 100, 256, rad * 2, 0.4f, 0.4f);
+		stroke(1, 0, 0);
+		line(0, 0, 1280, cosf(rad)*720);
+		line(0, 720, 1280, 0);
 
-		fontSize(200);
-		fill(0, 0, 0);
+		fill(1, 0.3f, 0.7f);
+		image(img, 0, 0, rad * 0,cosf(rad),cosf(rad));
+		fill(0, 0.7f, 0);
+		image("assets/penguin1.png", 900, 360, rad * 2);
+		fill(0, 0.7f, 1);
+		image("assets/penguin1.png", 900 + 100, 360, rad * 2);
+
+
+		fontSize(200); fill(0.2f, 0.2f, 0.2f);
 		text("F‘¦¥‹ó", (1280 - 200 * 4) / 2, (720 - 200) );
-		fontSize(40);
-		fill(0, 1, 1);
-		print("numTextures:%d", numLoadTextures());
+		fontSize(40);  fill(0, 1, 1);
+		print("numTextures:%u", numLoadTextures());
+		print("numConstants:%u", numConstants());
 		print("rad:%.2f", rad);
 
 		endRender();
+
+
 	}
 
 	waitGPU();

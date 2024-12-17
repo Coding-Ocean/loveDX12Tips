@@ -42,12 +42,16 @@ void endRender();
 void rectModeCorner();
 void rectModeCenter();
 void fill(float r, float g, float b, float a = 1);
+void stroke(float r, float g, float b, float a = 1);
+void strokeWeight(float sw);
+size_t numConstants();
 //image
 int loadImage(const char* filename);
 void image(int textureIdx, float px, float py, float rad=0, float sx = 1, float sy = 1);
 void image(const char* filename, float px, float py, float rad=0, float sx=1, float sy=1);
 size_t numLoadTextures();//#####debug#####
 //shapes
+void line(float sx, float sy, float ex, float ey);
 void rect(float px, float py, float w, float h, float rad = 0);
 //font
 constexpr ULONG JP = 128;
