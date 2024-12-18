@@ -7,21 +7,17 @@ using namespace DirectX;
 using namespace Microsoft::WRL;
 #define WINDOW true
 #define NO_WINDOW false
+#define width clientWidth()
+#define height clientHeight()
 
-//===
-//マップ用コンスタントバッファ構造体
-struct CONST_BUF0 {
-	XMMATRIX worldViewProj;
-	XMFLOAT4 diffuse;
-};
 
 //システム系
-void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int clientPosX = -1, int clientPosY = -1);
+void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int numDescriptors = 2000, int clientPosX = -1, int clientPosY = -1);
 bool quit();
 void waitGPU();
 void closeEventHandle();
 //コンスタントバッファ、テクスチャバッファ用ディスクリプタヒープ
-HRESULT createDescriptorHeap(UINT numDescriptors=400);
+HRESULT createDescriptorHeap(UINT numDescriptors=2000);
 //バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
@@ -37,6 +33,9 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
 void clearColor(float r, float g, float b);
 void beginRender();
 void endRender();
+float clientWidth();
+float clientHeight();
+
 
 //===
 void rectModeCorner();
@@ -44,15 +43,15 @@ void rectModeCenter();
 void fill(float r, float g, float b, float a = 1);
 void stroke(float r, float g, float b, float a = 1);
 void strokeWeight(float sw);
-size_t numConstants();
 //image
 int loadImage(const char* filename);
 void image(int textureIdx, float px, float py, float rad=0, float sx = 1, float sy = 1);
 void image(const char* filename, float px, float py, float rad=0, float sx=1, float sy=1);
-size_t numLoadTextures();//#####debug#####
 //shapes
+void point(float px, float py);
 void line(float sx, float sy, float ex, float ey);
 void rect(float px, float py, float w, float h, float rad = 0);
+void circle(float px, float py, float diameter);
 //font
 constexpr ULONG JP = 128;
 constexpr ULONG EN = 0;
@@ -71,3 +70,7 @@ public:
 	~USER_FONT();
 };
 
+//#####debug#####
+size_t numConstants();
+size_t numLoadTextures();
+size_t numFontTextures();

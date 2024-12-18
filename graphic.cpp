@@ -407,13 +407,16 @@ void CreatePipeline()
 
 //===
 void CreateSquareVertexBuffer();
+void CreateCircleVertexBuffers();
+void CreateWhiteTexture();
+void CreateOrthoProj();
+
 void InitConstantIdxCnt();
 void InitPrintPosY();
-void CreateWhiteTexture();
 
 //パブリックな関数---------------------------------------------------------------
 //システム系
-void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed, int clientPosX, int clientPosY)
+void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed, int numDescriptors, int clientPosX, int clientPosY)
 {
 	WindowTitle = windowTitle;
 	ClientWidth = clientWidth;
@@ -433,7 +436,9 @@ void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowe
 
 	//===
 	CreateSquareVertexBuffer();
-	createDescriptorHeap();
+	CreateCircleVertexBuffers();
+	CreateOrthoProj();
+	createDescriptorHeap(numDescriptors);
 
 	ShowWindow(HWnd, SW_SHOW);
 }
@@ -540,12 +545,12 @@ UINT alignedSize(size_t size)
 {
 	return (size+0xff)&~0xff;
 }
-HRESULT createTextureBuffer(unsigned char* pixels, UINT width, UINT height, ComPtr<ID3D12Resource>& TextureBuf)
+HRESULT createTextureBuffer(unsigned char* pixels, UINT texWidth, UINT texHeight, ComPtr<ID3D12Resource>& TextureBuf)
 {
 	UINT bytePerPixel = 4;
 	
 	//１行のピッチを256の倍数にしておく(バッファサイズは256の倍数でなければいけない)
-	const UINT64 alignedRowPitch = (width * bytePerPixel + 0xff) & ~0xff;
+	const UINT64 alignedRowPitch = (texWidth * bytePerPixel + 0xff) & ~0xff;
 
 	//アップロード用中間バッファをつくり、生データをコピーしておく
 	ComPtr<ID3D12Resource> uploadBuf;
@@ -560,7 +565,7 @@ HRESULT createTextureBuffer(unsigned char* pixels, UINT width, UINT height, ComP
 		D3D12_RESOURCE_DESC desc = {};
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 		desc.Alignment = 0;
-		desc.Width = alignedRowPitch * height;
+		desc.Width = alignedRowPitch * texHeight;
 		desc.Height = 1;
 		desc.DepthOrArraySize = 1;
 		desc.MipLevels = 1;
@@ -581,8 +586,8 @@ HRESULT createTextureBuffer(unsigned char* pixels, UINT width, UINT height, ComP
 		uint8_t* mapBuf = nullptr;
 		Hr = uploadBuf->Map(0, nullptr, (void**)&mapBuf);//マップ
 		auto srcAddress = pixels;
-		auto originalRowPitch = width * bytePerPixel;
-		for (UINT y = 0; y < height; ++y) {
+		auto originalRowPitch = texWidth * bytePerPixel;
+		for (UINT y = 0; y < texHeight; ++y) {
 			memcpy(mapBuf, srcAddress, originalRowPitch);
 			//1行ごとの辻褄を合わせてやる
 			mapBuf += alignedRowPitch;
@@ -602,8 +607,8 @@ HRESULT createTextureBuffer(unsigned char* pixels, UINT width, UINT height, ComP
 		D3D12_RESOURCE_DESC desc = {};
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;//他のバッファと違う
 		desc.Alignment = 0;
-		desc.Width = width;
-		desc.Height = height;//他のバッファと違う
+		desc.Width = texWidth;
+		desc.Height = texHeight;//他のバッファと違う
 		desc.DepthOrArraySize = 1;
 		desc.MipLevels = 1;
 		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;//他のバッファと違う
@@ -626,8 +631,8 @@ HRESULT createTextureBuffer(unsigned char* pixels, UINT width, UINT height, ComP
 	D3D12_TEXTURE_COPY_LOCATION src = {};
 	src.pResource = uploadBuf.Get();
 	src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-	src.PlacedFootprint.Footprint.Width = static_cast<UINT>(width);
-	src.PlacedFootprint.Footprint.Height = static_cast<UINT>(height);
+	src.PlacedFootprint.Footprint.Width = static_cast<UINT>(texWidth);
+	src.PlacedFootprint.Footprint.Height = static_cast<UINT>(texHeight);
 	src.PlacedFootprint.Footprint.Depth = static_cast<UINT>(1);
 	src.PlacedFootprint.Footprint.RowPitch = static_cast<UINT>(alignedRowPitch);
 	src.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -671,17 +676,17 @@ HRESULT createTextureBufferFromFile(const char* filename, ComPtr<ID3D12Resource>
 {
 	//ファイルを読み込み、生データを取り出す
 	unsigned char* pixels = nullptr;
-	int width = 0, height = 0, bytePerPixel = 4;
-	pixels = stbi_load(filename, &width, &height, nullptr, bytePerPixel);
+	int texWidth = 0, texHeight = 0, bytePerPixel = 4;
+	pixels = stbi_load(filename, &texWidth, &texHeight, nullptr, bytePerPixel);
 	if (pixels == nullptr)
 	{
 		MessageBoxA(0, filename, "ファイルがないっす", 0);
 		exit(0);
 	}
-	if (w)*w = width;
-	if (h)*h = height;
+	if (w)*w = texWidth;
+	if (h)*h = texHeight;
 
-	createTextureBuffer(pixels, width, height, textureBuffer);
+	createTextureBuffer(pixels, texWidth, texHeight, textureBuffer);
 
 	//開放
 	stbi_image_free(pixels);
@@ -796,8 +801,12 @@ void endRender()
 	Hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
 	assert(SUCCEEDED(Hr));
 }
+//Get系
+float clientWidth() { return (float)ClientWidth; }
+float clientHeight() { return (float)ClientHeight; }
 
 //２D----------------------------------------------------------------------------
+
 //正方形頂点バッファ。使いまわしする。
 ComPtr<ID3D12Resource>   SquareVertexBuffer = nullptr;
 D3D12_VERTEX_BUFFER_VIEW SquareVbv;
@@ -827,45 +836,52 @@ void CreateSquareVertexBuffer()
 	}
 }
 
-//テクスチャを張り付けた四角形の描画
-void drawImage(UINT cbvIdx, UINT tbvIdx)
+//円の頂点バッファ（複数の大きさ）
+const int NumCircles = 5;
+int NumAngles[NumCircles] = { 8,16,32,64,128 };
+ComPtr<ID3D12Resource>   CircleVertexBuffer[NumCircles];
+D3D12_VERTEX_BUFFER_VIEW CircleVbv[NumCircles];
+void CreateCircleVertexBuffers()
 {
-	//頂点をセット
-	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	CommandList->IASetVertexBuffers(0, 1, &SquareVbv);
-	//コンスタントをセット
-	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvIdx;
-	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-	//テクスチャをセット
-	hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-	hCbvTbvHeap.ptr += CbvTbvIncSize * tbvIdx;
-	CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
-	//描画
-	CommandList->DrawInstanced(4, 1, 0, 0);
+	for(int i=0; i<NumCircles; ++i){
+		int num = NumAngles[i];
+		const int numVertexElements = 5;//１頂点の要素数
+		float* v = new float[num * numVertexElements]{};//オールゼロクリア
+		float rad = 3.1415926f * 2 / num;
+		int j = 0;
+		int k = 0;
+		v[k] = 0.5f; v[k + 1] = 0.0f;
+		for (j = 1; j < num / 2; j++) {
+			k += numVertexElements;
+			v[k] = cosf(rad * j) * 0.5f, v[k + 1] = sinf(rad * j) * 0.5f;
+			k += numVertexElements;
+			v[k] = cosf(rad * j) * 0.5f, v[k + 1] = -sinf(rad * j) * 0.5f;
+		}
+		k += numVertexElements;
+		v[k] = -0.5f; v[k + 1] = 0.0f;
+
+		//データサイズを求めておく
+		UINT sizeInBytes = sizeof(float) * num * numVertexElements;
+		UINT strideInBytes = sizeof(float) * numVertexElements;
+		//バッファをつくる
+		Hr = createBuffer(sizeInBytes, CircleVertexBuffer[i]);
+		assert(SUCCEEDED(Hr));
+		//バッファにデータを入れる
+		Hr = updateBuffer(v, sizeInBytes, CircleVertexBuffer[i]);
+		assert(SUCCEEDED(Hr));
+		//ビューをつくる
+		createVertexBufferView(CircleVertexBuffer[i], 
+			sizeInBytes, strideInBytes, CircleVbv[i]);
+
+		delete[] v;
+	}
 }
 
-//塗りつぶす色
-float FillR = 1, FillG = 1, FillB = 1, FillA = 1;
-void fill(float r, float g, float b, float a)
-{
-	FillR = r; FillG = g; FillB = b; FillA = a;
-}
-float StrokeR = 1, StrokeG = 1, StrokeB = 1, StrokeA = 1;
-void stroke(float r, float g, float b, float a)
-{
-	StrokeR = r; StrokeG = g; StrokeB = b; StrokeA = a;
-}
-
-int RectMode = 0;
-void rectModeCorner()
-{
-	RectMode = 1;
-}
-void rectModeCenter()
-{
-	RectMode = 0;
-}
+//マップ用コンスタントバッファ構造体
+struct CONST_BUF0 {
+	XMMATRIX worldViewProj;
+	XMFLOAT4 diffuse;
+};
 
 //コンスタント構造体
 struct CONSTANT {
@@ -899,8 +915,8 @@ size_t numConstants() { return Constants.size(); }
 struct TEXTURE {
 	ComPtr<ID3D12Resource> textureBuffer;
 	UINT tbvIdx=-1;
-	float width=0;
-	float height=0;
+	float texWidth=0;
+	float texHeight=0;
 };
 //テクスチャ配列
 std::vector<TEXTURE>Textures;
@@ -917,8 +933,8 @@ int loadImage(const char* filename)
 		int w, h;
 		createTextureBufferFromFile(filename, tmp.textureBuffer, &w, &h);
 		tmp.tbvIdx = createTextureBufferView(tmp.textureBuffer);
-		tmp.width = (float)w;
-		tmp.height = (float)h;
+		tmp.texWidth = (float)w;
+		tmp.texHeight = (float)h;
 		Textures.emplace_back(tmp);
 		int idx = (int)Textures.size() - 1;
 		DuplicateCheckMap[filename] = idx;
@@ -928,6 +944,55 @@ int loadImage(const char* filename)
 		return itr->second;
 	}
 }
+//テクスチャを張り付けた四角形の描画
+void drawImage(UINT cbvIdx, UINT tbvIdx)
+{
+	//頂点をセット
+	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	CommandList->IASetVertexBuffers(0, 1, &SquareVbv);
+	//コンスタントをセット
+	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+	//テクスチャをセット
+	hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * tbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
+	//描画
+	CommandList->DrawInstanced(4, 1, 0, 0);
+
+	//drawしたら必ずカウントアップ
+	ConstantIdxCnt++;
+}
+
+//塗りつぶす色
+float FillR = 1, FillG = 1, FillB = 1, FillA = 1;
+void fill(float r, float g, float b, float a)
+{
+	FillR = r; FillG = g; FillB = b; FillA = a;
+}
+
+
+//矩形描画モード
+constexpr int CENTER = 0;
+constexpr int CORNER = 1;
+int RectMode = 0;
+void rectModeCorner()
+{
+	RectMode = CORNER;
+}
+void rectModeCenter()
+{
+	RectMode = CENTER;
+}
+
+XMMATRIX OrthoProj;
+void CreateOrthoProj()
+{
+	OrthoProj = 
+		XMMatrixScaling(2.0f / ClientWidth, 2.0f / ClientHeight, 1)
+		* XMMatrixTranslation(-1.0f, 1.0f, 0);
+}
 
 //画像描画
 void image(int textureIdx, float px, float py, float rad, float sx, float sy)
@@ -936,26 +1001,20 @@ void image(int textureIdx, float px, float py, float rad, float sx, float sy)
 	AutoCreateConstant();
 	//マトリックス⇒コンスタントにセット
 	XMMATRIX world =
-		XMMatrixScaling(Textures[textureIdx].width*sx, Textures[textureIdx].height*sy, 1)
+		XMMatrixScaling(Textures[textureIdx].texWidth*sx, Textures[textureIdx].texHeight*sy, 1)
 		* XMMatrixRotationZ(rad);
-	if (RectMode) {//Corner
-		world *= XMMatrixTranslation(px + Textures[textureIdx].width  / 2, -(py + Textures[textureIdx].height / 2), 0);
+	if (RectMode == CORNER) {
+		world *= XMMatrixTranslation(px + Textures[textureIdx].texWidth / 2, -(py + Textures[textureIdx].texHeight / 2), 0);
 	}
 	else {
 		world *= XMMatrixTranslation(px, -py, 0);
 	}
-	world *=
-		XMMatrixScaling(2.0f / ClientWidth, 2.0f / ClientHeight, 1)
-		* XMMatrixTranslation(-1, +1, 0);
-	Constants[ConstantIdxCnt].cb0->worldViewProj = world;
+	Constants[ConstantIdxCnt].cb0->worldViewProj = world * OrthoProj;
 	//ディフューズカラー⇒コンスタントにセット
 	Constants[ConstantIdxCnt].cb0->diffuse = { FillR,FillG,FillB,FillA };
 
 	//描画
 	drawImage(Constants[ConstantIdxCnt].cbvIdx, Textures[textureIdx].tbvIdx);
-
-	//drawしたら必ずカウントアップ
-	ConstantIdxCnt++;
 }
 //初学者用ファイル名直接指定バージョン
 void image(const char* filename, float px, float py, float rad, float sx, float sy)
@@ -981,18 +1040,64 @@ void CreateWhiteTexture()//createDescriptorHeapから呼び出される
 	WhiteTbvIdx = createTextureBufferView(WhiteTexture);
 }
 
-//line
+//輪郭線の色
+float StrokeR = 1, StrokeG = 1, StrokeB = 1, StrokeA = 1;
+void stroke(float r, float g, float b, float a)
+{
+	StrokeR = r; StrokeG = g; StrokeB = b; StrokeA = a;
+}
+//輪郭線の太さ
 float StrokeWeight = 1;
 void strokeWeight(float sw)
 {
 	StrokeWeight = sw;
 }
+
+//点
+void point(float px, float py)
+{
+	//コンスタントが足りなかったらつくる
+	AutoCreateConstant();
+	//マトリックス⇒コンスタントにセット
+	XMMATRIX world =
+		XMMatrixScaling(StrokeWeight, StrokeWeight, 1)
+		* XMMatrixTranslation(px, -py, 0)
+		* OrthoProj;
+	Constants[ConstantIdxCnt].cb0->worldViewProj = world;
+	//ディフューズカラー⇒コンスタントにセット
+	Constants[ConstantIdxCnt].cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
+
+	int idx=0;
+	if      (StrokeWeight <=  10)idx = 0;
+	else if (StrokeWeight <=  50)idx = 1;
+	else if (StrokeWeight <= 200)idx = 2;
+	else if (StrokeWeight <= 800)idx = 3;
+	else idx = 4;
+	auto& Vbv = CircleVbv[idx];
+
+	//頂点をセット
+	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	CommandList->IASetVertexBuffers(0, 1, &Vbv);
+	//コンスタントをセット
+	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * Constants[ConstantIdxCnt].cbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+	//テクスチャをセット
+	hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * WhiteTbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
+	//描画
+	UINT numVertices = Vbv.SizeInBytes / Vbv.StrideInBytes;
+	CommandList->DrawInstanced(numVertices, 1, 0, 0);
+	ConstantIdxCnt++;
+}
+//終点に点を描くか否か
+bool DrawEndPointFlag = true;
+//線
 void line(float sx, float sy, float ex, float ey)
 {
 	//コンスタントが足りなかったらつくる
 	AutoCreateConstant();
-//	float chw = ClientWidth / 2.0f;//client half width
-//	float chh = ClientHeight / 2.0f;//client half height
 
 	float dx = ex - sx;
 	float dy = ey - sy;
@@ -1003,22 +1108,21 @@ void line(float sx, float sy, float ex, float ey)
 		* XMMatrixScaling(length, StrokeWeight, 1)
 		* XMMatrixRotationZ(rad)
 		* XMMatrixTranslation(sx, -sy, 0)
-		* XMMatrixScaling(2.0f / ClientWidth, 2.0f / ClientHeight, 1)
-		* XMMatrixTranslation(-1.0f, 1.0f, 0);
-
-		//* XMMatrixScaling(1.0f / chw, 1.0f / chh, 1)
-		//* XMMatrixTranslation(- 0.5, 0.5, 0);
+		* OrthoProj;
 	Constants[ConstantIdxCnt].cb0->worldViewProj = world;
 	//ディフューズカラー⇒コンスタントにセット
 	Constants[ConstantIdxCnt].cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
 
 	//描画
 	drawImage(Constants[ConstantIdxCnt].cbvIdx, WhiteTbvIdx);
-	//drawしたら必ずカウントアップ
-	ConstantIdxCnt++;
+	if (StrokeWeight > 1) {
+		//始点
+		point(sx, sy);
+		//終点
+		if (DrawEndPointFlag)point(ex, ey);
+	}
 }
-
-//四角形描画
+//矩形
 void rect(float px, float py, float w, float h, float rad)
 {
 	//コンスタントが足りなかったらつくる
@@ -1027,27 +1131,22 @@ void rect(float px, float py, float w, float h, float rad)
 	XMMATRIX world=
 		XMMatrixScaling(w, h, 1)
 		* XMMatrixRotationZ(rad);
-	if (RectMode) {//Corner
+	if (RectMode == CORNER) {
 		world *= XMMatrixTranslation(px + w / 2, -(py + h / 2), 0);
 	}
 	else {
 		world *= XMMatrixTranslation(px, -py, 0);
 	}
-	XMMATRIX proj =
-		XMMatrixScaling(2.0f / ClientWidth, 2.0f / ClientHeight, 1)
-		* XMMatrixTranslation(-1.0f, 1.0f, 0)
-		;
-	Constants[ConstantIdxCnt].cb0->worldViewProj = world*proj;
+	Constants[ConstantIdxCnt].cb0->worldViewProj = world * OrthoProj;
 	//ディフューズカラー⇒コンスタントにセット
 	Constants[ConstantIdxCnt].cb0->diffuse = { FillR,FillG,FillB,FillA };
 
 	//描画
 	if (FillA > 0.0f) {
 		drawImage(Constants[ConstantIdxCnt].cbvIdx, WhiteTbvIdx);
-		//drawしたら必ずカウントアップ
-		ConstantIdxCnt++;
 	}
 
+	//輪郭
 	if (StrokeWeight > 0) {
 		XMVECTOR v0= XMVectorSet( -0.5f, 0.5f, 0.0f,1.0f );
 		XMVECTOR v1= XMVectorSet( -0.5f,-0.5f, 0.0f,1.0f );
@@ -1057,18 +1156,74 @@ void rect(float px, float py, float w, float h, float rad)
 		XMVECTOR lb = XMVector4Transform(v1, world);
 		XMVECTOR rt = XMVector4Transform(v2, world);
 		XMVECTOR rb = XMVector4Transform(v3, world);
-		//DrawEndPointFlag = false;
+		DrawEndPointFlag = false;
 		line(XMVectorGetX(lt), -XMVectorGetY(lt), XMVectorGetX(lb), -XMVectorGetY(lb));
 		line(XMVectorGetX(lb), -XMVectorGetY(lb), XMVectorGetX(rb), -XMVectorGetY(rb));
 		line(XMVectorGetX(rb), -XMVectorGetY(rb), XMVectorGetX(rt), -XMVectorGetY(rt));
 		line(XMVectorGetX(rt), -XMVectorGetY(rt), XMVectorGetX(lt), -XMVectorGetY(lt));
-		//DrawEndPointFlag = true;
+		DrawEndPointFlag = true;
 	}
+}
+//円
+void circle(float px, float py, float diameter)
+{
+	//コンスタントが足りなかったらつくる
+	AutoCreateConstant();
+	//マトリックス⇒コンスタントにセット
+	XMMATRIX world =
+		XMMatrixScaling(diameter, diameter, 1)
+		* XMMatrixTranslation(px, -py, 0)
+		* OrthoProj;
+	Constants[ConstantIdxCnt].cb0->worldViewProj = world;
+	//ディフューズカラー⇒コンスタントにセット
+	Constants[ConstantIdxCnt].cb0->diffuse = { FillR,FillG,FillB,FillA };
 
-	
+	int idx = 0;
+	if		(diameter <=  10) { idx = 0; }
+	else if (diameter <=  50) { idx = 1; }
+	else if (diameter <= 200) { idx = 2; }
+	else if (diameter <= 800) { idx = 3; }
+	else					  { idx = 4; }
+	auto& Vbv = CircleVbv[idx];
+
+	//頂点をセット
+	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	CommandList->IASetVertexBuffers(0, 1, &Vbv);
+	//コンスタントをセット
+	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * Constants[ConstantIdxCnt].cbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+	//テクスチャをセット
+	hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * WhiteTbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
+	//描画
+	UINT numVertices = Vbv.SizeInBytes / Vbv.StrideInBytes;
+	CommandList->DrawInstanced(numVertices, 1, 0, 0);
+	ConstantIdxCnt++;
+
+	//輪郭
+	if (StrokeWeight > 0) {
+		int numAngles = NumAngles[idx];
+		float rad = 3.141592f * 2 / numAngles;
+		float radius = diameter / 2;
+		DrawEndPointFlag = false;
+		float sx = px + radius;
+		float sy = py;
+		float ex, ey;
+		for (int i = 0; i < numAngles; i++) {
+			ex = px + cosf(rad * (i + 1)) * radius;
+			ey = py + sinf(rad * (i + 1)) * radius;
+			line(sx, sy, ex, ey);
+			sx = ex;
+			sy = ey;
+		}
+		DrawEndPointFlag = true;
+	}
 }
 
-//font
+//フォント
+// 
 //現在描画中のフォントフェイス構造体
 struct CURRENT_FONT_FACE {
 	std::string name; unsigned long charset; int idx; int size;
@@ -1103,17 +1258,17 @@ void fontSize(int size)
 	CurFontFace.size = size;
 }
 
-
-//FONT_TEXTURE構造体(下のマップに保存していくフォントの描画に必要なデータ達)
+//フォント用テクスチャ構造体(下のマップに保存していくフォントの描画に必要なデータ達)
 struct FONT_TEXTURE {
 	ComPtr<ID3D12Resource> textureBuffer = nullptr;
 	UINT tbvIdx = 0;
 	float texWidth=0, texHeight=0;//テクスチャの幅、高さ
-	float width=0, height=0;//描画幅、高さ
+	float drawWidth=0, drawHeight=0;//描画幅、高さ
 	float ofstX=0, ofstY=0;//描画するときにずらす値
 };
 //フォントテクスチャデータを管理するマップ
 static std::unordered_map<DWORD, FONT_TEXTURE> FontTextureMap;
+size_t numFontTextures() { return FontTextureMap.size(); }
 //１文字分のフォントテクスチャをつくって上のマップに追加する
 FONT_TEXTURE* CreateFontTexture(DWORD key)
 {
@@ -1173,8 +1328,8 @@ FONT_TEXTURE* CreateFontTexture(DWORD key)
 	FontTextureMap[key].tbvIdx = createTextureBufferView(FontTextureMap[key].textureBuffer);
 	FontTextureMap[key].texWidth = (float)texWidth;
 	FontTextureMap[key].texHeight = (float)texHeight;//テクスチャの幅と高さ
-	FontTextureMap[key].width = (float)gm.gmCellIncX;
-	FontTextureMap[key].height = (float)tm.tmHeight;//描画する幅と高さ
+	FontTextureMap[key].drawWidth = (float)gm.gmCellIncX;
+	FontTextureMap[key].drawHeight = (float)tm.tmHeight;//描画する幅と高さ
 	FontTextureMap[key].ofstX = (float)gm.gmptGlyphOrigin.x;
 	FontTextureMap[key].ofstY = (float)tm.tmAscent - gm.gmptGlyphOrigin.y;//描画する時にずらす値
 
@@ -1184,7 +1339,7 @@ FONT_TEXTURE* CreateFontTexture(DWORD key)
 	return &FontTextureMap[key];
 }
 
-int FontRectMode = 1;
+int FontRectMode = CORNER;
 
 //指定した文字列を指定したスクリーン座標で描画する
 float text(const char* str, float x, float y)
@@ -1223,11 +1378,9 @@ float text(const char* str, float x, float y)
 
 		//コンスタントが足りなかったらつくる
 		AutoCreateConstant();
-		//2D用マトリックス
-		float chw = ClientWidth / 2.0f;//client half width
-		float chh = ClientHeight / 2.0f;//client half height
+		
 		XMMATRIX world;
-		if (FontRectMode) {
+		if (FontRectMode == CORNER) {
 			world = XMMatrixTranslation(0.5f, -0.5f, 0);//Px,Pyの位置に画像の左上がくる
 		}
 		else {
@@ -1235,26 +1388,24 @@ float text(const char* str, float x, float y)
 		}
 		world *=
 			XMMatrixScaling(fontTex->texWidth, fontTex->texHeight, 1)
-			* XMMatrixTranslation(fontTex->ofstX, -fontTex->ofstY, 0)
-			* XMMatrixScaling(1.0f / chw, 1.0f / chh, 1)
-			* XMMatrixTranslation(x / chw - 1, y / -chh + 1, 0);
+			* XMMatrixTranslation(x+fontTex->ofstX, -(y+fontTex->ofstY), 0)
+			* OrthoProj;
 		Constants[ConstantIdxCnt].cb0->worldViewProj = world;
 		Constants[ConstantIdxCnt].cb0->diffuse = { FillR,FillG,FillB,FillA };
 		
 		//描画
 		drawImage(Constants[ConstantIdxCnt].cbvIdx, fontTex->tbvIdx);
-		ConstantIdxCnt++;
 
 		//次の文字の描画位置ｘを求めておく
-		x += fontTex->width;
+		x += fontTex->drawWidth;
 	}
 	//横に続けて別の文字列を表示するための座標を返す
 	return x;
 }
 
-static float PrintInitX = 5;
-static float PrintInitY = 5;
-static float PrintY = PrintInitY;
+float PrintInitX = 5;
+float PrintInitY = 5;
+float PrintY = PrintInitY;
 void setPrintInitX(float initX)
 {
 	PrintInitX = initX;
