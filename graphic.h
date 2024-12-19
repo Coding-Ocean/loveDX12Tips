@@ -10,7 +10,6 @@ using namespace Microsoft::WRL;
 #define width clientWidth()
 #define height clientHeight()
 
-
 //ƒVƒXƒeƒ€Œn
 void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int numDescriptors = 2000, int clientPosX = -1, int clientPosY = -1);
 bool quit();
@@ -50,6 +49,7 @@ void image(const char* filename, float px, float py, float rad=0, float sx=1, fl
 //shapes
 void point(float px, float py);
 void line(float sx, float sy, float ex, float ey);
+void arrow(float sx, float sy, float ex, float ey, float len=20, float deg=20);
 void rect(float px, float py, float w, float h, float rad = 0);
 void circle(float px, float py, float diameter);
 //font
@@ -57,6 +57,9 @@ constexpr ULONG JP = 128;
 constexpr ULONG EN = 0;
 void fontFace(const char* fontname, unsigned charset);
 void fontSize(int size);
+void fontRectModeCorner();
+void fontRectModeCenter();
+
 float text(const char* str, float x, float y);
 void setPrintInitX(float initX);
 void setPrintInitY(float initY);

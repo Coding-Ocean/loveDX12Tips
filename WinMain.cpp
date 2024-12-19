@@ -2,40 +2,35 @@
 
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"2DGraphics", 1920, 1200, NO_WINDOW);
-
-	//int img = loadImage("assets/image.png");
-
-	float rad = 0;
+	window(L"2DGraphics", 1600, 900);
 	
 	clearColor(0.9f, 0.9f, 0.9f);
 
-	float ox = width / 2;
-	float oy = height / 2;
-	float diameter = 900;
-	float len = diameter / 1.414f;
-	float radius = len / 2;
+	float rad = 0;
+	int cnt = 0;
+	int n = 5;
+	int inc = 1;
 
 	while (!quit())
 	{
-		float ratio = (cosf(rad) + 1.0f) * 0.5f;
+		//更新------------------------------------------------
+		//float ratio = cosf(rad) * 0.5f + 0.5f;
 		rad += 0.005f;
+
+		//描画------------------------------------------------
 		beginRender();
 
-		//stroke(0, 0, 0);
-		//strokeWeight(90);
-		//fill(1, 1, 1);
-		//circle(ox, oy, diameter);
-		//rect(ox, oy, len, len, rad);
-		//line(ox, oy, ox + sinf(rad) * radius, oy - cosf(rad) * radius);
-		//image("assets/penguin1.png", ox, oy, -rad, diameter / height, diameter / height);
-
-		stroke(0,0,0);
+		//四角と丸
+		if (++cnt % 60 == 0) {
+			if (n < 1 || n > 4) {
+				inc *= -1; 
+			}
+			n += inc;
+		}
+		stroke(0, 0, 0);
 		strokeWeight(3);
-		int nx = 5;
-		int ny = 5;
-		for (int y = 0; y < nx; ++y) {
-			for (int x = 0; x < ny; ++x) {
+		for (int y = 0; y < n; ++y) {
+			for (int x = 0; x < n; ++x) {
 				if ((x + y) % 2) {
 					fill(1.f, 1.f, 1.f,0);
 				}
@@ -44,32 +39,50 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				}
 				float w = 100.0f;
 				float h = 100.0f;
-				float ofstX = (width - w * nx) / 2 + w/2;
-				float ofstY = (height - h * ny) / 2 + h/2;
+				float ofstX = (width - w * n) / 2 + w/2;
+				float ofstY = (height - h * n) / 2 + h/2;
 				float px = ofstX + w * x;
 				float py = ofstY +h * y;
 				rect(px, py, w, h, rad);
-				fill(1, 0, 0);
-				circle(px, py, w*0.2f);
+				fill(1, 1, 0);
+				circle(px, py, w*0.3f);
 			}
 		}
 
-		fill(1,1,1);
-		image("assets/penguin1.png", width - 100, height / 2, rad * 2, 0.3f, 0.3f);
-		image("assets/penguin1.png", width-200, height/2, rad * 2,0.3f,0.3f);
+		//image ファイル名重複しても大丈夫です
+		fill(1, 0, 0);
+		for (int i = 0; i < n; i++) {
+			image("assets/penguin1.png", width - 500 + 100*i, height / 2, rad * 2, 0.3f, 0.3f);
+		}
 
-		int size = 60;
-		fontSize(size);
-		std::string str = "色即是空。空即是色。";//←漢字にしてください
-		fill(0.f, 0.f, 0.f);
-		text(str.c_str(), (width - size*0.5f * str.size()) / 2, (height - size));
-		
-		fontSize(40);
+		//arrow
+		float ox = width / 6;
+		float oy = height / 2;
+		float ex = ox + cosf(rad) * 200;
+		float ey = oy - sinf(rad) * 200;
+		stroke(0, 0, 1);
+		strokeWeight(5);
+		arrow(ox, oy, ex, ey);
+		fontRectModeCenter();
+		fontSize(50);
 		fill(0, 0, 0);
+		text("ａ", ex + cosf(rad) * 22, ey - sinf(rad) * 22);
+
+		//text 漢字
+		int size = 100;
+		fontSize(size);
+		std::string str = "色即是空";//←漢字にしてください
+		fill(0.f, 0.f, 0.f);
+		fontRectModeCorner();
+		text(str.c_str(), (width - size*0.5f * str.size()) / 2, (height - size));
+
+		//print
+		fontSize(40);
 		print("numLoadTextures:%u", numLoadTextures());
 		print("numFontTextures:%u", numFontTextures());
 		print("numConstants:%u", numConstants());
-		print("rad:%.2f", rad);
+		print("n:%d", n);
+		print("dn:%d", inc);
 
 		endRender();
 	}

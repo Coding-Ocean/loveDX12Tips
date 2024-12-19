@@ -410,7 +410,6 @@ void CreateSquareVertexBuffer();
 void CreateCircleVertexBuffers();
 void CreateWhiteTexture();
 void CreateOrthoProj();
-
 void InitConstantIdxCnt();
 void InitPrintPosY();
 
@@ -882,7 +881,6 @@ struct CONST_BUF0 {
 	XMMATRIX worldViewProj;
 	XMFLOAT4 diffuse;
 };
-
 //コンスタント構造体
 struct CONSTANT {
 	ComPtr<ID3D12Resource> constBuffer0 = nullptr;
@@ -891,6 +889,8 @@ struct CONSTANT {
 };
 //コンスタント配列
 std::vector<CONSTANT>Constants;
+//#####debug#####
+size_t numConstants() { return Constants.size(); }
 //コンスタント配列を指すインデックス
 UINT ConstantIdxCnt = 0;
 void InitConstantIdxCnt()//quit内で呼び出す
@@ -908,8 +908,6 @@ void AutoCreateConstant()
 		Constants.emplace_back(tmp);
 	}
 }
-//#####debug#####
-size_t numConstants() { return Constants.size(); }
 
 //テクスチャ構造体
 struct TEXTURE {
@@ -972,7 +970,6 @@ void fill(float r, float g, float b, float a)
 	FillR = r; FillG = g; FillB = b; FillA = a;
 }
 
-
 //矩形描画モード
 constexpr int CENTER = 0;
 constexpr int CORNER = 1;
@@ -999,23 +996,28 @@ void image(int textureIdx, float px, float py, float rad, float sx, float sy)
 {
 	//コンスタントが足りなかったらつくる
 	AutoCreateConstant();
+
+	auto& tex = Textures[textureIdx];
+	auto& con = Constants[ConstantIdxCnt];
+
 	//マトリックス⇒コンスタントにセット
 	XMMATRIX world =
-		XMMatrixScaling(Textures[textureIdx].texWidth*sx, Textures[textureIdx].texHeight*sy, 1)
+		XMMatrixScaling(tex.texWidth*sx, tex.texHeight*sy, 1)
 		* XMMatrixRotationZ(rad);
 	if (RectMode == CORNER) {
-		world *= XMMatrixTranslation(px + Textures[textureIdx].texWidth / 2, -(py + Textures[textureIdx].texHeight / 2), 0);
+		world *= XMMatrixTranslation(px + tex.texWidth / 2, -(py + tex.texHeight / 2), 0);
 	}
 	else {
 		world *= XMMatrixTranslation(px, -py, 0);
 	}
-	Constants[ConstantIdxCnt].cb0->worldViewProj = world * OrthoProj;
+	con.cb0->worldViewProj = world * OrthoProj;
 	//ディフューズカラー⇒コンスタントにセット
-	Constants[ConstantIdxCnt].cb0->diffuse = { FillR,FillG,FillB,FillA };
+	con.cb0->diffuse = { FillR,FillG,FillB,FillA };
 
 	//描画
-	drawImage(Constants[ConstantIdxCnt].cbvIdx, Textures[textureIdx].tbvIdx);
+	drawImage(con.cbvIdx, tex.tbvIdx);
 }
+
 //初学者用ファイル名直接指定バージョン
 void image(const char* filename, float px, float py, float rad, float sx, float sy)
 {
@@ -1058,15 +1060,18 @@ void point(float px, float py)
 {
 	//コンスタントが足りなかったらつくる
 	AutoCreateConstant();
+
 	//マトリックス⇒コンスタントにセット
 	XMMATRIX world =
 		XMMatrixScaling(StrokeWeight, StrokeWeight, 1)
 		* XMMatrixTranslation(px, -py, 0)
 		* OrthoProj;
-	Constants[ConstantIdxCnt].cb0->worldViewProj = world;
+	auto& con = Constants[ConstantIdxCnt];
+	con.cb0->worldViewProj = world;
 	//ディフューズカラー⇒コンスタントにセット
-	Constants[ConstantIdxCnt].cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
+	con.cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
 
+	//大きさによる頂点バッファビューの選択
 	int idx=0;
 	if      (StrokeWeight <=  10)idx = 0;
 	else if (StrokeWeight <=  50)idx = 1;
@@ -1080,7 +1085,7 @@ void point(float px, float py)
 	CommandList->IASetVertexBuffers(0, 1, &Vbv);
 	//コンスタントをセット
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-	hCbvTbvHeap.ptr += CbvTbvIncSize * Constants[ConstantIdxCnt].cbvIdx;
+	hCbvTbvHeap.ptr += CbvTbvIncSize * con.cbvIdx;
 	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
 	//テクスチャをセット
 	hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
@@ -1099,6 +1104,7 @@ void line(float sx, float sy, float ex, float ey)
 	//コンスタントが足りなかったらつくる
 	AutoCreateConstant();
 
+	//マトリックス⇒コンスタントにセット
 	float dx = ex - sx;
 	float dy = ey - sy;
 	float length = sqrtf(dx * dx + dy * dy);
@@ -1109,18 +1115,80 @@ void line(float sx, float sy, float ex, float ey)
 		* XMMatrixRotationZ(rad)
 		* XMMatrixTranslation(sx, -sy, 0)
 		* OrthoProj;
-	Constants[ConstantIdxCnt].cb0->worldViewProj = world;
+	auto& con = Constants[ConstantIdxCnt];
+	con.cb0->worldViewProj = world;
 	//ディフューズカラー⇒コンスタントにセット
-	Constants[ConstantIdxCnt].cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
+	con.cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
 
 	//描画
-	drawImage(Constants[ConstantIdxCnt].cbvIdx, WhiteTbvIdx);
+	drawImage(con.cbvIdx, WhiteTbvIdx);
 	if (StrokeWeight > 1) {
 		//始点
 		point(sx, sy);
 		//終点
 		if (DrawEndPointFlag)point(ex, ey);
 	}
+}
+void arrow(float sx, float sy, float ex, float ey, float arrowLen, float arrowDeg)
+{
+	//コンスタントが足りなかったらつくる
+	AutoCreateConstant();
+	//マトリックス⇒コンスタントにセット
+	float dx = ex - sx;
+	float dy = ey - sy;
+	float length = sqrtf(dx * dx + dy * dy);
+	float rad = -atan2f(dy, dx);
+	XMMATRIX world =
+		XMMatrixTranslation(0.5f, 0, 0)
+		* XMMatrixScaling(length, StrokeWeight, 1)
+		* XMMatrixRotationZ(rad)
+		* XMMatrixTranslation(sx, -sy, 0)
+		* OrthoProj;
+	auto& con = Constants[ConstantIdxCnt];
+	con.cb0->worldViewProj = world;
+	//ディフューズカラー⇒コンスタントにセット
+	con.cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
+	//描画
+	drawImage(con.cbvIdx, WhiteTbvIdx);
+	if (StrokeWeight > 1) {
+		//始点
+		point(sx, sy);
+		//終点
+		point(ex, ey);
+	}
+
+	float arrowRad = 3.1415926f / 180 * (180-arrowDeg);
+	{
+		AutoCreateConstant();
+		XMMATRIX world =
+			XMMatrixTranslation(0.5f, 0, 0)
+			* XMMatrixScaling(arrowLen, StrokeWeight, 1)
+			* XMMatrixRotationZ(rad - arrowRad)
+			* XMMatrixTranslation(ex, -ey, 0)
+			* OrthoProj;
+		auto& con = Constants[ConstantIdxCnt];
+		con.cb0->worldViewProj = world;
+		//ディフューズカラー⇒コンスタントにセット
+		con.cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
+		//描画
+		drawImage(con.cbvIdx, WhiteTbvIdx);
+	}
+	{
+		AutoCreateConstant();
+		XMMATRIX world =
+			XMMatrixTranslation(0.5f, 0, 0)
+			* XMMatrixScaling(arrowLen, StrokeWeight, 1)
+			* XMMatrixRotationZ(rad + arrowRad)
+			* XMMatrixTranslation(ex, -ey, 0)
+			* OrthoProj;
+		auto& con = Constants[ConstantIdxCnt];
+		con.cb0->worldViewProj = world;
+		//ディフューズカラー⇒コンスタントにセット
+		con.cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
+		//描画
+		drawImage(con.cbvIdx, WhiteTbvIdx);
+	}
+
 }
 //矩形
 void rect(float px, float py, float w, float h, float rad)
@@ -1137,13 +1205,14 @@ void rect(float px, float py, float w, float h, float rad)
 	else {
 		world *= XMMatrixTranslation(px, -py, 0);
 	}
-	Constants[ConstantIdxCnt].cb0->worldViewProj = world * OrthoProj;
+	auto& con = Constants[ConstantIdxCnt];
+	con.cb0->worldViewProj = world * OrthoProj;
 	//ディフューズカラー⇒コンスタントにセット
-	Constants[ConstantIdxCnt].cb0->diffuse = { FillR,FillG,FillB,FillA };
+	con.cb0->diffuse = { FillR,FillG,FillB,FillA };
 
 	//描画
 	if (FillA > 0.0f) {
-		drawImage(Constants[ConstantIdxCnt].cbvIdx, WhiteTbvIdx);
+		drawImage(con.cbvIdx, WhiteTbvIdx);
 	}
 
 	//輪郭
@@ -1174,9 +1243,10 @@ void circle(float px, float py, float diameter)
 		XMMatrixScaling(diameter, diameter, 1)
 		* XMMatrixTranslation(px, -py, 0)
 		* OrthoProj;
-	Constants[ConstantIdxCnt].cb0->worldViewProj = world;
+	auto& con = Constants[ConstantIdxCnt];
+	con.cb0->worldViewProj = world;
 	//ディフューズカラー⇒コンスタントにセット
-	Constants[ConstantIdxCnt].cb0->diffuse = { FillR,FillG,FillB,FillA };
+	con.cb0->diffuse = { FillR,FillG,FillB,FillA };
 
 	int idx = 0;
 	if		(diameter <=  10) { idx = 0; }
@@ -1191,7 +1261,7 @@ void circle(float px, float py, float diameter)
 	CommandList->IASetVertexBuffers(0, 1, &Vbv);
 	//コンスタントをセット
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
-	hCbvTbvHeap.ptr += CbvTbvIncSize * Constants[ConstantIdxCnt].cbvIdx;
+	hCbvTbvHeap.ptr += CbvTbvIncSize * con.cbvIdx;
 	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
 	//テクスチャをセット
 	hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
@@ -1340,6 +1410,14 @@ FONT_TEXTURE* CreateFontTexture(DWORD key)
 }
 
 int FontRectMode = CORNER;
+void fontRectModeCorner()
+{
+	FontRectMode = CORNER;
+}
+void fontRectModeCenter()
+{
+	FontRectMode = CENTER;
+}
 
 //指定した文字列を指定したスクリーン座標で描画する
 float text(const char* str, float x, float y)
@@ -1379,22 +1457,19 @@ float text(const char* str, float x, float y)
 		//コンスタントが足りなかったらつくる
 		AutoCreateConstant();
 		
-		XMMATRIX world;
-		if (FontRectMode == CORNER) {
-			world = XMMatrixTranslation(0.5f, -0.5f, 0);//Px,Pyの位置に画像の左上がくる
+		XMMATRIX world =
+			XMMatrixTranslation(0.5f, -0.5f, 0)
+			* XMMatrixScaling(fontTex->texWidth, fontTex->texHeight, 1)
+			* XMMatrixTranslation(x + fontTex->ofstX, -(y + fontTex->ofstY), 0);
+		if (FontRectMode == CENTER) {
+			world *= XMMatrixTranslation(-fontTex->drawWidth / 2,  fontTex->drawHeight / 2, 0);
 		}
-		else {
-			world = XMMatrixIdentity();
-		}
-		world *=
-			XMMatrixScaling(fontTex->texWidth, fontTex->texHeight, 1)
-			* XMMatrixTranslation(x+fontTex->ofstX, -(y+fontTex->ofstY), 0)
-			* OrthoProj;
-		Constants[ConstantIdxCnt].cb0->worldViewProj = world;
-		Constants[ConstantIdxCnt].cb0->diffuse = { FillR,FillG,FillB,FillA };
+		auto& con = Constants[ConstantIdxCnt];
+		con.cb0->worldViewProj = world * OrthoProj;
+		con.cb0->diffuse = { FillR,FillG,FillB,FillA };
 		
 		//描画
-		drawImage(Constants[ConstantIdxCnt].cbvIdx, fontTex->tbvIdx);
+		drawImage(con.cbvIdx, fontTex->tbvIdx);
 
 		//次の文字の描画位置ｘを求めておく
 		x += fontTex->drawWidth;
