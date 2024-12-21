@@ -1,0 +1,10 @@
+//ComPtr
+#include<wrl.h>
+using namespace Microsoft::WRL;
+
+//ポインタそのもののアドレスを取得
+GetAddressOf()
+ReleaseAndGetAddressOf()
+
+//ポインタが記憶しているアドレスを取得
+Get()
