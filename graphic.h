@@ -5,14 +5,16 @@
 #include<string>
 using namespace DirectX;
 using namespace Microsoft::WRL;
+#define GameMain() WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ INT)
 #define WINDOW true
 #define NO_WINDOW false
 #define width clientWidth()
 #define height clientHeight()
 
 //システム系
-void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int numDescriptors = 2000, int clientPosX = -1, int clientPosY = -1);
+void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int numDescriptors = 2000, int clientPosX = -1, int clientPosY = -1);
 bool quit();
+int msg_wparam();
 void waitGPU();
 void closeEventHandle();
 //コンスタントバッファ、テクスチャバッファ用ディスクリプタヒープ

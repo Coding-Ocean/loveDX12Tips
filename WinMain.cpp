@@ -1,9 +1,8 @@
 #include"graphic.h"
 
-INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
+int GameMain()
 {
-	window(L"2DGraphics", 1600, 900);
-	
+	window("2DGraphics", 1600, 900);
 	clearColor(0.9f, 0.9f, 0.9f);
 
 	float rad = 0;
@@ -19,7 +18,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 		//描画------------------------------------------------
 		beginRender();
-
+		
 		//四角と丸
 		if (++cnt % 60 == 0) {
 			if (n < 1 || n > 4) {
@@ -45,7 +44,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 				float py = ofstY +h * y;
 				rect(px, py, w, h, rad);
 				fill(1, 1, 0);
-				circle(px, py, w*0.3f);
+				circle(px, py, w*0.2f);
 			}
 		}
 
@@ -58,21 +57,21 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//arrow
 		float ox = width / 6;
 		float oy = height / 2;
-		float ex = ox + cosf(rad) * 200;
-		float ey = oy - sinf(rad) * 200;
+		float ax = ox + cosf(rad) * 200;
+		float ay = oy - sinf(rad) * 200;
 		stroke(0, 0, 1);
 		strokeWeight(5);
-		arrow(ox, oy, ex, ey);
+		arrow(ox, oy, ax, ay);
 		fontRectModeCenter();
 		fontSize(50);
 		fill(0, 0, 0);
-		text("ａ", ex + cosf(rad) * 22, ey - sinf(rad) * 22);
+		text("a", ax + cosf(rad) * 22, ay - sinf(rad) * 22);
 
 		//text 漢字
 		int size = 100;
 		fontSize(size);
-		std::string str = "色即是空";//←漢字にしてください
-		fill(0.f, 0.f, 0.f);
+		std::string str = "色即是空、空即是色";//←漢字にしてください
+		fill(0, 0, 0);
 		fontRectModeCorner();
 		text(str.c_str(), (width - size*0.5f * str.size()) / 2, (height - size));
 

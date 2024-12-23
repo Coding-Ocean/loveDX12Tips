@@ -129,12 +129,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="graphic.cpp" />
+    <ClCompile Include="toWide.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h" />
     <ClInclude Include="graphic.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="toWide.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Header.hlsli" />

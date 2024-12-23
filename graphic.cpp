@@ -12,10 +12,11 @@
 #include"stb_image.h"
 #include"BIN_FILE12.h"
 #include"graphic.h"
+#include"toWide.h"
 
 //グローバル変数-----------------------------------------------------------------
 // ウィンドウ
-LPCWSTR	WindowTitle;
+LPCSTR	WindowTitle;
 int ClientWidth;
 int ClientHeight;
 int ClientPosX;
@@ -23,6 +24,7 @@ int ClientPosY;
 float Aspect;
 DWORD WindowStyle;
 HWND HWnd;
+MSG Msg;
 // デバイス
 ComPtr<ID3D12Device> Device;
 // コマンド
@@ -93,7 +95,7 @@ void CreateWindows()
 	HWnd = CreateWindowEx(
 		NULL,
 		L"GAME_WINDOW",
-		WindowTitle,
+		toWide(WindowTitle),
 		WindowStyle,
 		windowPosX,
 		windowPosY,
@@ -391,10 +393,10 @@ void CreatePipeline()
 	assert(SUCCEEDED(Hr));
 
 	//出力領域を設定
-	Viewport.TopLeftX = 0.0f;
-	Viewport.TopLeftY = 0.0f;
-	Viewport.Width = (float)ClientWidth;
-	Viewport.Height = (float)ClientHeight;
+	Viewport.TopLeftX = 0;
+	Viewport.TopLeftY = 0;
+	Viewport.Width = ClientWidth;
+	Viewport.Height = ClientHeight;
 	Viewport.MinDepth = 0.0f;
 	Viewport.MaxDepth = 1.0f;
 	
@@ -415,7 +417,7 @@ void InitPrintPosY();
 
 //パブリックな関数---------------------------------------------------------------
 //システム系
-void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed, int numDescriptors, int clientPosX, int clientPosY)
+void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed, int numDescriptors, int clientPosX, int clientPosY)
 {
 	WindowTitle = windowTitle;
 	ClientWidth = clientWidth;
@@ -443,11 +445,10 @@ void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowe
 }
 bool quit()
 {
-	MSG msg = { 0 };
-	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-		if(msg.message == WM_QUIT)return true;
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+	while(PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE)) {
+		if(Msg.message == WM_QUIT)return true;
+		TranslateMessage(&Msg);
+		DispatchMessage(&Msg);
 	}
 
 	//===
@@ -455,6 +456,10 @@ bool quit()
 	InitPrintPosY();
 
 	return false;
+}
+int msg_wparam() 
+{ 
+	return (int)Msg.wParam; 
 }
 void waitGPU()
 {
@@ -763,12 +768,12 @@ void beginRender()
 	CommandList->RSSetViewports(1, &Viewport);
 	CommandList->RSSetScissorRects(1, &ScissorRect);
 
+	//ディスクリプタヒープをＧＰＵにセット
+	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 	//パイプラインステートをセット
 	CommandList->SetPipelineState(PipelineState.Get());
 	//ルートシグニチャをセット
 	CommandList->SetGraphicsRootSignature(RootSignature.Get());
-	//ディスクリプタヒープをＧＰＵにセット
-	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 }
 void endRender()
 {
@@ -1043,7 +1048,7 @@ void CreateWhiteTexture()//createDescriptorHeapから呼び出される
 }
 
 //輪郭線の色
-float StrokeR = 1, StrokeG = 1, StrokeB = 1, StrokeA = 1;
+float StrokeR = 0, StrokeG = 0, StrokeB = 0, StrokeA = 1;
 void stroke(float r, float g, float b, float a)
 {
 	StrokeR = r; StrokeG = g; StrokeB = b; StrokeA = a;
@@ -1172,6 +1177,7 @@ void arrow(float sx, float sy, float ex, float ey, float arrowLen, float arrowDe
 		con.cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
 		//描画
 		drawImage(con.cbvIdx, WhiteTbvIdx);
+		point(sx, sy);
 	}
 	{
 		AutoCreateConstant();
@@ -1335,6 +1341,7 @@ struct FONT_TEXTURE {
 	float texWidth=0, texHeight=0;//テクスチャの幅、高さ
 	float drawWidth=0, drawHeight=0;//描画幅、高さ
 	float ofstX=0, ofstY=0;//描画するときにずらす値
+	float ofstCx = 0, ofstCy = 0;//１文字中央表示用
 };
 //フォントテクスチャデータを管理するマップ
 static std::unordered_map<DWORD, FONT_TEXTURE> FontTextureMap;
@@ -1396,12 +1403,14 @@ FONT_TEXTURE* CreateFontTexture(DWORD key)
 	//FONT_TEXTURE(描画に必要なデータ達)をマップに登録
 	createTextureBuffer(pixels, texWidth, texHeight, FontTextureMap[key].textureBuffer);
 	FontTextureMap[key].tbvIdx = createTextureBufferView(FontTextureMap[key].textureBuffer);
-	FontTextureMap[key].texWidth = (float)texWidth;
-	FontTextureMap[key].texHeight = (float)texHeight;//テクスチャの幅と高さ
-	FontTextureMap[key].drawWidth = (float)gm.gmCellIncX;
-	FontTextureMap[key].drawHeight = (float)tm.tmHeight;//描画する幅と高さ
+	FontTextureMap[key].texWidth = (float)texWidth;//テクスチャの幅
+	FontTextureMap[key].texHeight = (float)texHeight;//テクスチャの高さ
+	FontTextureMap[key].drawWidth = (float)gm.gmCellIncX;//描画する幅
+	FontTextureMap[key].drawHeight = (float)tm.tmHeight;//描画する高さ
 	FontTextureMap[key].ofstX = (float)gm.gmptGlyphOrigin.x;
 	FontTextureMap[key].ofstY = (float)tm.tmAscent - gm.gmptGlyphOrigin.y;//描画する時にずらす値
+	FontTextureMap[key].ofstCx = (gm.gmCellIncX - texWidth) / 2.0f;
+	FontTextureMap[key].ofstCy = (tm.tmHeight - texHeight) / 2.0f;
 
 	delete[] alphaBmpBuf;
 	delete[] pixels;
@@ -1457,12 +1466,17 @@ float text(const char* str, float x, float y)
 		//コンスタントが足りなかったらつくる
 		AutoCreateConstant();
 		
-		XMMATRIX world =
-			XMMatrixTranslation(0.5f, -0.5f, 0)
+		XMMATRIX world;
+		if (FontRectMode == CORNER) {
+			world = XMMatrixTranslation(0.5f, -0.5f, 0)
 			* XMMatrixScaling(fontTex->texWidth, fontTex->texHeight, 1)
 			* XMMatrixTranslation(x + fontTex->ofstX, -(y + fontTex->ofstY), 0);
-		if (FontRectMode == CENTER) {
-			world *= XMMatrixTranslation(-fontTex->drawWidth / 2,  fontTex->drawHeight / 2, 0);
+		}
+		else{
+			world = XMMatrixTranslation(0.5f, -0.5f, 0)
+			* XMMatrixScaling(fontTex->texWidth, fontTex->texHeight, 1)
+			* XMMatrixTranslation(x + fontTex->ofstCx, -(y + fontTex->ofstCy), 0)
+			* XMMatrixTranslation(-fontTex->drawWidth / 2,  fontTex->drawHeight / 2, 0);
 		}
 		auto& con = Constants[ConstantIdxCnt];
 		con.cb0->worldViewProj = world * OrthoProj;

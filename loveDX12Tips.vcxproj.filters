@@ -3,6 +3,9 @@
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
     <ClCompile Include="graphic.cpp" />
+    <ClCompile Include="toWide.cpp">
+      <Filter>utility</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h">
@@ -12,6 +15,9 @@
       <Filter>utility</Filter>
     </ClInclude>
     <ClInclude Include="graphic.h" />
+    <ClInclude Include="toWide.h">
+      <Filter>utility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">
