@@ -1162,37 +1162,39 @@ void arrow(float sx, float sy, float ex, float ey, float arrowLen, float arrowDe
 		point(ex, ey);
 	}
 
+	XMVECTOR v = XMVectorSet(0.5f, 0.0f, 0.0f, 1.0f);
 	float arrowRad = 3.1415926f / 180 * (180-arrowDeg);
 	{
 		AutoCreateConstant();
 		XMMATRIX world =
 			XMMatrixTranslation(0.5f, 0, 0)
 			* XMMatrixScaling(arrowLen, StrokeWeight, 1)
-			* XMMatrixRotationZ(rad - arrowRad)
-			* XMMatrixTranslation(ex, -ey, 0)
-			* OrthoProj;
+			* XMMatrixRotationZ(rad + arrowRad)
+			* XMMatrixTranslation(ex, -ey, 0);
 		auto& con = Constants[ConstantIdxCnt];
-		con.cb0->worldViewProj = world;
+		con.cb0->worldViewProj = world * OrthoProj;
 		//ディフューズカラー⇒コンスタントにセット
 		con.cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
 		//描画
 		drawImage(con.cbvIdx, WhiteTbvIdx);
-		point(sx, sy);
+		XMVECTOR v_ = XMVector4Transform(v, world);
+		point(XMVectorGetX(v_), -XMVectorGetY(v_));
 	}
 	{
 		AutoCreateConstant();
 		XMMATRIX world =
 			XMMatrixTranslation(0.5f, 0, 0)
 			* XMMatrixScaling(arrowLen, StrokeWeight, 1)
-			* XMMatrixRotationZ(rad + arrowRad)
-			* XMMatrixTranslation(ex, -ey, 0)
-			* OrthoProj;
+			* XMMatrixRotationZ(rad - arrowRad)
+			* XMMatrixTranslation(ex, -ey, 0);
 		auto& con = Constants[ConstantIdxCnt];
-		con.cb0->worldViewProj = world;
+		con.cb0->worldViewProj = world * OrthoProj;
 		//ディフューズカラー⇒コンスタントにセット
 		con.cb0->diffuse = { StrokeR,StrokeG,StrokeB,StrokeA };
 		//描画
 		drawImage(con.cbvIdx, WhiteTbvIdx);
+		XMVECTOR v_ = XMVector4Transform(v, world);
+		point(XMVectorGetX(v_), -XMVectorGetY(v_));
 	}
 
 }

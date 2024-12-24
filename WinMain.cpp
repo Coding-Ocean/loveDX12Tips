@@ -3,7 +3,7 @@
 int GameMain()
 {
 	window("2DGraphics", 1600, 900);
-	clearColor(0.9f, 0.9f, 0.9f);
+	clearColor(0.8f, 0.8f, 0.8f);
 
 	float rad = 0;
 	int cnt = 0;
@@ -13,13 +13,13 @@ int GameMain()
 	while (!quit())
 	{
 		//更新------------------------------------------------
-		//float ratio = cosf(rad) * 0.5f + 0.5f;
-		rad += 0.005f;
+		float ratio = cosf(rad) * 0.5f + 0.6f;
+		rad += 0.05f;
 
 		//描画------------------------------------------------
 		beginRender();
 		
-		//四角と丸
+		//rect, circle
 		if (++cnt % 60 == 0) {
 			if (n < 1 || n > 4) {
 				inc *= -1; 
@@ -31,25 +31,25 @@ int GameMain()
 		for (int y = 0; y < n; ++y) {
 			for (int x = 0; x < n; ++x) {
 				if ((x + y) % 2) {
-					fill(1.f, 1.f, 1.f,0);
+					fill(1, 1, 1, 0);
 				}
 				else {
-					fill(1.f, 1.f, 1.f,0);
+					fill(1, 1, 1, 1);
 				}
-				float w = 100.0f;
-				float h = 100.0f;
-				float ofstX = (width - w * n) / 2 + w/2;
-				float ofstY = (height - h * n) / 2 + h/2;
+				float w = 80.0f;
+				float h = 80.0f;
+				float ofstX = (width - w * n) / 2 + w / 2;
+				float ofstY = (height - h * n) / 2 + h / 2;
 				float px = ofstX + w * x;
-				float py = ofstY +h * y;
+				float py = ofstY + h * y;
 				rect(px, py, w, h, rad);
-				fill(1, 1, 0);
-				circle(px, py, w*0.2f);
+				fill(1, 1, 0.4f);
+				circle(px, py, w * 0.5f);
 			}
 		}
 
 		//image ファイル名重複しても大丈夫です
-		fill(1, 0, 0);
+		fill(1, 0.5f, 0.5f);
 		for (int i = 0; i < n; i++) {
 			image("assets/penguin1.png", width - 500 + 100*i, height / 2, rad * 2, 0.3f, 0.3f);
 		}
@@ -57,11 +57,12 @@ int GameMain()
 		//arrow
 		float ox = width / 6;
 		float oy = height / 2;
-		float ax = ox + cosf(rad) * 200;
-		float ay = oy - sinf(rad) * 200;
-		stroke(0, 0, 1);
-		strokeWeight(5);
-		arrow(ox, oy, ax, ay);
+		float ax = ox + cosf(rad) * 200 *ratio;
+		float ay = oy - sinf(rad) * 200 *ratio;
+		float arrowLen = 40, arrowRad = 30;
+		stroke(0.25f, 0.5f, 1);
+		strokeWeight(10);
+		arrow(ox, oy, ax, ay, arrowLen, arrowRad);
 		fontRectModeCenter();
 		fontSize(50);
 		fill(0, 0, 0);
@@ -88,4 +89,5 @@ int GameMain()
 
 	waitGPU();
 	closeEventHandle();
+	return msg_wparam();
 }
