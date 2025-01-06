@@ -4,7 +4,7 @@
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Static Mesh", 1280, 720);
-	setClearColor(0.25f, 0.5f, 1.0f);
+	clearColor(0.25f, 0.5f, 1.0f);
 
 	//‚Â‚­‚é--------------------------------------------------------------
 	createDescriptorHeap(3);
@@ -37,4 +37,5 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	
 	waitGPU();
 	closeEventHandle();
+	return msg_wparam();
 }

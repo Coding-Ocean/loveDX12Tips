@@ -415,15 +415,19 @@ void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowe
 	CreateRenderTarget();
 	CreatePipeline();
 }
+MSG Msg = { 0 };
 bool quit()
 {
-	MSG msg = { 0 };
-	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-		if(msg.message == WM_QUIT)return true;
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+	while(PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE)) {
+		if(Msg.message == WM_QUIT)return true;
+		TranslateMessage(&Msg);
+		DispatchMessage(&Msg);
 	}
 	return false;
+}
+int msg_wparam()
+{
+	return (int)Msg.wParam;
 }
 void waitGPU()
 {
@@ -678,7 +682,7 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 	return CbvTbvCurrentIdx++;
 }
 //•`‰æŒn
-void setClearColor(float r, float g, float b)
+void clearColor(float r, float g, float b)
 {
 	ClearColor[0] = r;	ClearColor[1] = g;	ClearColor[2] = b;
 }
