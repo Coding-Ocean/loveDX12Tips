@@ -35,4 +35,5 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	
 	waitGPU();
 	closeEventHandle();
+	return msg_wparam();
 }
