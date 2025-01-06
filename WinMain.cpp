@@ -29,13 +29,13 @@ UINT TbvIdx = 0;//インデックス配列を指すインデックス
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Texture Animation", 1280, 720);
-	setClearColor(0.25f, 0.5f, 0.9f);
+	clearColor(0.25f, 0.5f, 0.9f);
 
-	HRESULT Hr;
+	HRESULT hr;
 
 	//最初に必要なコンスタントバッファビュー、テクスチャバッファビューのヒープを用意しておく
-	Hr = createDescriptorHeap(NumConstBuffers + NumTextureBuffers);
-	assert(SUCCEEDED(Hr));
+	hr = createDescriptorHeap(NumConstBuffers + NumTextureBuffers);
+	assert(SUCCEEDED(hr));
 
 	//リソースをつくる
 	{
@@ -45,11 +45,11 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			UINT sizeInBytes = sizeof(::Vertices);
 			UINT strideInBytes = sizeof(float) * NumVertexElements;
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, VertexBuffer);
-			assert(SUCCEEDED(Hr));
+			hr = createBuffer(sizeInBytes, VertexBuffer);
+			assert(SUCCEEDED(hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(::Vertices, sizeInBytes, VertexBuffer);
-			assert(SUCCEEDED(Hr));
+			hr = updateBuffer(::Vertices, sizeInBytes, VertexBuffer);
+			assert(SUCCEEDED(hr));
 			//ビューをつくる
 			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, Vbv);
 		}
@@ -58,33 +58,33 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(::Indices);
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, IndexBuffer);
-			assert(SUCCEEDED(Hr));
+			hr = createBuffer(sizeInBytes, IndexBuffer);
+			assert(SUCCEEDED(hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(::Indices, sizeInBytes, IndexBuffer);
-			assert(SUCCEEDED(Hr));
+			hr = updateBuffer(::Indices, sizeInBytes, IndexBuffer);
+			assert(SUCCEEDED(hr));
 			//ビューをつくる
 			createIndexBufferView(IndexBuffer, sizeInBytes, Ibv);
 		}
 		//コンスタントバッファ０
 		{
 			//バッファをつくる
-			Hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), ConstBuffer0);
-			assert(SUCCEEDED(Hr));
+			hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), ConstBuffer0);
+			assert(SUCCEEDED(hr));
 			//マップしておく
-			Hr = mapBuffer(ConstBuffer0, (void**)&CB0);
-			assert(SUCCEEDED(Hr));
+			hr = mapBuffer(ConstBuffer0, (void**)&CB0);
+			assert(SUCCEEDED(hr));
 			//ビューをつくって、インデックスをもらっておく
 			CbvIdx = createConstantBufferView(ConstBuffer0);
 		}
 		//コンスタントバッファ１
 		{
 			//バッファをつくる
-			Hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), ConstBuffer1);
-			assert(SUCCEEDED(Hr));
+			hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), ConstBuffer1);
+			assert(SUCCEEDED(hr));
 			//マップしておく
-			Hr = mapBuffer(ConstBuffer1, (void**)&CB1);
-			assert(SUCCEEDED(Hr));
+			hr = mapBuffer(ConstBuffer1, (void**)&CB1);
+			assert(SUCCEEDED(hr));
 			//データを入れる
 			CB1->diffuse = {::Diffuse[0],::Diffuse[1],::Diffuse[2],::Diffuse[3]};
 			//変更しないのでアンマップする
@@ -146,4 +146,5 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		closeEventHandle();
 		unmapBuffer(ConstBuffer0);
 	}
+	return msg_wparam();
 }

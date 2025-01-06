@@ -20,6 +20,7 @@ int ClientPosY;
 float Aspect;
 DWORD WindowStyle;
 HWND HWnd;
+MSG Msg;
 // デバイス
 ComPtr<ID3D12Device> Device;
 // コマンド
@@ -422,13 +423,16 @@ void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowe
 }
 bool quit()
 {
-	MSG msg = { 0 };
-	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-		if(msg.message == WM_QUIT)return true;
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+	while(PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE)) {
+		if(Msg.message == WM_QUIT)return true;
+		TranslateMessage(&Msg);
+		DispatchMessage(&Msg);
 	}
 	return false;
+}
+int msg_wparam()
+{
+	return (int)Msg.wParam;
 }
 void waitGPU()
 {
@@ -688,7 +692,7 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 	return CbvTbvCurrentIdx++;
 }
 //描画系
-void setClearColor(float r, float g, float b)
+void clearColor(float r, float g, float b)
 {
 	ClearColor[0] = r;	ClearColor[1] = g;	ClearColor[2] = b;
 }
