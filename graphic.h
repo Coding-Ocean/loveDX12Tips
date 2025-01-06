@@ -24,6 +24,7 @@ struct CONST_BUF1
 //システム系
 void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int clientPosX = -1, int clientPosY = -1);
 bool quit();
+int msg_wparam();
 void waitGPU();
 void closeEventHandle();
 //全てのコンスタントバッファビュー、テクスチャバッファビューの入れ物を用意する
@@ -41,7 +42,7 @@ void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes
 UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer);
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
 //描画系
-void setClearColor(float r, float g, float b);
+void clearColor(float r, float g, float b);
 void beginRender();
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& indexBufferView, UINT cbvTbvIdx);
 void endRender();
