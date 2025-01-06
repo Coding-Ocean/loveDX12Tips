@@ -20,6 +20,7 @@ int ClientPosY;
 float Aspect;
 DWORD WindowStyle;
 HWND HWnd;
+MSG Msg;
 // デバイス
 ComPtr<ID3D12Device> Device;
 // コマンド
@@ -30,8 +31,6 @@ ComPtr<ID3D12CommandQueue> CommandQueue;
 ComPtr<ID3D12Fence> Fence;
 HANDLE FenceEvent;
 UINT64 FenceValue;
-// デバッグ
-HRESULT Hr;
 // バックバッファ
 ComPtr<IDXGISwapChain4> SwapChain;
 ComPtr<ID3D12Resource> BackBuffers[2];
@@ -51,6 +50,8 @@ D3D12_RECT ScissorRect;
 ComPtr<ID3D12DescriptorHeap> CbvTbvHeap;
 UINT CbvTbvIncSize = 0;
 UINT CurrentCbvTbvIdx = 0;
+// デバッグ
+HRESULT Hr;
 
 //プライベートな関数--------------------------------------------------------------
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -413,13 +414,16 @@ void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowe
 }
 bool quit()
 {
-	MSG msg = { 0 };
-	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-		if(msg.message == WM_QUIT)return true;
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+	while(PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE)) {
+		if(Msg.message == WM_QUIT)return true;
+		TranslateMessage(&Msg);
+		DispatchMessage(&Msg);
 	}
 	return false;
+}
+int msg_wparam()
+{
+	return (int)Msg.wParam;
 }
 void waitGPU()
 {
@@ -678,7 +682,7 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 	return CurrentCbvTbvIdx++;
 }
 //描画系
-void setClearColor(float r, float g, float b)
+void clearColor(float r, float g, float b)
 {
 	ClearColor[0] = r; ClearColor[1] = g; ClearColor[2] = b;
 }
@@ -723,16 +727,16 @@ void beginRender()
 	//ディスクリプタヒープをＧＰＵにセット
 	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 }
-void drawMesh(D3D12_VERTEX_BUFFER_VIEW* vertexBufferView, UINT cbvTbvIdx)
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, UINT cbvTbvIdx)
 {
 	//頂点をセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	CommandList->IASetVertexBuffers(0, 1, vertexBufferView);
+	CommandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 	//ディスクリプタヒープをディスクリプタテーブルにセット
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvTbvIdx;
 	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
-	UINT numVertices = vertexBufferView->SizeInBytes / vertexBufferView->StrideInBytes;
+	UINT numVertices = vertexBufferView.SizeInBytes / vertexBufferView.StrideInBytes;
 	CommandList->DrawInstanced(numVertices, 1, 0, 0);
 }
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& indexBufferView, UINT cbvTbvIdx)
@@ -770,7 +774,7 @@ void endRender()
 	waitGPU();
 
 	//バックバッファを表示
-	SwapChain->Present(1, 0);
+	SwapChain->Present(0, 0);
 
 	//コマンドアロケータをリセット
 	Hr = CommandAllocator->Reset();

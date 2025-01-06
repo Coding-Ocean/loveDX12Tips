@@ -3,19 +3,19 @@
 
 //メッシュリソース
 //　頂点バッファ
-ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
+ComPtr<ID3D12Resource>   VertexBuffer;
 D3D12_VERTEX_BUFFER_VIEW Vbv;
 //　頂点インデックスバッファ
-ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
+ComPtr<ID3D12Resource>  IndexBuffer;
 D3D12_INDEX_BUFFER_VIEW	Ibv;
 //　コンスタントバッファ0
-ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
-CONST_BUF0* CB0 = nullptr;
+ComPtr<ID3D12Resource> ConstBuffer0;
+CONST_BUF0* CB0;
 //　コンスタントバッファ1
-ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
-CONST_BUF1* CB1 = nullptr;
+ComPtr<ID3D12Resource> ConstBuffer1;
+CONST_BUF1* CB1;
 //　テクスチャバッファ
-ComPtr<ID3D12Resource> TextureBuffer = nullptr;
+ComPtr<ID3D12Resource> TextureBuffer;
 //　ディスクリプタインデックス（graphic.cppにあるCbvTbvHeap上のインデックス）
 UINT CbvTbvIdx;
 
@@ -23,14 +23,15 @@ UINT CbvTbvIdx;
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Graphic Functions", 1280, 720);
-	setClearColor(0.25f, 0.5f, 0.9f);
+	clearColor(0.25f, 0.5f, 0.9f);
 
-	HRESULT Hr;
+	//デバッグ用ハンドル
+	HRESULT hr;
 
 	//最初に必要な数のコンスタント・テクスチャ用ディスクリプタヒープをつくる
 	{
-		Hr = createDescriptorHeap(3);
-		assert(SUCCEEDED(Hr));
+		hr = createDescriptorHeap(3);
+		assert(SUCCEEDED(hr));
 	}
 
 	//１つのメッシュをつくる
@@ -41,11 +42,11 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			UINT sizeInBytes = sizeof(::Vertices);
 			UINT strideInBytes = sizeof(float) * ::NumVertexElements;
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, VertexBuffer);
-			assert(SUCCEEDED(Hr));
+			hr = createBuffer(sizeInBytes, VertexBuffer);
+			assert(SUCCEEDED(hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(::Vertices, sizeInBytes, VertexBuffer);
-			assert(SUCCEEDED(Hr));
+			hr = updateBuffer(::Vertices, sizeInBytes, VertexBuffer);
+			assert(SUCCEEDED(hr));
 			//ビューをつくる
 			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, Vbv);
 		}
@@ -54,33 +55,33 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 			//データサイズを求めておく
 			UINT sizeInBytes = sizeof(::Indices);
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, IndexBuffer);
-			assert(SUCCEEDED(Hr));
+			hr = createBuffer(sizeInBytes, IndexBuffer);
+			assert(SUCCEEDED(hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(::Indices, sizeInBytes, IndexBuffer);
-			assert(SUCCEEDED(Hr));
+			hr = updateBuffer(::Indices, sizeInBytes, IndexBuffer);
+			assert(SUCCEEDED(hr));
 			//ビューをつくる
 			createIndexBufferView(IndexBuffer, sizeInBytes, Ibv);
 		}
 		//コンスタントバッファ０
 		{
 			//バッファをつくる
-			Hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), ConstBuffer0);
-			assert(SUCCEEDED(Hr));
+			hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), ConstBuffer0);
+			assert(SUCCEEDED(hr));
 			//マップしておく
-			Hr = mapBuffer(ConstBuffer0, (void**)&CB0);
-			assert(SUCCEEDED(Hr));
+			hr = mapBuffer(ConstBuffer0, (void**)&CB0);
+			assert(SUCCEEDED(hr));
 			//ビューを作り、そのインデックスを取得しておく
 			CbvTbvIdx = createConstantBufferView(ConstBuffer0);
 		}
 		//コンスタントバッファ１
 		{
 			//バッファをつくる
-			Hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), ConstBuffer1);
-			assert(SUCCEEDED(Hr));
+			hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), ConstBuffer1);
+			assert(SUCCEEDED(hr));
 			//マップしておく
-			Hr = mapBuffer(ConstBuffer1, (void**)&CB1);
-			assert(SUCCEEDED(Hr));
+			hr = mapBuffer(ConstBuffer1, (void**)&CB1);
+			assert(SUCCEEDED(hr));
 			//データを入れる
 			CB1->diffuse = { ::Diffuse[0],::Diffuse[1],::Diffuse[2],::Diffuse[3] };
 			//ビューをつくる
@@ -89,8 +90,8 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//テクスチャバッファ
 		{
 			//バッファをつくる
-			Hr = createTextureBuffer(::TextureFilename, TextureBuffer);
-			assert(SUCCEEDED(Hr));
+			hr = createTextureBuffer(::TextureFilename, TextureBuffer);
+			assert(SUCCEEDED(hr));
 			//ビューをつくる
 			createTextureBufferView(TextureBuffer);
 		}
@@ -125,4 +126,6 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		unmapBuffer(ConstBuffer1);
 		unmapBuffer(ConstBuffer0);
 	}
+
+	return msg_wparam();
 }
