@@ -18,6 +18,7 @@ struct CONST_BUF1 {
 //システム系
 void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int clientPosX = -1, int clientPosY = -1);
 bool quit();
+int msg_wparam();
 void waitGPU();
 void closeEventHandle();
 //コンスタントバッファ、テクスチャバッファ用ディスクリプタヒープ
