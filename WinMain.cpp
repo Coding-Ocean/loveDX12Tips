@@ -36,7 +36,7 @@ UINT TbvIdx = 0;//インデックス配列を指すインデックス
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"Texture Animation", 1280, 720);
-	setClearColor(0.25f, 0.5f, 0.9f);
+	clearColor(0.25f, 0.5f, 0.9f);
 
 	HRESULT Hr;
 

@@ -696,7 +696,7 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 	return CbvTbvCurrentIdx++;
 }
 //•`‰æŒn
-void setClearColor(float r, float g, float b)
+void clearColor(float r, float g, float b)
 {
 	ClearColor[0] = r;	ClearColor[1] = g;	ClearColor[2] = b;
 }

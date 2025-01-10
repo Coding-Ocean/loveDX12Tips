@@ -36,7 +36,7 @@ void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes
 UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer);
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
 //ï`âÊån
-void setClearColor(float r, float g, float b);
+void clearColor(float r, float g, float b);
 void beginRender();
 //===Ç±ÇÍÇ…ïœçX
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv,
