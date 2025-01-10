@@ -273,14 +273,17 @@ ComPtr<ID3D12DescriptorHeap> MsaaRtvHeap;
 ComPtr<ID3D12Resource> MsaaDepthStencilBuffer;
 ComPtr<ID3D12DescriptorHeap> MsaaDsvHeap;
 unsigned int m_sampleCount;
-unsigned int c_targetSampleCount = 4;
+unsigned int c_targetSampleCount = 8;
 const DXGI_FORMAT c_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 const DXGI_FORMAT c_depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
 void CreateMsaaRenderTarget()
 {
+	// Check
 	for (m_sampleCount = c_targetSampleCount; m_sampleCount > 1; m_sampleCount--){
+		
 		D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS levels = 
-		{ c_backBufferFormat, m_sampleCount };
+			{ c_backBufferFormat, m_sampleCount };
+		
 		if (FAILED(Device->CheckFeatureSupport(
 			D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &levels, sizeof(levels))))
 			continue;
