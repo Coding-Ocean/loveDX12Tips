@@ -18,6 +18,12 @@
     <ClInclude Include="toWide.h">
       <Filter>utility</Filter>
     </ClInclude>
+    <ClInclude Include="d3dx12.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="ATGColor.h">
+      <Filter>utility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">

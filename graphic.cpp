@@ -3,6 +3,7 @@
 
 #include<Windows.h>
 #include<dxgi1_6.h>
+#include"d3dx12.h"
 #include<cassert>
 #include<map>
 #include<unordered_map>
@@ -13,6 +14,7 @@
 #include"BIN_FILE12.h"
 #include"graphic.h"
 #include"toWide.h"
+#include"ATGColor.h"
 
 //グローバル変数-----------------------------------------------------------------
 // ウィンドウ
@@ -265,6 +267,194 @@ void CreateRenderTarget()
 		Device->CreateDepthStencilView(DepthStencilBuffer.Get(), &desc, hDsvHeap);
 	}
 }
+
+ComPtr<ID3D12Resource> MsaaRenderTarget;
+ComPtr<ID3D12DescriptorHeap> MsaaRtvHeap;
+ComPtr<ID3D12Resource> MsaaDepthStencilBuffer;
+ComPtr<ID3D12DescriptorHeap> MsaaDsvHeap;
+unsigned int m_sampleCount;
+unsigned int c_targetSampleCount = 4;
+const DXGI_FORMAT c_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+const DXGI_FORMAT c_depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
+void CreateMsaaRenderTarget()
+{
+	for (m_sampleCount = c_targetSampleCount; m_sampleCount > 1; m_sampleCount--){
+		D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS levels = 
+		{ c_backBufferFormat, m_sampleCount };
+		if (FAILED(Device->CheckFeatureSupport(
+			D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &levels, sizeof(levels))))
+			continue;
+
+		if (levels.NumQualityLevels > 0)
+			break;
+	}
+	assert(m_sampleCount > 1);
+
+	// Create descriptor heaps for MSAA render target views and depth stencil views.
+	D3D12_DESCRIPTOR_HEAP_DESC rtvDescriptorHeapDesc = {};
+	rtvDescriptorHeapDesc.NumDescriptors = 1;
+	rtvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	Device->CreateDescriptorHeap(&rtvDescriptorHeapDesc,
+		IID_PPV_ARGS(MsaaRtvHeap.ReleaseAndGetAddressOf()));
+
+	D3D12_DESCRIPTOR_HEAP_DESC dsvDescriptorHeapDesc = {};
+	dsvDescriptorHeapDesc.NumDescriptors = 1;
+	dsvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	Device->CreateDescriptorHeap(&dsvDescriptorHeapDesc,
+		IID_PPV_ARGS(MsaaDsvHeap.ReleaseAndGetAddressOf()));
+
+	CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+
+	// Create an MSAA render target.
+	D3D12_RESOURCE_DESC msaaRTDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		c_backBufferFormat,
+		ClientWidth,
+		ClientHeight,
+		1, // This render target view has only one texture.
+		1, // Use a single mipmap level
+		m_sampleCount
+	);
+	msaaRTDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+	D3D12_CLEAR_VALUE msaaOptimizedClearValue = {};
+	msaaOptimizedClearValue.Format = c_backBufferFormat;
+	memcpy(msaaOptimizedClearValue.Color, ATG::ColorsLinear::White, sizeof(float) * 4);
+
+	Device->CreateCommittedResource(
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&msaaRTDesc,
+		D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+		&msaaOptimizedClearValue,
+		IID_PPV_ARGS(MsaaRenderTarget.ReleaseAndGetAddressOf())
+	);
+
+	MsaaRenderTarget->SetName(L"MSAA Render Target");
+
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = c_backBufferFormat;
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+
+	Device->CreateRenderTargetView(
+		MsaaRenderTarget.Get(), &rtvDesc,
+		MsaaRtvHeap->GetCPUDescriptorHandleForHeapStart());
+
+
+	// Create an MSAA depth stencil view.
+	D3D12_RESOURCE_DESC depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+		c_depthBufferFormat,
+		ClientWidth,
+		ClientHeight,
+		1, // This depth stencil view has only one texture.
+		1, // Use a single mipmap level.
+		m_sampleCount
+	);
+	depthStencilDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
+	depthOptimizedClearValue.Format = c_depthBufferFormat;
+	depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+	depthOptimizedClearValue.DepthStencil.Stencil = 0;
+
+	Device->CreateCommittedResource(
+		&heapProperties,
+		D3D12_HEAP_FLAG_NONE,
+		&depthStencilDesc,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		&depthOptimizedClearValue,
+		IID_PPV_ARGS(MsaaDepthStencilBuffer.ReleaseAndGetAddressOf())
+	);
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+	dsvDesc.Format = c_depthBufferFormat;
+	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+
+	Device->CreateDepthStencilView(
+		MsaaDepthStencilBuffer.Get(), &dsvDesc,
+		MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart());
+}
+void beginMsaaRender()
+{
+	D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+		MsaaRenderTarget.Get(),
+		D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
+	CommandList->ResourceBarrier(1, &barrier);
+
+	//
+	// Rather than operate on the swapchain render target, we set up to render the scene to our MSAA resources instead.
+	//
+
+	auto rtvDescriptor = MsaaRtvHeap->GetCPUDescriptorHandleForHeapStart();
+	auto dsvDescriptor = MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart();
+
+	CommandList->OMSetRenderTargets(1, &rtvDescriptor, FALSE, &dsvDescriptor);
+
+	CommandList->ClearRenderTargetView(rtvDescriptor, ATG::ColorsLinear::White, 0, nullptr);
+	CommandList->ClearDepthStencilView(dsvDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+	//ビューポートとシザー矩形をセット
+	CommandList->RSSetViewports(1, &Viewport);
+	CommandList->RSSetScissorRects(1, &ScissorRect);
+
+	//ディスクリプタヒープをＧＰＵにセット
+	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
+	//パイプラインステートをセット
+	CommandList->SetPipelineState(PipelineState.Get());
+	//ルートシグニチャをセット
+	CommandList->SetGraphicsRootSignature(RootSignature.Get());
+}
+void endMsaaRender()
+{
+	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
+	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
+
+	{
+		D3D12_RESOURCE_BARRIER barriers[2] =
+		{
+			CD3DX12_RESOURCE_BARRIER::Transition(
+				MsaaRenderTarget.Get(),
+				D3D12_RESOURCE_STATE_RENDER_TARGET,
+				D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
+			CD3DX12_RESOURCE_BARRIER::Transition(
+				BackBuffers[BackBufIdx].Get(),
+				D3D12_RESOURCE_STATE_PRESENT,
+				D3D12_RESOURCE_STATE_RESOLVE_DEST)
+		};
+
+		CommandList->ResourceBarrier(2, barriers);
+	}
+
+	CommandList->ResolveSubresource(
+		BackBuffers[BackBufIdx].Get(), 0, MsaaRenderTarget.Get(), 0, c_backBufferFormat);
+
+	// Transition the render target to the state that allows it to be presented to the display.
+	D3D12_RESOURCE_BARRIER barrier = 
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			BackBuffers[BackBufIdx].Get(), 
+			D3D12_RESOURCE_STATE_RESOLVE_DEST,
+			D3D12_RESOURCE_STATE_PRESENT);
+	CommandList->ResourceBarrier(1, &barrier);
+
+	//コマンドリストをクローズする
+	CommandList->Close();
+	//コマンドリストを実行する
+	ID3D12CommandList* commandLists[] = { CommandList.Get() };
+	CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+	
+	//描画完了を待つ
+	waitGPU();
+
+	//バックバッファを表示
+	SwapChain->Present(1, 0);
+
+	//コマンドアロケータをリセット
+	Hr = CommandAllocator->Reset();
+	assert(SUCCEEDED(Hr));
+	//コマンドリストをリセット
+	Hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
+	assert(SUCCEEDED(Hr));
+}
 //===2D用
 void CreatePipeline()
 {
@@ -382,7 +572,9 @@ void CreatePipeline()
 	pipelineDesc.DepthStencilState = depthStencilDesc;
 	pipelineDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	pipelineDesc.SampleMask = UINT_MAX;
-	pipelineDesc.SampleDesc.Count = 1;
+
+	pipelineDesc.SampleDesc.Count = m_sampleCount;
+	
 	pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineDesc.NumRenderTargets = 1;
 	pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -395,8 +587,8 @@ void CreatePipeline()
 	//出力領域を設定
 	Viewport.TopLeftX = 0;
 	Viewport.TopLeftY = 0;
-	Viewport.Width = ClientWidth;
-	Viewport.Height = ClientHeight;
+	Viewport.Width = (float)ClientWidth;
+	Viewport.Height = (float)ClientHeight;
 	Viewport.MinDepth = 0.0f;
 	Viewport.MaxDepth = 1.0f;
 	
@@ -433,6 +625,9 @@ void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed
 	CreateWindows();
 	CreateDevice();
 	CreateRenderTarget();
+
+	CreateMsaaRenderTarget();
+	
 	CreatePipeline();
 
 	//===

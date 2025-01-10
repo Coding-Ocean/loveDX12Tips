@@ -36,7 +36,8 @@ void beginRender();
 void endRender();
 float clientWidth();
 float clientHeight();
-
+void beginMsaaRender();
+void endMsaaRender();
 
 //===
 void rectModeCorner();
