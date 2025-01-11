@@ -2,19 +2,19 @@
 
 int GameMain()
 {
-	window("2DGraphics", 1600, 900);
-	clearColor(1, 1, 1);
+	//window関数内で「MSAAレンダーターゲット」をつくっている
+	window("MSAA", 1600, 900);
 
 	float rad = 0;
 	int cnt = 0;
-	int n = 5;
+	int n = 1;
 	int inc = 1;
 
 	while (!quit())
 	{
 		//更新------------------------------------------------
 		float ratio = cosf(rad) * 0.5f + 0.6f;
-		rad += 0.05f;
+		rad += 0.01f;
 
 		//描画------------------------------------------------
 		beginMsaaRender();
@@ -27,7 +27,7 @@ int GameMain()
 			n += inc;
 		}
 		stroke(0, 0, 0);
-		strokeWeight(3);
+		strokeWeight(5);
 		for (int y = 0; y < n; ++y) {
 			for (int x = 0; x < n; ++x) {
 				if ((x + y) % 2) {
@@ -49,40 +49,39 @@ int GameMain()
 		}
 
 		//image ファイル名重複しても大丈夫です
-		fill(1, 0.5f, 0.5f);
+		imageColor(1, 0.5f, 0.5f);
 		for (int i = 0; i < n; i++) {
 			image("assets/penguin1.png", width - 500 + 100 * i, height / 2, rad * 2, 0.3f, 0.3f);
 		}
 
 		//arrow
-		float ox = width / 6;
-		float oy = height / 2;
-		float ax = ox + cosf(rad) * 200 * ratio;
-		float ay = oy - sinf(rad) * 200 * ratio;
+		float sx = width / 6;
+		float sy = height / 2;
+		float ex = sx + cosf(rad) * 200 * ratio;
+		float ey = sy - sinf(rad) * 200 * ratio;
 		float arrowLen = 40, arrowRad = 30;
 		stroke(0.25f, 0.5f, 1);
 		strokeWeight(10);
-		arrow(ox, oy, ax, ay, arrowLen, arrowRad);
+		arrow(sx, sy, ex, ey, arrowLen, arrowRad);
 		fontRectModeCenter();
 		fontSize(50);
-		fill(0, 0, 0);
-		text("a", ax + cosf(rad) * 22, ay - sinf(rad) * 22);
+		fontColor(0.f, 0.f, 0.f);
+		text("a", ex + cosf(rad) * 22, ey - sinf(rad) * 22);
 
 		//text 漢字
 		int size = 100;
 		fontSize(size);
-		std::string str = "色即是空、空即是色";//←漢字にしてください
-		fill(0, 0, 0);
+		fontColor(0.f, 0.6f, 0.f);
 		fontRectModeCorner();
+		std::string str = "色即是空、空即是色";//←漢字にしてください
 		text(str.c_str(), (width - size * 0.5f * str.size()) / 2, (height - size));
 
 		//print
-		fontSize(40);
+		fontSize(50);
+		fontColor(0.f, 0.f, 0.f);
 		print("numLoadTextures:%u", numLoadTextures());
 		print("numFontTextures:%u", numFontTextures());
 		print("numConstants:%u", numConstants());
-		print("n:%d", n);
-		print("dn:%d", inc);
 
 		endMsaaRender();
 	}

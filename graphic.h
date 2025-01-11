@@ -1,5 +1,5 @@
 #pragma once
-#include<d3d12.h>
+#include"d3dx12.h"
 #include<DirectXMath.h>
 #include<wrl.h>
 #include<string>
@@ -34,10 +34,10 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
 void clearColor(float r, float g, float b);
 void beginRender();
 void endRender();
-float clientWidth();
-float clientHeight();
 void beginMsaaRender();
 void endMsaaRender();
+float clientWidth();
+float clientHeight();
 
 //===
 void rectModeCorner();
@@ -46,6 +46,7 @@ void fill(float r, float g, float b, float a = 1);
 void stroke(float r, float g, float b, float a = 1);
 void strokeWeight(float sw);
 //image
+void imageColor(float r, float g, float b, float a=1);
 int loadImage(const char* filename);
 void image(int textureIdx, float px, float py, float rad=0, float sx = 1, float sy = 1);
 void image(const char* filename, float px, float py, float rad=0, float sx=1, float sy=1);
@@ -62,6 +63,7 @@ void fontFace(const char* fontname, unsigned charset);
 void fontSize(int size);
 void fontRectModeCorner();
 void fontRectModeCenter();
+void fontColor(float r, float g, float b, float a=1);
 
 float text(const char* str, float x, float y);
 void setPrintInitX(float initX);

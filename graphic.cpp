@@ -3,7 +3,6 @@
 
 #include<Windows.h>
 #include<dxgi1_6.h>
-#include"d3dx12.h"
 #include<cassert>
 #include<map>
 #include<unordered_map>
@@ -12,9 +11,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb_image.h"
 #include"BIN_FILE12.h"
-#include"graphic.h"
 #include"toWide.h"
-#include"ATGColor.h"
+#include"graphic.h"
 
 //グローバル変数-----------------------------------------------------------------
 // ウィンドウ
@@ -49,10 +47,12 @@ ComPtr<ID3D12Resource> BackBuffers[2];
 UINT BackBufIdx;
 ComPtr<ID3D12DescriptorHeap> BbvHeap;//"Bbv"は"BackBufView"の略
 UINT BbvIncSize;
-float ClearColor[] = { 0,0,0,1 };
+const DXGI_FORMAT BACK_BUFFER_FORMAT = DXGI_FORMAT_R8G8B8A8_UNORM;
+float ClearColor[] = { 0.85f,0.85f,0.85f,1 };
 // デプスステンシルバッファ
 ComPtr<ID3D12Resource> DepthStencilBuffer;
 ComPtr<ID3D12DescriptorHeap> DsvHeap;//"Dsv"は"DepthStencilBufferView"の略
+const DXGI_FORMAT DEPTH_STENCIL_FORMAT = DXGI_FORMAT_D32_FLOAT;
 // パイプライン
 ComPtr<ID3D12RootSignature> RootSignature;
 ComPtr<ID3D12PipelineState> PipelineState;
@@ -177,7 +177,7 @@ void CreateRenderTarget()
 		desc.BufferCount = 2; //バックバッファ2枚
 		desc.Width = ClientWidth;
 		desc.Height = ClientHeight;
-		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.Format = BACK_BUFFER_FORMAT;
 		desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		desc.SampleDesc.Count = 1;
@@ -228,22 +228,22 @@ void CreateRenderTarget()
 		desc.Width = ClientWidth;//幅と高さはレンダーターゲットと同じ
 		desc.Height = ClientHeight;//上に同じ
 		desc.DepthOrArraySize = 1;//テクスチャ配列でもないし3Dテクスチャでもない
-		desc.Format = DXGI_FORMAT_D32_FLOAT;//深度値書き込み用フォーマット
+		desc.Format = DEPTH_STENCIL_FORMAT;//深度値書き込み用フォーマット
 		desc.SampleDesc.Count = 1;//サンプルは1ピクセル当たり1つ
 		desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;//このバッファは深度ステンシルとして使用します
 		desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 		desc.MipLevels = 1;
 		//デプスステンシルバッファをクリアする値
-		D3D12_CLEAR_VALUE depthClearValue = {};
-		depthClearValue.DepthStencil.Depth = 1.0f;//深さ１(最大値)でクリア
-		depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;//32bit深度値としてクリア
+		D3D12_CLEAR_VALUE clearValue = {};
+		clearValue.DepthStencil.Depth = 1.0f;//深さ１(最大値)でクリア
+		clearValue.Format = DEPTH_STENCIL_FORMAT;//32bit深度値としてクリア
 		//デプスステンシルバッファを作る
 		Hr = Device->CreateCommittedResource(
 			&prop,
 			D3D12_HEAP_FLAG_NONE,
 			&desc,
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, //デプス書き込みに使用
-			&depthClearValue,
+			&clearValue,
 			IID_PPV_ARGS(DepthStencilBuffer.GetAddressOf()));
 		assert(SUCCEEDED(Hr));
 	}
@@ -268,21 +268,20 @@ void CreateRenderTarget()
 	}
 }
 
-ComPtr<ID3D12Resource> MsaaRenderTarget;
+//===MSAA
+ComPtr<ID3D12Resource> MsaaRenderBuffer;
 ComPtr<ID3D12DescriptorHeap> MsaaRtvHeap;
 ComPtr<ID3D12Resource> MsaaDepthStencilBuffer;
 ComPtr<ID3D12DescriptorHeap> MsaaDsvHeap;
-unsigned int m_sampleCount;
-unsigned int c_targetSampleCount = 8;
-const DXGI_FORMAT c_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-const DXGI_FORMAT c_depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
+UINT SAMPLE_COUNT = 8;
+UINT SampleCount = 1;
 void CreateMsaaRenderTarget()
 {
-	// Check
-	for (m_sampleCount = c_targetSampleCount; m_sampleCount > 1; m_sampleCount--){
+	//MSAAができるかチェック
+	for (SampleCount = SAMPLE_COUNT; SampleCount > 1; SampleCount--){
 		
 		D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS levels = 
-			{ c_backBufferFormat, m_sampleCount };
+			{ BACK_BUFFER_FORMAT, SampleCount };
 		
 		if (FAILED(Device->CheckFeatureSupport(
 			D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &levels, sizeof(levels))))
@@ -291,110 +290,105 @@ void CreateMsaaRenderTarget()
 		if (levels.NumQualityLevels > 0)
 			break;
 	}
-	assert(m_sampleCount > 1);
+	assert(SampleCount > 1);
 
-	// Create descriptor heaps for MSAA render target views and depth stencil views.
-	D3D12_DESCRIPTOR_HEAP_DESC rtvDescriptorHeapDesc = {};
-	rtvDescriptorHeapDesc.NumDescriptors = 1;
-	rtvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	Device->CreateDescriptorHeap(&rtvDescriptorHeapDesc,
-		IID_PPV_ARGS(MsaaRtvHeap.ReleaseAndGetAddressOf()));
+	//MSAAレンダーバッファをつくる
+	{
+		CD3DX12_HEAP_PROPERTIES prop(D3D12_HEAP_TYPE_DEFAULT);
+		D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(
+			BACK_BUFFER_FORMAT,
+			ClientWidth,
+			ClientHeight,
+			1, // only one texture.
+			1, // mipmap level
+			SampleCount,
+			0, // quality
+			D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+		D3D12_CLEAR_VALUE clearValue = {};
+		clearValue.Format = BACK_BUFFER_FORMAT;
+		memcpy(clearValue.Color, ClearColor, sizeof(float) * 4);
+		Device->CreateCommittedResource(
+			&prop,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+			&clearValue,
+			IID_PPV_ARGS(MsaaRenderBuffer.ReleaseAndGetAddressOf())
+		);
+	}
+	//MSAAレンダーバッファ「ビュー」の入れ物である「ディスクリプタヒープ」をつくる
+	{
+		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+		desc.NumDescriptors = 1;
+		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+		Device->CreateDescriptorHeap(&desc,	IID_PPV_ARGS(MsaaRtvHeap.ReleaseAndGetAddressOf()));
+	}
+	//MSAAレンダーバッファ「ビュー」をつくる
+	{
+		D3D12_RENDER_TARGET_VIEW_DESC desc = {};
+		desc.Format = BACK_BUFFER_FORMAT;
+		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+		auto hMsaaRtvHeap = MsaaRtvHeap->GetCPUDescriptorHandleForHeapStart();
+		Device->CreateRenderTargetView(MsaaRenderBuffer.Get(), &desc, hMsaaRtvHeap);
+	}
 
-	D3D12_DESCRIPTOR_HEAP_DESC dsvDescriptorHeapDesc = {};
-	dsvDescriptorHeapDesc.NumDescriptors = 1;
-	dsvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	Device->CreateDescriptorHeap(&dsvDescriptorHeapDesc,
-		IID_PPV_ARGS(MsaaDsvHeap.ReleaseAndGetAddressOf()));
-
-	CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-
-	// Create an MSAA render target.
-	D3D12_RESOURCE_DESC msaaRTDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		c_backBufferFormat,
-		ClientWidth,
-		ClientHeight,
-		1, // This render target view has only one texture.
-		1, // Use a single mipmap level
-		m_sampleCount
-	);
-	msaaRTDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-
-	D3D12_CLEAR_VALUE msaaOptimizedClearValue = {};
-	msaaOptimizedClearValue.Format = c_backBufferFormat;
-	memcpy(msaaOptimizedClearValue.Color, ATG::ColorsLinear::White, sizeof(float) * 4);
-
-	Device->CreateCommittedResource(
-		&heapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&msaaRTDesc,
-		D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
-		&msaaOptimizedClearValue,
-		IID_PPV_ARGS(MsaaRenderTarget.ReleaseAndGetAddressOf())
-	);
-
-	MsaaRenderTarget->SetName(L"MSAA Render Target");
-
-	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-	rtvDesc.Format = c_backBufferFormat;
-	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
-
-	Device->CreateRenderTargetView(
-		MsaaRenderTarget.Get(), &rtvDesc,
-		MsaaRtvHeap->GetCPUDescriptorHandleForHeapStart());
-
-
-	// Create an MSAA depth stencil view.
-	D3D12_RESOURCE_DESC depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		c_depthBufferFormat,
-		ClientWidth,
-		ClientHeight,
-		1, // This depth stencil view has only one texture.
-		1, // Use a single mipmap level.
-		m_sampleCount
-	);
-	depthStencilDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-	D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
-	depthOptimizedClearValue.Format = c_depthBufferFormat;
-	depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
-	depthOptimizedClearValue.DepthStencil.Stencil = 0;
-
-	Device->CreateCommittedResource(
-		&heapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&depthStencilDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		&depthOptimizedClearValue,
-		IID_PPV_ARGS(MsaaDepthStencilBuffer.ReleaseAndGetAddressOf())
-	);
-
-	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-	dsvDesc.Format = c_depthBufferFormat;
-	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
-
-	Device->CreateDepthStencilView(
-		MsaaDepthStencilBuffer.Get(), &dsvDesc,
-		MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart());
+	//MSAAデプスステンシルバッファをつくる
+	{
+		CD3DX12_HEAP_PROPERTIES prop(D3D12_HEAP_TYPE_DEFAULT);
+		D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(
+			DEPTH_STENCIL_FORMAT,
+			ClientWidth,
+			ClientHeight,
+			1, // only one texture.
+			1, // mipmap level.
+			SampleCount,
+			0, // quality
+			D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+		D3D12_CLEAR_VALUE clearValue = {};
+		clearValue.Format = DEPTH_STENCIL_FORMAT;
+		clearValue.DepthStencil.Depth = 1.0f;
+		clearValue.DepthStencil.Stencil = 0;
+		Device->CreateCommittedResource(
+			&prop,
+			D3D12_HEAP_FLAG_NONE,
+			&desc,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			&clearValue,
+			IID_PPV_ARGS(MsaaDepthStencilBuffer.ReleaseAndGetAddressOf())
+		);
+	}
+	//MSAAデプスステンシルバッファ「ビュー」の入れ物である「ディスクリプタヒープ」をつくる
+	{
+		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+		desc.NumDescriptors = 1;
+		desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		Device->CreateDescriptorHeap(&desc,	IID_PPV_ARGS(MsaaDsvHeap.ReleaseAndGetAddressOf()));
+	}
+	//MSAAデプスステンシルバッファの「ビュー」をつくる
+	{
+		D3D12_DEPTH_STENCIL_VIEW_DESC desc = {};
+		desc.Format = DEPTH_STENCIL_FORMAT;
+		desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+		auto hMsaaDsvHeap = MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart();
+		Device->CreateDepthStencilView(MsaaDepthStencilBuffer.Get(), &desc, hMsaaDsvHeap);
+	}
 }
 void beginMsaaRender()
 {
-	D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-		MsaaRenderTarget.Get(),
+	//MSAAレンダーバッファをターゲット状態に遷移
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+		MsaaRenderBuffer.Get(),
 		D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
 		D3D12_RESOURCE_STATE_RENDER_TARGET);
 	CommandList->ResourceBarrier(1, &barrier);
 
-	//
-	// Rather than operate on the swapchain render target, we set up to render the scene to our MSAA resources instead.
-	//
-
-	auto rtvDescriptor = MsaaRtvHeap->GetCPUDescriptorHandleForHeapStart();
-	auto dsvDescriptor = MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart();
-
-	CommandList->OMSetRenderTargets(1, &rtvDescriptor, FALSE, &dsvDescriptor);
-
-	CommandList->ClearRenderTargetView(rtvDescriptor, ATG::ColorsLinear::White, 0, nullptr);
-	CommandList->ClearDepthStencilView(dsvDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	//MSAAレンダーバッファとMSAAデプスステンシルバッファをレンダーターゲットにセット
+	auto hMsaaRtvHeap = MsaaRtvHeap->GetCPUDescriptorHandleForHeapStart();
+	auto hMsaaDsvHeap = MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart();
+	CommandList->OMSetRenderTargets(1, &hMsaaRtvHeap, FALSE, &hMsaaDsvHeap);
+	//バッファクリア
+	CommandList->ClearRenderTargetView(hMsaaRtvHeap, ClearColor, 0, nullptr);
+	CommandList->ClearDepthStencilView(hMsaaDsvHeap, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	//ビューポートとシザー矩形をセット
 	CommandList->RSSetViewports(1, &Viewport);
@@ -412,31 +406,34 @@ void endMsaaRender()
 	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
 	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
 
+	//MSAAレンダーバッファをバックバッファにコピーするための状態遷移
+	D3D12_RESOURCE_BARRIER barriers[2] =
 	{
-		D3D12_RESOURCE_BARRIER barriers[2] =
-		{
-			CD3DX12_RESOURCE_BARRIER::Transition(
-				MsaaRenderTarget.Get(),
-				D3D12_RESOURCE_STATE_RENDER_TARGET,
-				D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
-			CD3DX12_RESOURCE_BARRIER::Transition(
-				BackBuffers[BackBufIdx].Get(),
-				D3D12_RESOURCE_STATE_PRESENT,
-				D3D12_RESOURCE_STATE_RESOLVE_DEST)
-		};
-
-		CommandList->ResourceBarrier(2, barriers);
-	}
-
-	CommandList->ResolveSubresource(
-		BackBuffers[BackBufIdx].Get(), 0, MsaaRenderTarget.Get(), 0, c_backBufferFormat);
-
-	// Transition the render target to the state that allows it to be presented to the display.
-	D3D12_RESOURCE_BARRIER barrier = 
 		CD3DX12_RESOURCE_BARRIER::Transition(
-			BackBuffers[BackBufIdx].Get(), 
+			MsaaRenderBuffer.Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			BackBuffers[BackBufIdx].Get(),
+			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_RESOLVE_DEST)
+	};
+	CommandList->ResourceBarrier(2, barriers);
+
+	//MSAAレンダーバッファをバックバッファにコピー
+	CommandList->ResolveSubresource(
+		BackBuffers[BackBufIdx].Get(), 0, 
+		MsaaRenderBuffer.Get(), 0, 
+		BACK_BUFFER_FORMAT);
+
+	//バックバッファをプレゼント状態に遷移
+	D3D12_RESOURCE_BARRIER barrier =
+	{
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			BackBuffers[BackBufIdx].Get(),
 			D3D12_RESOURCE_STATE_RESOLVE_DEST,
-			D3D12_RESOURCE_STATE_PRESENT);
+			D3D12_RESOURCE_STATE_PRESENT)
+	};
 	CommandList->ResourceBarrier(1, &barrier);
 
 	//コマンドリストをクローズする
@@ -458,10 +455,8 @@ void endMsaaRender()
 	Hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
 	assert(SUCCEEDED(Hr));
 }
-//===2D用
 void CreatePipeline()
 {
-	//===
 	//ルートシグネチャ
 	{
 		//ディスクリプタレンジ。ディスクリプタヒープとシェーダを紐づける役割をもつ。
@@ -545,7 +540,7 @@ void CreatePipeline()
 	rasterDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
 
 	D3D12_BLEND_DESC blendDesc = {};
-	blendDesc.AlphaToCoverageEnable = true;
+	blendDesc.AlphaToCoverageEnable = false;
 	blendDesc.IndependentBlendEnable = false;
 	blendDesc.RenderTarget[0].BlendEnable = true;
 	blendDesc.RenderTarget[0].LogicOpEnable = false;
@@ -575,8 +570,8 @@ void CreatePipeline()
 	pipelineDesc.DepthStencilState = depthStencilDesc;
 	pipelineDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	pipelineDesc.SampleMask = UINT_MAX;
-
-	pipelineDesc.SampleDesc.Count = m_sampleCount;
+	//===
+	pipelineDesc.SampleDesc.Count = SampleCount;
 	
 	pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineDesc.NumRenderTargets = 1;
@@ -602,7 +597,6 @@ void CreatePipeline()
 	ScissorRect.bottom = ClientHeight;
 }
 
-//===
 void CreateSquareVertexBuffer();
 void CreateCircleVertexBuffers();
 void CreateWhiteTexture();
@@ -628,12 +622,9 @@ void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed
 	CreateWindows();
 	CreateDevice();
 	CreateRenderTarget();
-
 	CreateMsaaRenderTarget();
-	
 	CreatePipeline();
 
-	//===
 	CreateSquareVertexBuffer();
 	CreateCircleVertexBuffers();
 	CreateOrthoProj();
@@ -1172,7 +1163,11 @@ void fill(float r, float g, float b, float a)
 {
 	FillR = r; FillG = g; FillB = b; FillA = a;
 }
-
+float IMGR = 1, IMGG = 1, IMGB = 1, IMGA = 1;
+void imageColor(float r, float g, float b, float a)
+{
+	IMGR = r; IMGG = g; IMGB = b; IMGA = a;
+}
 //矩形描画モード
 constexpr int CENTER = 0;
 constexpr int CORNER = 1;
@@ -1215,7 +1210,7 @@ void image(int textureIdx, float px, float py, float rad, float sx, float sy)
 	}
 	con.cb0->worldViewProj = world * OrthoProj;
 	//ディフューズカラー⇒コンスタントにセット
-	con.cb0->diffuse = { FillR,FillG,FillB,FillA };
+	con.cb0->diffuse = { IMGR,IMGG,IMGB,IMGA };
 
 	//描画
 	drawImage(con.cbvIdx, tex.tbvIdx);
@@ -1499,7 +1494,13 @@ void circle(float px, float py, float diameter)
 }
 
 //フォント
-// 
+//
+//色
+float FONTR = 0, FONTG = 0, FONTB = 0, FONTA = 1;
+void fontColor(float r, float g, float b, float a)
+{
+	FONTR = r; FONTG = g; FONTB = b; FONTA = a;
+}
 //現在描画中のフォントフェイス構造体
 struct CURRENT_FONT_FACE {
 	std::string name; unsigned long charset; int idx; int size;
@@ -1680,7 +1681,7 @@ float text(const char* str, float x, float y)
 		}
 		auto& con = Constants[ConstantIdxCnt];
 		con.cb0->worldViewProj = world * OrthoProj;
-		con.cb0->diffuse = { FillR,FillG,FillB,FillA };
+		con.cb0->diffuse = { FONTR,FONTG,FONTB,FONTA };
 		
 		//描画
 		drawImage(con.cbvIdx, fontTex->tbvIdx);
