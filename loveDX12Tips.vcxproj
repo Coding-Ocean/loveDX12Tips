@@ -128,6 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="gmain.cpp" />
     <ClCompile Include="graphic.cpp" />
     <ClCompile Include="toWide.cpp" />
     <ClCompile Include="WinMain.cpp" />

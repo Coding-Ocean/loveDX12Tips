@@ -6,6 +6,7 @@
     <ClCompile Include="toWide.cpp">
       <Filter>utility</Filter>
     </ClCompile>
+    <ClCompile Include="gmain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h">

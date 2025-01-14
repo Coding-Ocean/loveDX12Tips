@@ -10,13 +10,19 @@ using namespace Microsoft::WRL;
 #define NO_WINDOW false
 #define width clientWidth()
 #define height clientHeight()
-
+#define delta deltaTime()
 //システム系
-void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int numDescriptors = 2000, int clientPosX = -1, int clientPosY = -1);
+void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true,
+	int numDescriptors = 2000, int clientPosX = -1, int clientPosY = -1);
 bool quit();
 int msg_wparam();
 void waitGPU();
 void closeEventHandle();
+//時間系
+void initDeltaTime();
+void setDeltaTime();
+float deltaTime();
+bool timer(float interval);
 //コンスタントバッファ、テクスチャバッファ用ディスクリプタヒープ
 HRESULT createDescriptorHeap(UINT numDescriptors=2000);
 //バッファ系
@@ -39,7 +45,7 @@ void endMsaaRender();
 float clientWidth();
 float clientHeight();
 
-//===
+//2D functions ----------------------------------------------------------------
 void rectModeCorner();
 void rectModeCenter();
 void fill(float r, float g, float b, float a = 1);
@@ -61,10 +67,9 @@ constexpr ULONG JP = 128;
 constexpr ULONG EN = 0;
 void fontFace(const char* fontname, unsigned charset);
 void fontSize(int size);
+void fontColor(float r, float g, float b, float a=1);
 void fontRectModeCorner();
 void fontRectModeCenter();
-void fontColor(float r, float g, float b, float a=1);
-
 float text(const char* str, float x, float y);
 void setPrintInitX(float initX);
 void setPrintInitY(float initY);
