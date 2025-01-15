@@ -1,9 +1,10 @@
+
 #include"graphic.h"
+#include"input.h"
 
 void gmain()
 {
-	//window関数内で「MSAAレンダーターゲット」をつくっている
-	window("DeltaTime", 1600, 900);
+	window("Input", 1280, 720);
 
 	float rad = 0;
 	float interval = 0;
@@ -12,84 +13,73 @@ void gmain()
 	float elapsed = 0;
 	float toRad = 3.1415926f / 180;
 
+	float px = width / 2;
+	float py = height / 2;
+	float scale = 0.3f;
+	setMousePos(400, height / 2);
+
+
+	float deltatime;
+	unsigned long long int cnt = 0;
 	initDeltaTime();
 	while (!quit())
 	{
 		//更新------------------------------------------------
 		setDeltaTime();
-		//1秒間に回転する角度をラジアンに変換
-		rad += 90.0f * toRad * delta;
+		getInputState();
+		if (isTrigger(KEY_ESC))closeWindow();
 		//経過時間
 		elapsed += delta;
-		//指定秒ごとにｎを変更
-		if (timer(1.0f)) {
-			if (n < 1 || n > 4) {
-				inc *= -1;
-			}
-			n += inc;
-		}
-
+		cnt++;
+		deltatime = elapsed / cnt;
 		//描画------------------------------------------------
 		beginMsaaRender();
-		
-		//rect, circle
-		stroke(0, 0, 0);
-		strokeWeight(5);
-		for (int y = 0; y < n; ++y) {
-			for (int x = 0; x < n; ++x) {
-				if ((x + y) % 2) {
-					fill(1, 1, 1, 0);
-				}
-				else {
-					fill(1, 1, 1, 1);
-				}
-				float w = 80.0f;
-				float h = 80.0f;
-				float ofstX = (width - w * n) / 2 + w / 2;
-				float ofstY = (height - h * n) / 2 + h / 2;
-				float px = ofstX + w * x;
-				float py = ofstY + h * y;
-				rect(px, py, w, h, rad);
-				fill(1, 1, 0.4f);
-				circle(px, py, w * 0.5f);
-			}
-		}
-
-		//image ファイル名重複しても大丈夫です
-		imageColor(1, 0.5f, 0.5f);
-		for (int i = 0; i < n; i++) {
-			image("assets/penguin1.png", width - 500 + 100 * i, height / 2, rad, 0.3f, 0.3f);
-		}
 
 		//arrow
 		float sx = width / 6;
 		float sy = height / 2;
-		float ex = sx + cosf(rad) * 200;
-		float ey = sy - sinf(rad) * 200;
-		float arrowLen = 40, arrowRad = 30;
+		float ex = mouseX;
+		float ey = mouseY;
+		float dx = ex - sx;
+		float dy = ey - sy;
+		float len = sqrtf(dx * dx + dy * dy);
+		dx /= len;
+		dy /= len;
+		float arrowLen = 20, arrowRad = 30;
 		stroke(0.25f, 0.5f, 1);
 		strokeWeight(10);
-		arrow(sx, sy, ex, ey, arrowLen, arrowRad);
+		arrow(sx, sy, sx+dx*300, sy+dy*300, arrowLen, arrowRad);
 		fontRectModeCenter();
 		fontSize(50);
 		fontColor(0.f, 0.f, 0.f);
-		text("a", ex + cosf(rad) * 22, ey - sinf(rad) * 22);
+		text("a", ex + dx * 24, ey + dy * 24);
+
+		//image ファイル名重複しても大丈夫です
+		//imageColor(1, 0.5f, 0.5f);
+		if (isPress(KEY_D))px += 400 * deltatime;// (elapsed / cnt);
+		if (isPress(KEY_A))px -= 400 * delta;
+		if (isPress(MOUSE_LBUTTON))rad += 90.0f * toRad * deltatime;
+		if (isPress(MOUSE_RBUTTON))rad -= 90.0f * toRad * delta;
+		//マウスホィールはgraphic.cpp
+		scale += 0.1f * mouseWheel;
+		image("assets/penguin1.png", px, py, rad, scale, scale);
 
 		//text 漢字
-		int size = 100;
-		fontSize(size);
-		fontColor(0.f, 0.6f, 0.f);
+		//int size = 100;
+		//fontSize(size);
+		//fontColor(0.f, 0.6f, 0.f);
 		fontRectModeCorner();
-		std::string str = "色即是空、空即是色";//←漢字にしてください
-		text(str.c_str(), (width - size * 0.5f * str.size()) / 2, (height - size));
+		//std::string str = "色即是空、空即是色";//←漢字にしてください
+		//text(str.c_str(), (width - size * 0.5f * str.size()) / 2, (height - size));
 
 		//print
-		fontSize(50);
-		fontColor(0.f, 0.f, 0.f);
-		print("numLoadTextures:%u", numLoadTextures());
-		print("numFontTextures:%u", numFontTextures());
-		print("numConstants:%u", numConstants());
-		print("elapsed:%.2f", elapsed);
+		//fontSize(50);
+		//fontColor(0.f, 0.f, 0.f);
+		//print("numLoadTextures:%u", numLoadTextures());
+		//print("numFontTextures:%u", numFontTextures());
+		//print("numConstants:%u", numConstants());
+		print("deltatime:%f", elapsed / cnt);
+		print("deltatime:%f", delta);
 		endMsaaRender();
 	}
 }

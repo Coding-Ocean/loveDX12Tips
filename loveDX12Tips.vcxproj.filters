@@ -7,6 +7,7 @@
       <Filter>utility</Filter>
     </ClCompile>
     <ClCompile Include="gmain.cpp" />
+    <ClCompile Include="input.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h">
@@ -22,6 +23,7 @@
     <ClInclude Include="d3dx12.h">
       <Filter>utility</Filter>
     </ClInclude>
+    <ClInclude Include="input.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">

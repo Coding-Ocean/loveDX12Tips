@@ -14,6 +14,7 @@
 #include"BIN_FILE12.h"
 #include"toWide.h"
 #include"graphic.h"
+#include"input.h"
 
 //グローバル変数-----------------------------------------------------------------
 // ウィンドウ
@@ -26,6 +27,7 @@ float Aspect;
 DWORD WindowStyle;
 HWND HWnd;
 MSG Msg;
+int MouseWheel;
 // デバイス
 ComPtr<ID3D12Device> Device;
 // コマンド
@@ -70,6 +72,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 	switch (msg) {
 	case WM_DESTROY:
 		PostQuitMessage(0);
+		return 0;
+	case WM_MOUSEWHEEL:
+		MouseWheel = GET_WHEEL_DELTA_WPARAM(wp) / WHEEL_DELTA;
 		return 0;
 	default:
 		return DefWindowProc(hwnd, msg, wp, lp);
@@ -442,12 +447,12 @@ void endMsaaRender()
 	//コマンドリストを実行する
 	ID3D12CommandList* commandLists[] = { CommandList.Get() };
 	CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+
+	//バックバッファを表示
+	SwapChain->Present(0, 0);
 	
 	//描画完了を待つ
 	waitGPU();
-
-	//バックバッファを表示
-	SwapChain->Present(1, 0);
 
 	//コマンドアロケータをリセット
 	Hr = CommandAllocator->Reset();
@@ -621,6 +626,7 @@ void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed
 	if (windowed) WindowStyle = WS_OVERLAPPEDWINDOW;
 
 	CreateWindows();
+	createInput();
 	CreateDevice();
 	CreateRenderTarget();
 	CreateMsaaRenderTarget();
@@ -635,6 +641,8 @@ void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed
 }
 bool quit()
 {
+	MouseWheel = 0;
+
 	while(PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE)) {
 		if(Msg.message == WM_QUIT)return true;
 		TranslateMessage(&Msg);
@@ -646,6 +654,16 @@ bool quit()
 	InitPrintPosY();
 
 	return false;
+}
+//マウスホイール
+int getMouseWheel()
+{
+	return MouseWheel;
+}
+//ウィンドウを閉じるメッセージを出す
+void closeWindow()
+{
+	PostMessage(HWnd, WM_CLOSE, 0, 0);
 }
 int msg_wparam() 
 { 
@@ -1186,12 +1204,7 @@ void drawImage(UINT cbvIdx, UINT tbvIdx)
 	ConstantIdxCnt++;
 }
 
-//塗りつぶす色
-float FillR = 1, FillG = 1, FillB = 1, FillA = 1;
-void fill(float r, float g, float b, float a)
-{
-	FillR = r; FillG = g; FillB = b; FillA = a;
-}
+
 float IMGR = 1, IMGG = 1, IMGB = 1, IMGA = 1;
 void imageColor(float r, float g, float b, float a)
 {
@@ -1269,6 +1282,12 @@ void CreateWhiteTexture()//createDescriptorHeapから呼び出される
 	WhiteTbvIdx = createTextureBufferView(WhiteTexture);
 }
 
+//塗りつぶす色
+float FillR = 1, FillG = 1, FillB = 1, FillA = 1;
+void fill(float r, float g, float b, float a)
+{
+	FillR = r; FillG = g; FillB = b; FillA = a;
+}
 //輪郭線の色
 float StrokeR = 0, StrokeG = 0, StrokeB = 0, StrokeA = 1;
 void stroke(float r, float g, float b, float a)
