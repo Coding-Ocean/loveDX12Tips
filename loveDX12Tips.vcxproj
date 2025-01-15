@@ -132,6 +132,7 @@
     <ClCompile Include="graphic.cpp" />
     <ClCompile Include="input.cpp" />
     <ClCompile Include="toWide.cpp" />
+    <ClCompile Include="window.cpp" />
     <ClCompile Include="WinMain.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -141,6 +142,7 @@
     <ClInclude Include="input.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="toWide.h" />
+    <ClInclude Include="window.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Header.hlsli" />

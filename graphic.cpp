@@ -25,7 +25,7 @@ int ClientPosX;
 int ClientPosY;
 float Aspect;
 DWORD WindowStyle;
-HWND HWnd;
+static HWND HWnd;
 MSG Msg;
 int MouseWheel;
 // デバイス

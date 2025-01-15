@@ -2,15 +2,15 @@
 #include "input.h"
 
 //直前と現在の「キーやボタンの状態」を記憶する。
-static short InputState[2][NUM_CODE]{};
+short InputState[2][NUM_CODE]{};
 //上の２次元配列を指す添え字（０または１のどちらか）
-static short Now{};
+short Now{};
 //ウィンドウハンドル。ScreenToClient、ClientToScreenに必要
 static HWND HWnd{};
 //マウスカーソル表示・非表示につかう
-static int CursorCounter{};
+int CursorCounter{};
 
-//現在の入力状態を調べる
+//現在の入力状態をセットする
 void getInputState()
 {
 	//直前と現在を指す添え字を切り替える
@@ -22,6 +22,7 @@ void getInputState()
 	InputState[Now][KEY_S] = GetAsyncKeyState('S') < 0;
 	InputState[Now][KEY_ESC] = GetAsyncKeyState(VK_ESCAPE) < 0;
 	InputState[Now][MOUSE_LBUTTON] = GetAsyncKeyState(VK_LBUTTON) < 0;
+	InputState[Now][MOUSE_MBUTTON] = GetAsyncKeyState(VK_MBUTTON) < 0;
 	InputState[Now][MOUSE_RBUTTON] = GetAsyncKeyState(VK_RBUTTON) < 0;
 	//マウス座標を記憶しておく
 	POINT pt;
@@ -97,9 +98,9 @@ void createInput()
 {
 	HWnd = FindWindow(L"GAME_WINDOW", nullptr);
 	//ウィンドウ中央にマウスをセット
-	RECT rect;
-	GetClientRect(HWnd, &rect);
-	setMousePos(rect.right / 2.0f, rect.bottom / 2.0f);
+	//RECT rect;
+	//GetClientRect(HWnd, &rect);
+	//setMousePos(rect.right / 2.0f, rect.bottom / 2.0f);
 }
 void destroyInput()
 {

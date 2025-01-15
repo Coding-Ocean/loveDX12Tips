@@ -11,7 +11,7 @@ using namespace Microsoft::WRL;
 #define width clientWidth()
 #define height clientHeight()
 #define delta deltaTime()
-#define mouseWheel getMouseWheel();
+#define mouseWheel getMouseWheel()
 //ƒVƒXƒeƒ€Œn
 void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true,
 	int numDescriptors = 2000, int clientPosX = -1, int clientPosY = -1);

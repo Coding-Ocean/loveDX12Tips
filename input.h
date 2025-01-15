@@ -1,11 +1,9 @@
 #pragma once
-#define mouseX getMouseX();
-#define mouseY getMouseY();
 
 enum INPUT_CODE {
 	KEY_A, KEY_D, KEY_W, KEY_S,
 	KEY_ESC,
-	MOUSE_LBUTTON,MOUSE_RBUTTON,
+	MOUSE_LBUTTON,MOUSE_MBUTTON,MOUSE_RBUTTON,
 	MOUSE_X, MOUSE_Y,
 	NUM_CODE
 };
@@ -26,5 +24,7 @@ void setMousePos(float x, float y);
 void createInput();
 void destroyInput();
 
+#define mouseX getMouseX()
+#define mouseY getMouseY()
 
 
