@@ -442,12 +442,12 @@ void endMsaaRender()
 	//コマンドリストを実行する
 	ID3D12CommandList* commandLists[] = { CommandList.Get() };
 	CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+
+	//バックバッファを表示
+	SwapChain->Present(0, 0);
 	
 	//描画完了を待つ
 	waitGPU();
-
-	//バックバッファを表示
-	SwapChain->Present(1, 0);
 
 	//コマンドアロケータをリセット
 	Hr = CommandAllocator->Reset();

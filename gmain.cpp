@@ -9,9 +9,12 @@ void gmain()
 	float interval = 0;
 	int n = 5;
 	int inc = 1;
-	float elapsed = 0;
 	float toRad = 3.1415926f / 180;
-
+	float elapsed = 0;
+	UINT64 cnt = 0;
+	float px = width / 2;
+	float py = height / 2;
+	float dx = -400;
 	initDeltaTime();
 	while (!quit())
 	{
@@ -21,6 +24,7 @@ void gmain()
 		rad += 90.0f * toRad * delta;
 		//経過時間
 		elapsed += delta;
+		cnt = cnt + 1;
 		//指定秒ごとにｎを変更
 		if (timer(1.0f)) {
 			if (n < 1 || n > 4) {
@@ -33,33 +37,33 @@ void gmain()
 		beginMsaaRender();
 		
 		//rect, circle
-		stroke(0, 0, 0);
-		strokeWeight(5);
-		for (int y = 0; y < n; ++y) {
-			for (int x = 0; x < n; ++x) {
-				if ((x + y) % 2) {
-					fill(1, 1, 1, 0);
-				}
-				else {
-					fill(1, 1, 1, 1);
-				}
-				float w = 80.0f;
-				float h = 80.0f;
-				float ofstX = (width - w * n) / 2 + w / 2;
-				float ofstY = (height - h * n) / 2 + h / 2;
-				float px = ofstX + w * x;
-				float py = ofstY + h * y;
-				rect(px, py, w, h, rad);
-				fill(1, 1, 0.4f);
-				circle(px, py, w * 0.5f);
-			}
-		}
+		//stroke(0, 0, 0);
+		//strokeWeight(5);
+		//for (int y = 0; y < n; ++y) {
+		//	for (int x = 0; x < n; ++x) {
+		//		if ((x + y) % 2) {
+		//			fill(1, 1, 1, 0);
+		//		}
+		//		else {
+		//			fill(1, 1, 1, 1);
+		//		}
+		//		float w = 80.0f;
+		//		float h = 80.0f;
+		//		float ofstX = (width - w * n) / 2 + w / 2;
+		//		float ofstY = (height - h * n) / 2 + h / 2;
+		//		float px = ofstX + w * x;
+		//		float py = ofstY + h * y;
+		//		rect(px, py, w, h, rad);
+		//		fill(1, 1, 0.4f);
+		//		circle(px, py, w * 0.5f);
+		//	}
+		//}
 
 		//image ファイル名重複しても大丈夫です
-		imageColor(1, 0.5f, 0.5f);
-		for (int i = 0; i < n; i++) {
-			image("assets/penguin1.png", width - 500 + 100 * i, height / 2, rad, 0.3f, 0.3f);
-		}
+		if (px<0 && dx<0)dx *= -1;
+		if (px>width && dx>0)dx *= -1;
+		px += dx*delta;
+		image("assets/penguin1.png",px, py, 0, 0.3f, 0.3f);
 
 		//arrow
 		float sx = width / 6;
@@ -89,7 +93,8 @@ void gmain()
 		print("numLoadTextures:%u", numLoadTextures());
 		print("numFontTextures:%u", numFontTextures());
 		print("numConstants:%u", numConstants());
-		print("elapsed:%.2f", elapsed);
+		print("elapsed/cnt:%f", elapsed/cnt);
+		print("delta:      %f", delta);
 		endMsaaRender();
 	}
 }
