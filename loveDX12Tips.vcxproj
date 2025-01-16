@@ -131,16 +131,19 @@
     <ClCompile Include="gmain.cpp" />
     <ClCompile Include="graphic.cpp" />
     <ClCompile Include="input.cpp" />
+    <ClCompile Include="timer.cpp" />
     <ClCompile Include="toWide.cpp" />
     <ClCompile Include="window.cpp" />
-    <ClCompile Include="WinMain.cpp" />
+    <ClCompile Include="framework.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h" />
     <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="framework.h" />
     <ClInclude Include="graphic.h" />
     <ClInclude Include="input.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="timer.h" />
     <ClInclude Include="toWide.h" />
     <ClInclude Include="window.h" />
   </ItemGroup>

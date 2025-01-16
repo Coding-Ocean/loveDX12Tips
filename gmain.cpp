@@ -1,9 +1,8 @@
-#include"graphic.h"
-#include"input.h"
+#include"framework.h"
 
 void gmain()
 {
-	window("Input", 1280, 720);
+	window("WINDOW", 1280, 720);
 
 	float toRad = 3.1415926f / 180;
 
@@ -20,17 +19,18 @@ void gmain()
 		//更新------------------------------------------------
 		setDeltaTime();
 		getInputState();
-		if (isTrigger(KEY_ESC)) {
-			closeWindow();
-		}
+		if (isTrigger(KEY_ESC)) closeWindow();
 
 		//image
 		if (isPress(KEY_D))px += 800 * delta;
 		if (isPress(KEY_A))px -= 800 * delta;
-		if (isPress(MOUSE_LBUTTON))rad += 90.0f * toRad * delta;
-		if (isPress(MOUSE_RBUTTON))rad -= 90.0f * toRad * delta;
-		//マウスホィールはgraphic.cppに定義してある
-		scale += 0.1f * mouseWheel;
+		if (isPress(MOUSE_MBUTTON)) {
+			px += mouseVx;
+			py -= mouseVy;
+		}
+		if (isTrigger(MOUSE_LBUTTON))rad += 90 * toRad;// *delta;
+		if (isTrigger(MOUSE_RBUTTON))rad -= 90 * toRad;// *delta;
+		scale += 0.1f * mouseWheel;//マウスホィールはwindow.cppに定義してある
 		float mx = mouseX;
 		float my = mouseY;
 		
@@ -52,12 +52,13 @@ void gmain()
 		
 		image(img, px, py, rad, scale, scale);
 		image(img, mx, my, 0, 0.3f, 0.3f);
-		stroke(0.25f, 0.5f, 1);
+		stroke(1, 0.4f, 0.4f);
 		strokeWeight(10);
 		arrow(sx, sy, ex, ey, arrowLen, arrowRad);
 
 		fontSize(30);
-		print("deltatime:%f", delta);
+		print("delta time:%.3f", delta);
+		print("mx:%.0f,my:%.0f", mx, my);
 
 		endMsaaRender();
 	}

@@ -1,14 +1,14 @@
-#include <windows.h>
+#include "window.h"
 #include "input.h"
 
 //直前と現在の「キーやボタンの状態」を記憶する。
-short InputState[2][NUM_CODE]{};
+short InputState[2][NUM_CODE] = {};
 //上の２次元配列を指す添え字（０または１のどちらか）
-short Now{};
+short Now = 0;
 //ウィンドウハンドル。ScreenToClient、ClientToScreenに必要
-static HWND HWnd{};
+static HWND HWnd;
 //マウスカーソル表示・非表示につかう
-int CursorCounter{};
+int CursorCounter = 0;
 
 //現在の入力状態をセットする
 void getInputState()
@@ -96,7 +96,7 @@ void setMousePos(float x, float y)
 //インプット初期化
 void createInput()
 {
-	HWnd = FindWindow(L"GAME_WINDOW", nullptr);
+	HWnd = hwnd();
 	//ウィンドウ中央にマウスをセット
 	//RECT rect;
 	//GetClientRect(HWnd, &rect);

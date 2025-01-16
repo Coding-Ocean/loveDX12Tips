@@ -1,4 +1,8 @@
 #pragma once
+#define mouseX getMouseX()
+#define mouseY getMouseY()
+#define mouseVx getMouseVx()
+#define mouseVy getMouseVy()
 
 enum INPUT_CODE {
 	KEY_A, KEY_D, KEY_W, KEY_S,
@@ -8,6 +12,8 @@ enum INPUT_CODE {
 	NUM_CODE
 };
 
+void createInput();
+void destroyInput(); 
 void getInputState();
 int isPress(INPUT_CODE i);
 int isTrigger(INPUT_CODE i);
@@ -21,10 +27,8 @@ float getMouseVx();
 float getMouseVy();
 void setMousePos(float x, float y);
 
-void createInput();
-void destroyInput();
 
-#define mouseX getMouseX()
-#define mouseY getMouseY()
+
+
 
 

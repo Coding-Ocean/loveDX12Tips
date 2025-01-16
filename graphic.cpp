@@ -2,32 +2,19 @@
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"winmm.lib")
 
-#include<Windows.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include"stb_image.h"
+#include"d3dx12.h"
 #include<dxgi1_6.h>
 #include<cassert>
 #include<map>
 #include<unordered_map>
 #include<memory>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include"stb_image.h"
 #include"BIN_FILE12.h"
-#include"toWide.h"
 #include"graphic.h"
-#include"input.h"
+#include"window.h"
 
 //グローバル変数-----------------------------------------------------------------
-// ウィンドウ
-LPCSTR	WindowTitle;
-int ClientWidth;
-int ClientHeight;
-int ClientPosX;
-int ClientPosY;
-float Aspect;
-DWORD WindowStyle;
-static HWND HWnd;
-MSG Msg;
-int MouseWheel;
 // デバイス
 ComPtr<ID3D12Device> Device;
 // コマンド
@@ -65,55 +52,15 @@ D3D12_RECT ScissorRect;
 ComPtr<ID3D12DescriptorHeap> CbvTbvHeap;
 UINT CbvTbvIncSize = 0;
 UINT CurrentCbvTbvIdx = 0;
+//  MSAA
+ComPtr<ID3D12Resource> MsaaRenderBuffer;
+ComPtr<ID3D12DescriptorHeap> MsaaRtvHeap;
+ComPtr<ID3D12Resource> MsaaDepthStencilBuffer;
+ComPtr<ID3D12DescriptorHeap> MsaaDsvHeap;
+UINT SAMPLE_COUNT = 8;
+UINT SampleCount = 1;
 
 //プライベートな関数--------------------------------------------------------------
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
-{
-	switch (msg) {
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		return 0;
-	case WM_MOUSEWHEEL:
-		MouseWheel = GET_WHEEL_DELTA_WPARAM(wp) / WHEEL_DELTA;
-		return 0;
-	default:
-		return DefWindowProc(hwnd, msg, wp, lp);
-	}
-}
-void CreateWindows()
-{
-	//ウィンドウクラス登録
-	WNDCLASSEX windowClass = {};
-	windowClass.cbSize = sizeof(WNDCLASSEX);
-	windowClass.style = CS_HREDRAW | CS_VREDRAW;
-	windowClass.lpfnWndProc = WndProc;
-	windowClass.hInstance = GetModuleHandle(0);
-	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-	windowClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-	windowClass.lpszClassName = L"GAME_WINDOW";
-	RegisterClassEx(&windowClass);
-	//表示位置、ウィンドウの大きさ調整
-	RECT windowRect = { 0, 0, ClientWidth, ClientHeight };
-	AdjustWindowRect(&windowRect, WindowStyle, FALSE);
-	int windowPosX = ClientPosX + windowRect.left;
-	int windowPosY = ClientPosY + windowRect.top;
-	int windowWidth = windowRect.right - windowRect.left;
-	int windowHeight = windowRect.bottom - windowRect.top;
-	//ウィンドウをつくる
-	HWnd = CreateWindowEx(
-		NULL,
-		L"GAME_WINDOW",
-		toWide(WindowTitle),
-		WindowStyle,
-		windowPosX,
-		windowPosY,
-		windowWidth,
-		windowHeight,
-		NULL,		//親ウィンドウなし
-		NULL,		//メニューなし
-		GetModuleHandle(0),
-		NULL);		//複数ウィンドウなし
-}
 void CreateDevice()
 {
 #ifdef _DEBUG
@@ -181,15 +128,15 @@ void CreateRenderTarget()
 		//スワップチェインをつくる
 		DXGI_SWAP_CHAIN_DESC1 desc = {};
 		desc.BufferCount = 2; //バックバッファ2枚
-		desc.Width = ClientWidth;
-		desc.Height = ClientHeight;
+		desc.Width = clientWidth();
+		desc.Height = clientHeight();
 		desc.Format = BACK_BUFFER_FORMAT;
 		desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 		desc.SampleDesc.Count = 1;
 		ComPtr<IDXGISwapChain1> swapChain1;
 		Hr = dxgiFactory->CreateSwapChainForHwnd(
-			CommandQueue.Get(), HWnd, &desc, nullptr, nullptr, swapChain1.GetAddressOf());
+			CommandQueue.Get(), hwnd(), &desc, nullptr, nullptr, swapChain1.GetAddressOf());
 		assert(SUCCEEDED(Hr));
 
 		//IDXGISwapChain4インターフェイスをサポートしているか尋ねる
@@ -231,8 +178,8 @@ void CreateRenderTarget()
 		prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 		D3D12_RESOURCE_DESC desc = {};
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;//2次元のテクスチャデータとして
-		desc.Width = ClientWidth;//幅と高さはレンダーターゲットと同じ
-		desc.Height = ClientHeight;//上に同じ
+		desc.Width = clientWidth();//幅と高さはレンダーターゲットと同じ
+		desc.Height = clientHeight();//上に同じ
 		desc.DepthOrArraySize = 1;//テクスチャ配列でもないし3Dテクスチャでもない
 		desc.Format = DEPTH_STENCIL_FORMAT;//深度値書き込み用フォーマット
 		desc.SampleDesc.Count = 1;//サンプルは1ピクセル当たり1つ
@@ -273,14 +220,6 @@ void CreateRenderTarget()
 		Device->CreateDepthStencilView(DepthStencilBuffer.Get(), &desc, hDsvHeap);
 	}
 }
-
-//===MSAA
-ComPtr<ID3D12Resource> MsaaRenderBuffer;
-ComPtr<ID3D12DescriptorHeap> MsaaRtvHeap;
-ComPtr<ID3D12Resource> MsaaDepthStencilBuffer;
-ComPtr<ID3D12DescriptorHeap> MsaaDsvHeap;
-UINT SAMPLE_COUNT = 8;
-UINT SampleCount = 1;
 void CreateMsaaRenderTarget()
 {
 	//MSAAができるかチェック
@@ -303,8 +242,8 @@ void CreateMsaaRenderTarget()
 		CD3DX12_HEAP_PROPERTIES prop(D3D12_HEAP_TYPE_DEFAULT);
 		D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(
 			BACK_BUFFER_FORMAT,
-			ClientWidth,
-			ClientHeight,
+			clientWidth(),
+			clientHeight(),
 			1, // only one texture.
 			1, // mipmap level
 			SampleCount,
@@ -343,8 +282,8 @@ void CreateMsaaRenderTarget()
 		CD3DX12_HEAP_PROPERTIES prop(D3D12_HEAP_TYPE_DEFAULT);
 		D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(
 			DEPTH_STENCIL_FORMAT,
-			ClientWidth,
-			ClientHeight,
+			clientWidth(),
+			clientHeight(),
 			1, // only one texture.
 			1, // mipmap level.
 			SampleCount,
@@ -378,88 +317,6 @@ void CreateMsaaRenderTarget()
 		auto hMsaaDsvHeap = MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart();
 		Device->CreateDepthStencilView(MsaaDepthStencilBuffer.Get(), &desc, hMsaaDsvHeap);
 	}
-}
-void beginMsaaRender()
-{
-	//MSAAレンダーバッファをターゲット状態に遷移
-	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-		MsaaRenderBuffer.Get(),
-		D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
-		D3D12_RESOURCE_STATE_RENDER_TARGET);
-	CommandList->ResourceBarrier(1, &barrier);
-
-	//MSAAレンダーバッファとMSAAデプスステンシルバッファをレンダーターゲットにセット
-	auto hMsaaRtvHeap = MsaaRtvHeap->GetCPUDescriptorHandleForHeapStart();
-	auto hMsaaDsvHeap = MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart();
-	CommandList->OMSetRenderTargets(1, &hMsaaRtvHeap, FALSE, &hMsaaDsvHeap);
-	//バッファクリア
-	CommandList->ClearRenderTargetView(hMsaaRtvHeap, ClearColor, 0, nullptr);
-	CommandList->ClearDepthStencilView(hMsaaDsvHeap, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
-	//ビューポートとシザー矩形をセット
-	CommandList->RSSetViewports(1, &Viewport);
-	CommandList->RSSetScissorRects(1, &ScissorRect);
-
-	//ディスクリプタヒープをＧＰＵにセット
-	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
-	//パイプラインステートをセット
-	CommandList->SetPipelineState(PipelineState.Get());
-	//ルートシグニチャをセット
-	CommandList->SetGraphicsRootSignature(RootSignature.Get());
-}
-void endMsaaRender()
-{
-	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
-	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
-
-	//MSAAレンダーバッファをバックバッファにコピーするための状態遷移
-	D3D12_RESOURCE_BARRIER barriers[2] =
-	{
-		CD3DX12_RESOURCE_BARRIER::Transition(
-			MsaaRenderBuffer.Get(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
-		CD3DX12_RESOURCE_BARRIER::Transition(
-			BackBuffers[BackBufIdx].Get(),
-			D3D12_RESOURCE_STATE_PRESENT,
-			D3D12_RESOURCE_STATE_RESOLVE_DEST)
-	};
-	CommandList->ResourceBarrier(2, barriers);
-
-	//MSAAレンダーバッファをバックバッファにコピー
-	CommandList->ResolveSubresource(
-		BackBuffers[BackBufIdx].Get(), 0, 
-		MsaaRenderBuffer.Get(), 0, 
-		BACK_BUFFER_FORMAT);
-
-	//バックバッファをプレゼント状態に遷移
-	D3D12_RESOURCE_BARRIER barrier =
-	{
-		CD3DX12_RESOURCE_BARRIER::Transition(
-			BackBuffers[BackBufIdx].Get(),
-			D3D12_RESOURCE_STATE_RESOLVE_DEST,
-			D3D12_RESOURCE_STATE_PRESENT)
-	};
-	CommandList->ResourceBarrier(1, &barrier);
-
-	//コマンドリストをクローズする
-	CommandList->Close();
-	//コマンドリストを実行する
-	ID3D12CommandList* commandLists[] = { CommandList.Get() };
-	CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
-
-	//バックバッファを表示
-	SwapChain->Present(0, 0);
-	
-	//描画完了を待つ
-	waitGPU();
-
-	//コマンドアロケータをリセット
-	Hr = CommandAllocator->Reset();
-	assert(SUCCEEDED(Hr));
-	//コマンドリストをリセット
-	Hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
-	assert(SUCCEEDED(Hr));
 }
 void CreatePipeline()
 {
@@ -591,18 +448,32 @@ void CreatePipeline()
 	//出力領域を設定
 	Viewport.TopLeftX = 0;
 	Viewport.TopLeftY = 0;
-	Viewport.Width = (float)ClientWidth;
-	Viewport.Height = (float)ClientHeight;
+	Viewport.Width = (float)clientWidth();
+	Viewport.Height = (float)clientHeight();
 	Viewport.MinDepth = 0.0f;
 	Viewport.MaxDepth = 1.0f;
 	
 	//切り取り矩形を設定
 	ScissorRect.left = 0;
 	ScissorRect.top = 0;
-	ScissorRect.right = ClientWidth;
-	ScissorRect.bottom = ClientHeight;
+	ScissorRect.right = clientWidth();
+	ScissorRect.bottom = clientHeight();
 }
+void CreateDescriptorHeap(UINT numDescriptors)
+{
+	//コンスタントバッファ、テクスチャバッファのディスクリプタヒープ
+	CurrentCbvTbvIdx = 0;
+	CbvTbvIncSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	desc.NumDescriptors = numDescriptors;
+	desc.NodeMask = 0;
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	HRESULT hr = Device->CreateDescriptorHeap(
+		&desc, IID_PPV_ARGS(CbvTbvHeap.ReleaseAndGetAddressOf()));
+	assert(SUCCEEDED(Hr));
+}
 void CreateSquareVertexBuffer();
 void CreateCircleVertexBuffers();
 void CreateWhiteTexture();
@@ -612,62 +483,18 @@ void InitPrintPosY();
 
 //パブリックな関数---------------------------------------------------------------
 //システム系
-void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed, int numDescriptors, int clientPosX, int clientPosY)
+void createGraphic(int numDescriptors)
 {
-	WindowTitle = windowTitle;
-	ClientWidth = clientWidth;
-	ClientHeight = clientHeight;
-	ClientPosX = (GetSystemMetrics(SM_CXSCREEN) - ClientWidth) / 2;//中央表示
-	if (clientPosX>=0)ClientPosX = clientPosX;
-	ClientPosY = (GetSystemMetrics(SM_CYSCREEN) - ClientHeight) / 2;//中央表示
-	if (clientPosY>=0)ClientPosY = clientPosY;
-	Aspect = static_cast<float>(ClientWidth) / ClientHeight;
-	WindowStyle = WS_POPUP;//Alt + F4で閉じる
-	if (windowed) WindowStyle = WS_OVERLAPPEDWINDOW;
-
-	CreateWindows();
-	createInput();
 	CreateDevice();
 	CreateRenderTarget();
 	CreateMsaaRenderTarget();
 	CreatePipeline();
+	CreateDescriptorHeap(numDescriptors);
 
 	CreateSquareVertexBuffer();
 	CreateCircleVertexBuffers();
 	CreateOrthoProj();
-	createDescriptorHeap(numDescriptors);
-
-	ShowWindow(HWnd, SW_SHOW);
-}
-bool quit()
-{
-	MouseWheel = 0;
-
-	while(PeekMessage(&Msg, NULL, 0, 0, PM_REMOVE)) {
-		if(Msg.message == WM_QUIT)return true;
-		TranslateMessage(&Msg);
-		DispatchMessage(&Msg);
-	}
-
-	//===
-	InitConstantIdxCnt();
-	InitPrintPosY();
-
-	return false;
-}
-//マウスホイール
-int getMouseWheel()
-{
-	return MouseWheel;
-}
-//ウィンドウを閉じるメッセージを出す
-void closeWindow()
-{
-	PostMessage(HWnd, WM_CLOSE, 0, 0);
-}
-int msg_wparam() 
-{ 
-	return (int)Msg.wParam; 
+	CreateWhiteTexture();
 }
 void waitGPU()
 {
@@ -688,53 +515,6 @@ void waitGPU()
 void closeEventHandle()
 {
 	CloseHandle(FenceEvent);
-}
-//時間系
-unsigned int PreTime = 0;
-float DeltaTime = 0;
-float ElapsedTime = 0;
-void initDeltaTime()
-{
-	PreTime = timeGetTime();
-	DeltaTime = 0;
-}
-void setDeltaTime()
-{
-	unsigned int  curTime = timeGetTime();
-	DeltaTime = (curTime - PreTime) / 1000.0f;
-	PreTime = curTime;
-}
-bool timer(float interval)
-{
-	ElapsedTime += DeltaTime;
-	if (ElapsedTime >= interval) {
-		ElapsedTime -= interval;
-		return true;
-	}
-	return false;
-}
-float deltaTime()
-{
-	return DeltaTime;
-}
-//コンスタントバッファ、テクスチャバッファのディスクリプタヒープ
-HRESULT createDescriptorHeap(UINT numDescriptors)
-{
-	CurrentCbvTbvIdx = 0;
-	CbvTbvIncSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desc.NumDescriptors = numDescriptors;
-	desc.NodeMask = 0;
-	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	HRESULT hr =  Device->CreateDescriptorHeap(
-		&desc, IID_PPV_ARGS(CbvTbvHeap.ReleaseAndGetAddressOf()));
-	
-	//ディフューズ色のみのポリゴンに貼り付けるテクスチャをつくる
-	CreateWhiteTexture();
-
-	return hr;
 }
 //バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer)
@@ -975,6 +755,9 @@ void clearColor(float r, float g, float b)
 }
 void beginRender()
 {
+	InitConstantIdxCnt();
+	InitPrintPosY();
+
 	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
 	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
 
@@ -1041,12 +824,94 @@ void endRender()
 	Hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
 	assert(SUCCEEDED(Hr));
 }
-//Get系
-float clientWidth() { return (float)ClientWidth; }
-float clientHeight() { return (float)ClientHeight; }
+void beginMsaaRender()
+{
+	//===
+	InitConstantIdxCnt();
+	InitPrintPosY();
+
+	//MSAAレンダーバッファをターゲット状態に遷移
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+		MsaaRenderBuffer.Get(),
+		D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
+	CommandList->ResourceBarrier(1, &barrier);
+
+	//MSAAレンダーバッファとMSAAデプスステンシルバッファをレンダーターゲットにセット
+	auto hMsaaRtvHeap = MsaaRtvHeap->GetCPUDescriptorHandleForHeapStart();
+	auto hMsaaDsvHeap = MsaaDsvHeap->GetCPUDescriptorHandleForHeapStart();
+	CommandList->OMSetRenderTargets(1, &hMsaaRtvHeap, FALSE, &hMsaaDsvHeap);
+	//バッファクリア
+	CommandList->ClearRenderTargetView(hMsaaRtvHeap, ClearColor, 0, nullptr);
+	CommandList->ClearDepthStencilView(hMsaaDsvHeap, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+	//ビューポートとシザー矩形をセット
+	CommandList->RSSetViewports(1, &Viewport);
+	CommandList->RSSetScissorRects(1, &ScissorRect);
+
+	//ディスクリプタヒープをＧＰＵにセット
+	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
+	//パイプラインステートをセット
+	CommandList->SetPipelineState(PipelineState.Get());
+	//ルートシグニチャをセット
+	CommandList->SetGraphicsRootSignature(RootSignature.Get());
+}
+void endMsaaRender()
+{
+	//現在のバックバッファのインデックスを取得。このプログラムの場合0 or 1になる。
+	BackBufIdx = SwapChain->GetCurrentBackBufferIndex();
+
+	//MSAAレンダーバッファをバックバッファにコピーするための状態遷移
+	D3D12_RESOURCE_BARRIER barriers[2] =
+	{
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			MsaaRenderBuffer.Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			BackBuffers[BackBufIdx].Get(),
+			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_RESOLVE_DEST)
+	};
+	CommandList->ResourceBarrier(2, barriers);
+
+	//MSAAレンダーバッファをバックバッファにコピー
+	CommandList->ResolveSubresource(
+		BackBuffers[BackBufIdx].Get(), 0,
+		MsaaRenderBuffer.Get(), 0,
+		BACK_BUFFER_FORMAT);
+
+	//バックバッファをプレゼント状態に遷移
+	D3D12_RESOURCE_BARRIER barrier =
+	{
+		CD3DX12_RESOURCE_BARRIER::Transition(
+			BackBuffers[BackBufIdx].Get(),
+			D3D12_RESOURCE_STATE_RESOLVE_DEST,
+			D3D12_RESOURCE_STATE_PRESENT)
+	};
+	CommandList->ResourceBarrier(1, &barrier);
+
+	//コマンドリストをクローズする
+	CommandList->Close();
+	//コマンドリストを実行する
+	ID3D12CommandList* commandLists[] = { CommandList.Get() };
+	CommandQueue->ExecuteCommandLists(_countof(commandLists), commandLists);
+
+	//バックバッファを表示
+	SwapChain->Present(0, 0);
+
+	//描画完了を待つ
+	waitGPU();
+
+	//コマンドアロケータをリセット
+	Hr = CommandAllocator->Reset();
+	assert(SUCCEEDED(Hr));
+	//コマンドリストをリセット
+	Hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
+	assert(SUCCEEDED(Hr));
+}
 
 //２D----------------------------------------------------------------------------
-
 //正方形頂点バッファ。使いまわしする。
 ComPtr<ID3D12Resource>   SquareVertexBuffer = nullptr;
 D3D12_VERTEX_BUFFER_VIEW SquareVbv;
@@ -1134,7 +999,7 @@ std::vector<CONSTANT>Constants;
 size_t numConstants() { return Constants.size(); }
 //コンスタント配列を指すインデックス
 UINT ConstantIdxCnt = 0;
-void InitConstantIdxCnt()//quit内で呼び出す
+void InitConstantIdxCnt()//beginRender()内で呼び出す
 {
 	ConstantIdxCnt = 0;
 }
@@ -1227,7 +1092,7 @@ XMMATRIX OrthoProj;
 void CreateOrthoProj()
 {
 	OrthoProj = 
-		XMMatrixScaling(2.0f / ClientWidth, 2.0f / ClientHeight, 1)
+		XMMatrixScaling(2.0f / clientWidth(), 2.0f / clientHeight(), 1)
 		* XMMatrixTranslation(-1.0f, 1.0f, 0);
 }
 

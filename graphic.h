@@ -1,24 +1,13 @@
 #pragma once
-#include"d3dx12.h"
+#include<d3d12.h>
 #include<DirectXMath.h>
 #include<wrl.h>
 #include<string>
 using namespace DirectX;
 using namespace Microsoft::WRL;
-#define GameMain() WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ INT)
-#define WINDOW true
-#define NO_WINDOW false
-#define width clientWidth()
-#define height clientHeight()
-#define delta deltaTime()
-#define mouseWheel getMouseWheel()
+
 //システム系
-void window(LPCSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true,
-	int numDescriptors = 2000, int clientPosX = -1, int clientPosY = -1);
-bool quit();
-void closeWindow();
-int getMouseWheel();
-int msg_wparam();
+void createGraphic(int numDescriptors);
 void waitGPU();
 void closeEventHandle();
 //時間系
@@ -26,8 +15,6 @@ void initDeltaTime();
 void setDeltaTime();
 float deltaTime();
 bool timer(float interval);
-//コンスタントバッファ、テクスチャバッファ用ディスクリプタヒープ
-HRESULT createDescriptorHeap(UINT numDescriptors=2000);
 //バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
@@ -45,8 +32,6 @@ void beginRender();
 void endRender();
 void beginMsaaRender();
 void endMsaaRender();
-float clientWidth();
-float clientHeight();
 
 //2D functions ----------------------------------------------------------------
 void rectModeCorner();
