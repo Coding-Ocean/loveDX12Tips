@@ -7,7 +7,7 @@ using namespace DirectX;
 using namespace Microsoft::WRL;
 
 //ƒVƒXƒeƒ€Œn
-void createGraphic(int numDescriptors);
+void createGraphic(int baseWidth, int baseHeight, bool windowed, int numDescriptors);
 void waitGPU();
 void closeEventHandle();
 //ŽžŠÔŒn

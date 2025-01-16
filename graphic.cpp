@@ -59,8 +59,39 @@ ComPtr<ID3D12Resource> MsaaDepthStencilBuffer;
 ComPtr<ID3D12DescriptorHeap> MsaaDsvHeap;
 UINT SAMPLE_COUNT = 8;
 UINT SampleCount = 1;
+float Width;
+float Height;
 
 //プライベートな関数--------------------------------------------------------------
+void SetViewport() {
+	float aspect = Width / Height;
+	if (clientWidthF() / clientHeightF() >= aspect) {
+		float width_ = clientHeightF() * aspect;
+		float left = (clientWidthF() - width_) / 2.0f;
+		Viewport.Width = width_;
+		Viewport.Height = clientHeightF();
+		Viewport.MinDepth = 0.0f;
+		Viewport.MaxDepth = 1.0f;
+		Viewport.TopLeftX = left;
+		Viewport.TopLeftY = 0;
+	}
+	else {
+		float height_ = clientWidthF() / aspect;
+		float top = (clientHeightF() - height_) / 2.0f;
+		Viewport.Width = clientWidthF();
+		Viewport.Height = height_;
+		Viewport.MinDepth = 0.0f;
+		Viewport.MaxDepth = 1.0f;
+		Viewport.TopLeftX = 0;
+		Viewport.TopLeftY = top;
+	}
+
+	//切り取り矩形を設定
+	ScissorRect.left = 0;
+	ScissorRect.top = 0;
+	ScissorRect.right = clientWidth();
+	ScissorRect.bottom = clientHeight();
+}
 void CreateDevice()
 {
 #ifdef _DEBUG
@@ -444,20 +475,6 @@ void CreatePipeline()
 		IID_PPV_ARGS(PipelineState.GetAddressOf())
 	);
 	assert(SUCCEEDED(Hr));
-
-	//出力領域を設定
-	Viewport.TopLeftX = 0;
-	Viewport.TopLeftY = 0;
-	Viewport.Width = (float)clientWidth();
-	Viewport.Height = (float)clientHeight();
-	Viewport.MinDepth = 0.0f;
-	Viewport.MaxDepth = 1.0f;
-	
-	//切り取り矩形を設定
-	ScissorRect.left = 0;
-	ScissorRect.top = 0;
-	ScissorRect.right = clientWidth();
-	ScissorRect.bottom = clientHeight();
 }
 void CreateDescriptorHeap(UINT numDescriptors)
 {
@@ -483,8 +500,19 @@ void InitPrintPosY();
 
 //パブリックな関数---------------------------------------------------------------
 //システム系
-void createGraphic(int numDescriptors)
+void createGraphic(int baseWidth, int baseHeight, bool windowed, int numDescriptors)
 {
+	//基準となる幅と高さ
+	if (windowed) {
+		Width = (float)baseWidth;
+		Height = (float)baseHeight;
+	}
+	else {
+		Width = clientWidthF();
+		Height = clientHeight();
+	}
+	SetViewport();
+
 	CreateDevice();
 	CreateRenderTarget();
 	CreateMsaaRenderTarget();
@@ -1092,7 +1120,7 @@ XMMATRIX OrthoProj;
 void CreateOrthoProj()
 {
 	OrthoProj = 
-		XMMatrixScaling(2.0f / clientWidth(), 2.0f / clientHeight(), 1)
+		XMMatrixScaling(2.0f / Width, 2.0f / Height, 1)
 		* XMMatrixTranslation(-1.0f, 1.0f, 0);
 }
 

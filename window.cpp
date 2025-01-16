@@ -30,15 +30,25 @@ void createWindow(LPCSTR windowTitle, int clientWidth, int clientHeight,
 {
 	//グローバル変数初期化
 	WindowTitle = windowTitle;
-	ClientWidth = clientWidth;
-	ClientHeight = clientHeight;
+
+	if (windowed) {
+		ClientWidth = clientWidth;
+		ClientHeight = clientHeight;
+		Aspect = (float)ClientWidth / ClientHeight;
+		WindowStyle = WS_OVERLAPPEDWINDOW;
+	}
+	else {
+		ClientWidth = GetSystemMetrics(SM_CXSCREEN);
+		ClientHeight = GetSystemMetrics(SM_CYSCREEN);
+		Aspect = (float)ClientWidth / ClientHeight;
+		WindowStyle = WS_POPUP;
+	}
+
 	ClientPosX = (GetSystemMetrics(SM_CXSCREEN) - ClientWidth) / 2;//中央表示
 	if (clientPosX >= 0)ClientPosX = clientPosX;
 	ClientPosY = (GetSystemMetrics(SM_CYSCREEN) - ClientHeight) / 2;//中央表示
 	if (clientPosY >= 0)ClientPosY = clientPosY;
-	Aspect = static_cast<float>(ClientWidth) / ClientHeight;
-	WindowStyle = WS_POPUP;//Alt + F4で閉じる
-	if (windowed) WindowStyle = WS_OVERLAPPEDWINDOW;
+	
 	//ウィンドウクラス登録
 	WNDCLASSEX windowClass = {};
 	windowClass.cbSize = sizeof(WNDCLASSEX);

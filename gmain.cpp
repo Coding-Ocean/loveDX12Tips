@@ -2,7 +2,8 @@
 
 void gmain()
 {
-	window("WINDOW", 1280, 720);
+	clearColor(0, 0, 0);
+	window("WINDOW", 720, 720, true);
 
 	float toRad = 3.1415926f / 180;
 
@@ -49,7 +50,12 @@ void gmain()
 
 		//•`‰æ------------------------------------------------
 		beginMsaaRender();
+
+		fill(0.85f, 0.85f, 0.85f);
+		rectModeCorner();
+		rect(0, 0, width, height);
 		
+		rectModeCenter();
 		image(img, px, py, rad, scale, scale);
 		image(img, mx, my, 0, 0.3f, 0.3f);
 		stroke(1, 0.4f, 0.4f);
