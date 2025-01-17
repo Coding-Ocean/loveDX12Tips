@@ -38,7 +38,7 @@ UINT BackBufIdx;
 ComPtr<ID3D12DescriptorHeap> BbvHeap;//"Bbv"は"BackBufView"の略
 UINT BbvIncSize;
 const DXGI_FORMAT BACK_BUFFER_FORMAT = DXGI_FORMAT_R8G8B8A8_UNORM;
-float ClearColor[] = { 0.85f,0.85f,0.85f,1 };
+float ClearColor[] = { 0.f,0.f,0.f,1 };
 // デプスステンシルバッファ
 ComPtr<ID3D12Resource> DepthStencilBuffer;
 ComPtr<ID3D12DescriptorHeap> DsvHeap;//"Dsv"は"DepthStencilBufferView"の略
@@ -59,39 +59,8 @@ ComPtr<ID3D12Resource> MsaaDepthStencilBuffer;
 ComPtr<ID3D12DescriptorHeap> MsaaDsvHeap;
 UINT SAMPLE_COUNT = 8;
 UINT SampleCount = 1;
-float Width;
-float Height;
 
 //プライベートな関数--------------------------------------------------------------
-void SetViewport() {
-	float aspect = Width / Height;
-	if (clientWidthF() / clientHeightF() >= aspect) {
-		float width_ = clientHeightF() * aspect;
-		float left = (clientWidthF() - width_) / 2.0f;
-		Viewport.Width = width_;
-		Viewport.Height = clientHeightF();
-		Viewport.MinDepth = 0.0f;
-		Viewport.MaxDepth = 1.0f;
-		Viewport.TopLeftX = left;
-		Viewport.TopLeftY = 0;
-	}
-	else {
-		float height_ = clientWidthF() / aspect;
-		float top = (clientHeightF() - height_) / 2.0f;
-		Viewport.Width = clientWidthF();
-		Viewport.Height = height_;
-		Viewport.MinDepth = 0.0f;
-		Viewport.MaxDepth = 1.0f;
-		Viewport.TopLeftX = 0;
-		Viewport.TopLeftY = top;
-	}
-
-	//切り取り矩形を設定
-	ScissorRect.left = 0;
-	ScissorRect.top = 0;
-	ScissorRect.right = clientWidth();
-	ScissorRect.bottom = clientHeight();
-}
 void CreateDevice()
 {
 #ifdef _DEBUG
@@ -159,8 +128,8 @@ void CreateRenderTarget()
 		//スワップチェインをつくる
 		DXGI_SWAP_CHAIN_DESC1 desc = {};
 		desc.BufferCount = 2; //バックバッファ2枚
-		desc.Width = clientWidth();
-		desc.Height = clientHeight();
+		desc.Width = (UINT)clientWidth();
+		desc.Height = (UINT)clientHeight();
 		desc.Format = BACK_BUFFER_FORMAT;
 		desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 		desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -209,8 +178,8 @@ void CreateRenderTarget()
 		prop.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 		D3D12_RESOURCE_DESC desc = {};
 		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;//2次元のテクスチャデータとして
-		desc.Width = clientWidth();//幅と高さはレンダーターゲットと同じ
-		desc.Height = clientHeight();//上に同じ
+		desc.Width = (UINT)clientWidth();//幅と高さはレンダーターゲットと同じ
+		desc.Height = (UINT)clientHeight();//上に同じ
 		desc.DepthOrArraySize = 1;//テクスチャ配列でもないし3Dテクスチャでもない
 		desc.Format = DEPTH_STENCIL_FORMAT;//深度値書き込み用フォーマット
 		desc.SampleDesc.Count = 1;//サンプルは1ピクセル当たり1つ
@@ -273,8 +242,8 @@ void CreateMsaaRenderTarget()
 		CD3DX12_HEAP_PROPERTIES prop(D3D12_HEAP_TYPE_DEFAULT);
 		D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(
 			BACK_BUFFER_FORMAT,
-			clientWidth(),
-			clientHeight(),
+			(UINT)clientWidth(),
+			(UINT)clientHeight(),
 			1, // only one texture.
 			1, // mipmap level
 			SampleCount,
@@ -313,8 +282,8 @@ void CreateMsaaRenderTarget()
 		CD3DX12_HEAP_PROPERTIES prop(D3D12_HEAP_TYPE_DEFAULT);
 		D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(
 			DEPTH_STENCIL_FORMAT,
-			clientWidth(),
-			clientHeight(),
+			(UINT)clientWidth(),
+			(UINT)clientHeight(),
 			1, // only one texture.
 			1, // mipmap level.
 			SampleCount,
@@ -491,6 +460,34 @@ void CreateDescriptorHeap(UINT numDescriptors)
 		&desc, IID_PPV_ARGS(CbvTbvHeap.ReleaseAndGetAddressOf()));
 	assert(SUCCEEDED(Hr));
 }
+void SetViewport() {
+	float aspect = baseWidth() / baseHeight();
+	if (clientWidth() / clientHeight() >= aspect) {
+		float vpWidth = clientHeight() * aspect;
+		float left = clientWidth() - vpWidth;
+		if (centered())left /= 2.0f;
+		Viewport.TopLeftX = left;
+		Viewport.TopLeftY = 0;
+		Viewport.Width = vpWidth;
+		Viewport.Height = clientHeight();
+	}
+	else {
+		float vpHeight = clientWidth() / aspect;
+		float top = (clientHeight() - vpHeight) / 2.0f;
+		Viewport.TopLeftX = 0;
+		Viewport.TopLeftY = top;
+		Viewport.Width = clientWidth();
+		Viewport.Height = vpHeight;
+	}
+	Viewport.MinDepth = 0.0f;
+	Viewport.MaxDepth = 1.0f;
+
+	//切り取り矩形を設定
+	ScissorRect.left = 0;
+	ScissorRect.top = 0;
+	ScissorRect.right = (LONG)clientWidth();
+	ScissorRect.bottom = (LONG)clientHeight();
+}
 void CreateSquareVertexBuffer();
 void CreateCircleVertexBuffers();
 void CreateWhiteTexture();
@@ -500,25 +497,15 @@ void InitPrintPosY();
 
 //パブリックな関数---------------------------------------------------------------
 //システム系
-void createGraphic(int baseWidth, int baseHeight, bool windowed, int numDescriptors)
+void createGraphic(int numDescriptors)
 {
-	//基準となる幅と高さ
-	if (windowed) {
-		Width = (float)baseWidth;
-		Height = (float)baseHeight;
-	}
-	else {
-		Width = clientWidthF();
-		Height = clientHeight();
-	}
-	SetViewport();
-
 	CreateDevice();
 	CreateRenderTarget();
 	CreateMsaaRenderTarget();
 	CreatePipeline();
 	CreateDescriptorHeap(numDescriptors);
-
+	SetViewport();
+	//2D表示用
 	CreateSquareVertexBuffer();
 	CreateCircleVertexBuffers();
 	CreateOrthoProj();
@@ -1120,7 +1107,7 @@ XMMATRIX OrthoProj;
 void CreateOrthoProj()
 {
 	OrthoProj = 
-		XMMatrixScaling(2.0f / Width, 2.0f / Height, 1)
+		XMMatrixScaling(2.0f / baseWidth(), 2.0f / baseHeight(), 1)
 		* XMMatrixTranslation(-1.0f, 1.0f, 0);
 }
 

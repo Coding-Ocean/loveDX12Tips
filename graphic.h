@@ -7,14 +7,9 @@ using namespace DirectX;
 using namespace Microsoft::WRL;
 
 //システム系
-void createGraphic(int baseWidth, int baseHeight, bool windowed, int numDescriptors);
+void createGraphic(int numDescriptors);
 void waitGPU();
 void closeEventHandle();
-//時間系
-void initDeltaTime();
-void setDeltaTime();
-float deltaTime();
-bool timer(float interval);
 //バッファ系
 HRESULT createBuffer(UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);
 HRESULT updateBuffer(void* data, UINT sizeInBytes, ComPtr<ID3D12Resource>& buffer);

@@ -1,51 +1,77 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="WinMain.cpp" />
-    <ClCompile Include="graphic.cpp" />
     <ClCompile Include="toWide.cpp">
-      <Filter>utility</Filter>
+      <Filter>lib\utility</Filter>
     </ClCompile>
     <ClCompile Include="gmain.cpp" />
-    <ClCompile Include="input.cpp" />
-    <ClCompile Include="window.cpp" />
+    <ClCompile Include="framework.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="graphic.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="input.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="timer.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
+    <ClCompile Include="window.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h">
-      <Filter>utility</Filter>
+      <Filter>lib\utility</Filter>
     </ClInclude>
     <ClInclude Include="stb_image.h">
-      <Filter>utility</Filter>
+      <Filter>lib\utility</Filter>
     </ClInclude>
-    <ClInclude Include="graphic.h" />
     <ClInclude Include="toWide.h">
-      <Filter>utility</Filter>
+      <Filter>lib\utility</Filter>
     </ClInclude>
     <ClInclude Include="d3dx12.h">
-      <Filter>utility</Filter>
+      <Filter>lib\utility</Filter>
     </ClInclude>
-    <ClInclude Include="input.h" />
-    <ClInclude Include="window.h" />
+    <ClInclude Include="framework.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="graphic.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="input.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="timer.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="window.h">
+      <Filter>lib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">
-      <Filter>hlsl</Filter>
+      <Filter>lib\hlsl</Filter>
     </FxCompile>
     <FxCompile Include="VertexShader.hlsl">
-      <Filter>hlsl</Filter>
+      <Filter>lib\hlsl</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="hlsl">
+    <Filter Include="lib">
+      <UniqueIdentifier>{a1ca83a6-71b1-4c61-a764-103042247316}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib\hlsl">
       <UniqueIdentifier>{4fe1e937-cda2-41f5-b8c0-12131b0eeea9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="utility">
+    <Filter Include="lib\utility">
       <UniqueIdentifier>{e6a8d2fb-5a7e-44bd-bf85-95f30edd2c1a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="Header.hlsli">
-      <Filter>hlsl</Filter>
+      <Filter>lib\hlsl</Filter>
     </None>
   </ItemGroup>
 </Project>

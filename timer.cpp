@@ -1,4 +1,5 @@
 #include<windows.h>
+#include"timer.h"
 
 unsigned int PreTime = 0;
 float DeltaTime = 0;

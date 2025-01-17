@@ -1,10 +1,10 @@
 #include"framework.h"
 
-void window(LPCSTR windowTitle, int clientWidth, int clientHeight, 
-	bool windowed, int numDescriptors, int clientPosX, int clientPosY)
+void window(LPCSTR windowTitle, float baseWidth, float baseHeight, 
+	bool windowed, int numDescriptors, bool centered)
 {
-	createWindow(windowTitle, clientWidth, clientHeight, windowed, clientPosX, clientPosY);
-	createGraphic(clientWidth, clientHeight, windowed, numDescriptors);
+	createWindow(windowTitle, baseWidth, baseHeight, windowed, centered);
+	createGraphic(numDescriptors);
 	createInput();
 	showWindow();
 }

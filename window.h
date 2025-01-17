@@ -3,22 +3,21 @@
 
 #define WINDOW true
 #define NO_WINDOW false
-#define width clientWidthF()
-#define height clientHeightF()
-#define delta deltaTime()
+#define width baseWidth()
+#define height baseHeight()
 #define mouseWheel getMouseWheel()
 
-void createWindow(LPCSTR windowTitle, int clientWidth, int clientHeight,
-	bool windowed, int clientPosX, int clientPosY);
+void createWindow(LPCSTR windowTitle, float clientWidth, float clientHeight,
+	bool windowed, bool centered);
 void showWindow();
 bool quit();
 void closeWindow();
 //Žæ“¾Œn
 HWND hwnd();
 int msg_wparam();
-int clientWidth();
-int clientHeight();
-float clientWidthF();
-float clientHeightF();
-float aspect();
+float baseWidth();
+float baseHeight();
+float clientWidth();
+float clientHeight();
+bool centered();
 int getMouseWheel();

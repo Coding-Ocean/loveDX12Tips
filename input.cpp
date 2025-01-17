@@ -28,6 +28,14 @@ void getInputState()
 	POINT pt;
 	GetCursorPos(&pt);
 	ScreenToClient(HWnd, &pt);
+	if (pt.x < 0)
+		pt.x = 0;
+	else if (pt.x > baseWidth())
+		pt.x = (LONG)baseWidth();
+	if (pt.y < 0)
+		pt.y = 0;
+	else if (pt.y > baseHeight())
+		pt.y = (LONG)baseHeight();
 	InputState[Now][MOUSE_X] = (short)pt.x;
 	InputState[Now][MOUSE_Y] = (short)pt.y;
 }

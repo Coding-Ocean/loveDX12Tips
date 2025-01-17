@@ -1,12 +1,11 @@
 #include"toWide.h"
 #include"window.h"
 
-static LPCSTR WindowTitle;
-static int   ClientWidth;
-static int   ClientHeight;
-static int    ClientPosX;
-static int    ClientPosY;
-static float  Aspect;
+static float  BaseWidth;
+static float  BaseHeight;
+static float  ClientWidth;
+static float  ClientHeight;
+static bool   Centered;//中央表示(プレゼン用。たぶん僕しか使わない)
 static DWORD  WindowStyle;
 static HWND   HWnd;
 static MSG    Msg;
@@ -25,30 +24,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 		return DefWindowProc(hwnd, msg, wp, lp);
 	}
 }
-void createWindow(LPCSTR windowTitle, int clientWidth, int clientHeight, 
-	bool windowed, int clientPosX, int clientPosY)
+void createWindow(LPCSTR windowTitle, float baseWidth, float baseHeight, bool windowed, bool centered)
 {
-	//グローバル変数初期化
-	WindowTitle = windowTitle;
-
+	//グローバル変数設定
+	BaseWidth = baseWidth;
+	BaseHeight = baseHeight;
 	if (windowed) {
-		ClientWidth = clientWidth;
-		ClientHeight = clientHeight;
-		Aspect = (float)ClientWidth / ClientHeight;
+		ClientWidth = baseWidth;
+		ClientHeight = baseHeight;
 		WindowStyle = WS_OVERLAPPEDWINDOW;
 	}
 	else {
-		ClientWidth = GetSystemMetrics(SM_CXSCREEN);
-		ClientHeight = GetSystemMetrics(SM_CYSCREEN);
-		Aspect = (float)ClientWidth / ClientHeight;
+		ClientWidth = (float)GetSystemMetrics(SM_CXSCREEN);
+		ClientHeight = (float)GetSystemMetrics(SM_CYSCREEN);
 		WindowStyle = WS_POPUP;
 	}
+	Centered = centered;
 
-	ClientPosX = (GetSystemMetrics(SM_CXSCREEN) - ClientWidth) / 2;//中央表示
-	if (clientPosX >= 0)ClientPosX = clientPosX;
-	ClientPosY = (GetSystemMetrics(SM_CYSCREEN) - ClientHeight) / 2;//中央表示
-	if (clientPosY >= 0)ClientPosY = clientPosY;
-	
 	//ウィンドウクラス登録
 	WNDCLASSEX windowClass = {};
 	windowClass.cbSize = sizeof(WNDCLASSEX);
@@ -60,17 +52,19 @@ void createWindow(LPCSTR windowTitle, int clientWidth, int clientHeight,
 	windowClass.lpszClassName = L"GAME_WINDOW";
 	RegisterClassEx(&windowClass);
 	//表示位置、ウィンドウの大きさ調整
-	RECT windowRect = { 0, 0, ClientWidth, ClientHeight };
+	RECT windowRect = { 0, 0, (LONG)ClientWidth, (LONG)ClientHeight };
 	AdjustWindowRect(&windowRect, WindowStyle, FALSE);
-	int windowPosX = ClientPosX + windowRect.left;
-	int windowPosY = ClientPosY + windowRect.top;
+	int clientPosX = (GetSystemMetrics(SM_CXSCREEN) - (int)ClientWidth) / 2;//中央表示
+	int clientPosY = (GetSystemMetrics(SM_CYSCREEN) - (int)ClientHeight) / 2;//中央表示
+	int windowPosX = clientPosX + windowRect.left;
+	int windowPosY = clientPosY + windowRect.top;
 	int windowWidth = windowRect.right - windowRect.left;
 	int windowHeight = windowRect.bottom - windowRect.top;
 	//ウィンドウをつくる
 	HWnd = CreateWindowEx(
 		NULL,
 		L"GAME_WINDOW",
-		toWide(WindowTitle),
+		toWide(windowTitle),
 		WindowStyle,
 		windowPosX,
 		windowPosY,
@@ -111,25 +105,25 @@ int msg_wparam()
 {
 	return (int)Msg.wParam;
 }
-int clientWidth() 
+float clientWidth() 
 {
 	return ClientWidth;
 }
-int clientHeight() 
+float clientHeight() 
 {
 	return ClientHeight;
 }
-float clientWidthF()
+float baseWidth()
 {
-	return (float)ClientWidth;
+	return BaseWidth;
 }
-float clientHeightF()
+float baseHeight()
 {
-	return (float)ClientHeight;
+	return BaseHeight;
 }
-float aspect() 
-{
-	return Aspect;
+bool centered()
+{ 
+	return Centered; 
 }
 int getMouseWheel()
 {
