@@ -3,9 +3,9 @@
 void gmain()
 {
 #if 1
-	window("WINDOW", 1600, 900);
+	window("WINDOW", 1280, 720);
 #else
-	window("WINDOW", 1600, 900, full);
+	window("WINDOW", 1280, 720, full);
 #endif
 
 	int img = loadImage("assets/penguin1.png");

@@ -349,9 +349,9 @@ void CreatePipeline()
 		//サンプラの記述。このサンプラがシェーダーの s0 にセットされる
 		D3D12_STATIC_SAMPLER_DESC samplerDesc[1] = {};
 		samplerDesc[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;//補間しない(ニアレストネイバー)
-		samplerDesc[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;//横繰り返し
-		samplerDesc[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;//縦繰り返し
-		samplerDesc[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;//奥行繰り返し
+		samplerDesc[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;//横繰り返し
+		samplerDesc[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;//縦繰り返し
+		samplerDesc[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;//奥行繰り返し
 		samplerDesc[0].BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;//ボーダーの時は黒
 		samplerDesc[0].MaxLOD = D3D12_FLOAT32_MAX;//ミップマップ最大値
 		samplerDesc[0].MinLOD = 0.0f;//ミップマップ最小値
@@ -1520,31 +1520,31 @@ FONT_TEXTURE* CreateFontTexture(DWORD key)
 	for (y = 0; y < texHeight; ++y) {
 		for (x = 0; x < texWidth; x++) {
 			i = y * texWidth + x;
-			if (i < alphaBmpSize) {
-				pixels[i*4 + 0] = 0xff;//r
-				pixels[i*4 + 1] = 0xff;//g
-				pixels[i*4 + 2] = 0xff;//b
-				pixels[i*4 + 3] = alphaBmpBuf[i] * 255 / tone;//0～16を0～255に変換
-			}
+			pixels[i*4 + 0] = 0xff;//r
+			pixels[i*4 + 1] = 0xff;//g
+			pixels[i*4 + 2] = 0xff;//b
+			pixels[i*4 + 3] = alphaBmpBuf[i] * 255 / tone;//0～16を0～255に変換
 		}
 	}
 
 	//FONT_TEXTURE(描画に必要なデータ達)をマップに登録
-	createTextureBuffer(pixels, texWidth, texHeight, FontTextureMap[key].textureBuffer);
-	FontTextureMap[key].tbvIdx = createTextureBufferView(FontTextureMap[key].textureBuffer);
-	FontTextureMap[key].texWidth = (float)texWidth;//テクスチャの幅
-	FontTextureMap[key].texHeight = (float)texHeight;//テクスチャの高さ
-	FontTextureMap[key].drawWidth = (float)gm.gmCellIncX;//描画する幅
-	FontTextureMap[key].drawHeight = (float)tm.tmHeight;//描画する高さ
-	FontTextureMap[key].ofstX = (float)gm.gmptGlyphOrigin.x;
-	FontTextureMap[key].ofstY = (float)tm.tmAscent - gm.gmptGlyphOrigin.y;//描画する時にずらす値
-	FontTextureMap[key].ofstCx = (gm.gmCellIncX - texWidth) / 2.0f;
-	FontTextureMap[key].ofstCy = (tm.tmHeight - texHeight) / 2.0f;
+	FONT_TEXTURE& font = FontTextureMap[key];
+	createTextureBuffer(pixels, texWidth, texHeight, font.textureBuffer);
+	if(code==0x20||code== 0x8140)texHeight-=1;//スペースのunder lineを消す
+	font.tbvIdx = createTextureBufferView(font.textureBuffer);
+	font.texWidth = (float)texWidth;//テクスチャの幅
+	font.texHeight = (float)texHeight;//テクスチャの高さ
+	font.drawWidth = (float)gm.gmCellIncX;//描画する幅
+	font.drawHeight = (float)tm.tmHeight;//描画する高さ
+	font.ofstX = (float)gm.gmptGlyphOrigin.x;
+	font.ofstY = (float)tm.tmAscent - gm.gmptGlyphOrigin.y;//描画する時にずらす値
+	font.ofstCx = (gm.gmCellIncX - texWidth) / 2.0f;
+	font.ofstCy = (tm.tmHeight - texHeight) / 2.0f;
 
 	delete[] alphaBmpBuf;
 	delete[] pixels;
 
-	return &FontTextureMap[key];
+	return &font;
 }
 
 int FontRectMode = CORNER;
