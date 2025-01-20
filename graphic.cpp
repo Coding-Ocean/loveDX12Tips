@@ -50,6 +50,7 @@ D3D12_VIEWPORT Viewport;
 D3D12_RECT ScissorRect;
 //　コンスタントおよびテクスチャ用ディスクリプタヒープ
 ComPtr<ID3D12DescriptorHeap> CbvTbvHeap;
+UINT MaxCbvTbvIdxs = 0;
 UINT CbvTbvIncSize = 0;
 UINT CurrentCbvTbvIdx = 0;
 //  MSAA
@@ -447,6 +448,8 @@ void CreatePipeline()
 }
 void CreateDescriptorHeap(UINT numDescriptors)
 {
+	MaxCbvTbvIdxs = numDescriptors;
+
 	//コンスタントバッファ、テクスチャバッファのディスクリプタヒープ
 	CurrentCbvTbvIdx = 0;
 	CbvTbvIncSize = Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -743,6 +746,7 @@ void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes
 }
 UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer)
 {
+	assert(CurrentCbvTbvIdx < MaxCbvTbvIdxs);
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 	desc.BufferLocation = constantBuffer->GetGPUVirtualAddress();
 	desc.SizeInBytes = static_cast<UINT>(constantBuffer->GetDesc().Width);
@@ -753,6 +757,7 @@ UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer)
 }
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 {
+	assert(CurrentCbvTbvIdx < MaxCbvTbvIdxs);
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	desc.Format = textureBuffer->GetDesc().Format;
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -767,6 +772,13 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 void clearColor(float r, float g, float b)
 {
 	ClearColor[0] = r; ClearColor[1] = g; ClearColor[2] = b;
+}
+void backgroundRect(float r, float g, float b)
+{
+	fill(r, g, b);
+	strokeWeight(0);
+	rectModeCorner();
+	rect(0, 0, width, height);
 }
 void beginRender()
 {

@@ -23,6 +23,7 @@ UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer);
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
 //•`‰æŒn
 void clearColor(float r, float g, float b);
+void backgroundRect(float r, float g, float b);
 void beginRender();
 void endRender();
 void beginMsaaRender();

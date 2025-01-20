@@ -131,6 +131,7 @@
     <ClCompile Include="gmain.cpp" />
     <ClCompile Include="graphic.cpp" />
     <ClCompile Include="input.cpp" />
+    <ClCompile Include="mathGraphic.cpp" />
     <ClCompile Include="timer.cpp" />
     <ClCompile Include="toWide.cpp" />
     <ClCompile Include="window.cpp" />
@@ -142,6 +143,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="graphic.h" />
     <ClInclude Include="input.h" />
+    <ClInclude Include="mathGraphic.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="timer.h" />
     <ClInclude Include="toWide.h" />
