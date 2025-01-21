@@ -3,42 +3,45 @@
 #include<cmath>
 #include"framework.h"
 #include"mathGraphic.h"
-
 void gmain()
 {
 #if 0
-	int numDescriptors = 3000;
-	window("Math", 1280, 720, win, numDescriptors);
+	window("Math", 640, 640, win);
 #else
-	int numDescriptors = 5000;
-	window("Math", 1920, 1080, full, numDescriptors);
+	window("Math", 640, 640, full);
+	//フルスクリーンモードで、
+	//指定した幅と高さのアスペクト比と
+	//ディスプレイ設定のアスペクト比が違う場合
+	//実際のカーソル位置と使用するカーソル位置がずれるので、隠さないといけない。
+	//数値的には問題ない。
+	hideCursor();
 #endif
 	//原点の位置をスクリーン座標で指定する
 	float ox = width / 2;
 	float oy = height / 2;
 	//１とする大きさをドット数で指定する
-	float scale = 100;
+	float scale = width / 12;
 	//mouse x y
 	float mx;
 	float my;
-	float rad;
-
+	float radius;
 	initDeltaTime();
 	while (!quit())
 	{
-		//更新------------------------------------------------
 		setDeltaTime();
 		getInputState();
 		if (isTrigger(KEY_ESC)) closeWindow();
 
-		//math mouse
-		mx = mathMouseX;
-		my = mathMouseY;
-
 		//描画------------------------------------------------
 		beginMsaaRender();
-		backgroundRect(0.12f, 0.1f, 0.1f);
 
+		//フルスクリーンの時、rectでウィンドウの枠線を引く
+		noFill();//今回は塗りつぶさないが、もちろんfillで塗りつぶしてもよい。
+		stroke(0.5f, 0.5f, 0.5f);
+		strokeWeight(2);
+		rectModeCorner();
+		rect(0, 0, width, height);
+		
 		//set math axis
 		if (isPress(MOUSE_MBUTTON)) {
 			ox += mouseVx;
@@ -48,11 +51,19 @@ void gmain()
 		if (scale <= 50)scale = 50;
 		setAxis(ox, oy, scale);
 
-		//
-		mathStrokeWeight(0.03);
+		//mouse
+		mx = mathMouseX;
+		my = mathMouseY;
+		radius = sqrt(mx * mx + my * my);
+		//circle
+		mathStrokeWeight(0.05f);
+		stroke(0.5f, 0.5f, 1.0f);
+		mathCircle(0, 0, radius * 2);
+		//arrow
 		stroke(1.0f, 0.5f, 0.5f);
-		mathArrow(0, 0, mx, my, 0.1f);
-		stroke(0.9f, 0.9f, 0.9f);
+		mathArrow(0, 0, mx, my);
+		//axis
+		stroke(0.6f, 0.6f, 0.6f);
 		mathAxis();
 
 		//info
@@ -62,12 +73,6 @@ void gmain()
 		print("deltaTime:%.3f", delta);
 		print("mathMouseX:%.2f", mx);
 		print("mathMouseY:%.2f", my);
-		print("mouseX:%.2f", mouseX);
-		print("mouseY:%.2f", mouseY);
-		print(" ");
-		rad = atan2(my, mx);
-		if (my < 0)rad += 3.1415926f * 2;
-		print("atan2:%.2f", rad*180/3.1415926f);
 
 		//present
 		endMsaaRender();
@@ -91,22 +96,17 @@ float minus_cos(float x)
 void gmain()
 {
 #if 0
-	int numDescriptors = 3000;
-	window("Math", 1280, 720, win, numDescriptors);
+	window("Math", 720, 720, win);
 #else
-	int numDescriptors = 5000;
-	window("Math", 1920, 1080, full, numDescriptors);
+	window("Math", 720, 720, full);
 #endif
 	//原点の位置
 	float ox = width / 2;
 	float oy = height / 2;
 	//１とする大きさ
 	float scale = width / 13;
-	//mouse x y
-	float mx;
-	float my;
 	//circle
-	float diameter = 0.1f;
+	float diameter = 0.15f;
 	float minX = -ox / scale;
 	float maxX = 0;
 	float px = minX;
@@ -119,12 +119,15 @@ void gmain()
 		getInputState();
 		if (isTrigger(KEY_ESC)) closeWindow();
 
-		//math mouse
-		mx = mathMouseX;
-		my = mathMouseY;
-
 		//描画------------------------------------------------
 		beginMsaaRender();
+
+		//フルスクリーンの時、rectでウィンドウの枠線を引く
+		noFill();//今回は塗りつぶさないが、もちろんfillで塗りつぶしてもよい。
+		stroke(0.5f, 0.5f, 0.5f);
+		strokeWeight(2);
+		rectModeCorner();
+		rect(0, 0, width, height);
 
 		//set math axis
 		if (isPress(MOUSE_MBUTTON)) {
@@ -141,16 +144,20 @@ void gmain()
 		px += vx * delta;
 		if (px > maxX)px = minX;
 		mathStrokeWeight(0.03);
+
 		fill(0, 0, 0, 0);
 		stroke(1, 0.5f, 0.5f);
 		mathGraph(sin);
 		mathCircle(px, sin(px), diameter);
+		
 		stroke(0.5f, 0.5f, 1.0f);
-		mathCircle(px, cos(px), diameter);
 		mathGraph(cos);
+		mathCircle(px, cos(px), diameter);
+		
 		stroke(0.5f, 1, 0.5f);
-		mathCircle(px, quadratic(px), diameter);
 		mathGraph(quadratic);
+		mathCircle(px, quadratic(px), diameter);
+		
 		stroke(0.9f, 0.9f, 0.9f);
 		mathAxis();
 
@@ -159,8 +166,6 @@ void gmain()
 		fontColor(0.5f, 0.5f, 0.5f);
 		print("numConstants:%d", numConstants());
 		print("deltaTime:%.3f", delta);
-		print("mouseX:%.2f", mx);
-		print("mouseY:%.2f", my);
 
 		//present
 		endMsaaRender();

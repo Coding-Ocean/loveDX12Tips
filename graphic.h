@@ -23,7 +23,7 @@ UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer);
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
 //•`‰æŒn
 void clearColor(float r, float g, float b);
-void backgroundRect(float r, float g, float b);
+void backgroundRect();
 void beginRender();
 void endRender();
 void beginMsaaRender();
@@ -33,8 +33,10 @@ void endMsaaRender();
 void rectModeCorner();
 void rectModeCenter();
 void fill(float r, float g, float b, float a = 1);
+void noFill();
 void stroke(float r, float g, float b, float a = 1);
 void strokeWeight(float sw);
+void noStroke();
 //image
 void imageColor(float r, float g, float b, float a=1);
 int loadImage(const char* filename);

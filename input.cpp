@@ -28,6 +28,8 @@ void getInputState()
 	POINT pt;
 	GetCursorPos(&pt);
 	ScreenToClient(HWnd, &pt);
+	pt.x = pt.x * (baseWidth() / clientWidth());
+	pt.y = pt.y * baseHeight() / clientHeight(); 
 	if (pt.x < 0)
 		pt.x = 0;
 	else if (pt.x > baseWidth())

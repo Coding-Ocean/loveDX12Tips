@@ -24,22 +24,22 @@ void mathAxis()
 	//原点からnum個のメモリを描く
 	float l = 0.05f * Scl;
 	int num, i;
-	num = (baseWidth() - Ox) / Scl;
+	num = int((baseWidth() - Ox) / Scl);
 	for (i = 1; i <= num; i++) {
 		float x = Ox + Scl * i;
 		line(x, Oy - l, x, Oy + l);
 	}
-	num = Ox / Scl;
+	num = int(Ox / Scl);
 	for (i = 1; i <= num; i++) {
 		float x = Ox + Scl * -i;
 		line(x, Oy - l, x, Oy + l);
 	}
-	num = (baseHeight() - Oy) / Scl;
+	num = int((baseHeight() - Oy) / Scl);
 	for (i = 1; i <= num; i++) {
 		float y = Oy + Scl * i;
 		line(Ox - l, y, Ox + l, y);
 	}
-	num = Oy / Scl;
+	num = int(Oy / Scl);
 	for (i = 1; i <= num; i++) {
 		float y = Oy + Scl * -i;
 		line(Ox - l, y, Ox + l, y);
@@ -60,18 +60,17 @@ void mathLine(float sx, float sy, float ex, float ey)
 	sy = Oy - Scl * sy;
 	ex = Ox + Scl * ex;
 	ey = Oy - Scl * ey;
-
 	line(sx, sy, ex, ey);
 }
-void mathArrow(float sx, float sy, float ex, float ey, float size)
+void mathArrow(float sx, float sy, float ex, float ey, float len, float deg)
 {
 	//スクリーン座標に変換
 	sx = Ox + Scl * sx;
 	sy = Oy - Scl * sy;
 	ex = Ox + Scl * ex;
 	ey = Oy - Scl * ey;
-	size *= Scl;
-	arrow(sx, sy, ex, ey, size, 30);
+	len *= Scl;
+	arrow(sx, sy, ex, ey, len, deg);
 }
 void mathGraph(float (*f)(float), float inc)
 {

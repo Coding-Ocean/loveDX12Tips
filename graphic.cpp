@@ -773,10 +773,8 @@ void clearColor(float r, float g, float b)
 {
 	ClearColor[0] = r; ClearColor[1] = g; ClearColor[2] = b;
 }
-void backgroundRect(float r, float g, float b)
+void backgroundRect()
 {
-	fill(r, g, b);
-	strokeWeight(0);
 	rectModeCorner();
 	rect(0, 0, width, height);
 }
@@ -1180,6 +1178,11 @@ void fill(float r, float g, float b, float a)
 {
 	FillR = r; FillG = g; FillB = b; FillA = a;
 }
+void noFill()
+{
+	//ìhÇËÇ¬Ç‘ÇµÇ»Çµ
+	FillR = 0; FillG = 0; FillB = 0; FillA = 0;
+}
 //ó÷äsê¸ÇÃêF
 float StrokeR = 0, StrokeG = 0, StrokeB = 0, StrokeA = 1;
 void stroke(float r, float g, float b, float a)
@@ -1191,6 +1194,11 @@ float StrokeWeight = 1;
 void strokeWeight(float sw)
 {
 	StrokeWeight = sw;
+}
+void noStroke()
+{
+	//ó÷äsê¸Ç»Çµ
+	StrokeWeight = 0;
 }
 
 //ì_

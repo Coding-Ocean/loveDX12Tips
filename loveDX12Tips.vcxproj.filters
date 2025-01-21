@@ -20,6 +20,9 @@
     <ClCompile Include="window.cpp">
       <Filter>lib</Filter>
     </ClCompile>
+    <ClCompile Include="mathGraphic.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h">
@@ -47,6 +50,9 @@
       <Filter>lib</Filter>
     </ClInclude>
     <ClInclude Include="window.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="mathGraphic.h">
       <Filter>lib</Filter>
     </ClInclude>
   </ItemGroup>
