@@ -2,10 +2,10 @@
 
 void gmain()
 {
-#if 1
-	window("WINDOW", 1280, 720);
+#if 0
+	window("WINDOW", 720, 720);
 #else
-	window("WINDOW", 1280, 720, full);
+	window("WINDOW", 720, 720, full);
 #endif
 
 	int img = loadImage("assets/penguin1.png");
@@ -18,7 +18,7 @@ void gmain()
 	float angleSpeed = 90 * toRad;
 	float mx;
 	float my;
-	hideCursor();
+	//hideCursor();
 	initDeltaTime();
 	while (!quit())
 	{
