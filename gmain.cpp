@@ -20,11 +20,17 @@ void gmain()
 	float ox = width / 2;
 	float oy = height / 2;
 	//１とする大きさをドット数で指定する
-	float scale = width / 12;
-	//mouse x y
-	float mx;
-	float my;
-	float radius;
+	float scale = width / 6;
+	//vector a (normalized)
+	float ax = 1;
+	float ay = -1;
+	float al = sqrtf(ax * ax + ay * ay);
+	ax /= al;
+	ay /= al;
+	//vector b (mouse vector)
+	float bx;
+	float by;
+	float bl;
 	initDeltaTime();
 	while (!quit())
 	{
@@ -34,7 +40,6 @@ void gmain()
 
 		//描画------------------------------------------------
 		beginMsaaRender();
-
 		//フルスクリーンの時、rectでウィンドウの枠線を引く
 		noFill();//今回は塗りつぶさないが、もちろんfillで塗りつぶしてもよい。
 		stroke(0.5f, 0.5f, 0.5f);
@@ -50,29 +55,35 @@ void gmain()
 		scale += 10 * mouseWheel;
 		if (scale <= 50)scale = 50;
 		setAxis(ox, oy, scale);
-
-		//mouse
-		mx = mathMouseX;
-		my = mathMouseY;
-		radius = sqrt(mx * mx + my * my);
-		//circle
-		mathStrokeWeight(0.05f);
-		stroke(0.5f, 0.5f, 1.0f);
-		mathCircle(0, 0, radius * 2);
-		//arrow
-		stroke(1.0f, 0.5f, 0.5f);
-		mathArrow(0, 0, mx, my);
 		//axis
 		stroke(0.6f, 0.6f, 0.6f);
 		mathAxis();
+
+		//b = mathMouse
+		bx = mathMouseX;
+		by = mathMouseY;
+		bl = sqrt(bx * bx + by * by);
+		//circle
+		mathStrokeWeight(0.05f);
+		stroke(0.5f, 0.5f, 1.0f);
+		mathCircle(0, 0, bl * 2);
+		//arrow a
+		stroke(1.0f, 0.5f, 0.5f);
+		mathArrow(0, 0, ax * bl, ay * bl);
+		//arrow b
+		stroke(1.0f, 1.0f, 0.5f);
+		mathArrow(0, 0, bx, by);
+		//arc
+		stroke(0.9f, 0.9f, 0.9f);
+		mathArc(ax, ay, bx, by, bl/6);
 
 		//info
 		fontSize(30);
 		fontColor(0.5f, 0.5f, 0.5f);
 		print("numConstants:%d", numConstants());
 		print("deltaTime:%.3f", delta);
-		print("mathMouseX:%.2f", mx);
-		print("mathMouseY:%.2f", my);
+		print("mathMouseX:%.2f", mathMouseX);
+		print("mathMouseY:%.2f", mathMouseY);
 
 		//present
 		endMsaaRender();

@@ -72,6 +72,11 @@ void mathArrow(float sx, float sy, float ex, float ey, float len, float deg)
 	len *= Scl;
 	arrow(sx, sy, ex, ey, len, deg);
 }
+void mathArc(float ax, float ay, float bx, float by, float radius)
+{
+	ax *= Scl; ay *= Scl; bx *= Scl; by *= Scl; radius *= Scl;
+	arc(Ox, Oy, Ox + ax, Oy - ay, Ox + bx, Oy - by, radius);
+}
 void mathGraph(float (*f)(float), float inc)
 {
 	float maxX = (baseWidth() - Ox) / Scl + inc;

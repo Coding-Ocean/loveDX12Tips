@@ -46,6 +46,7 @@ void image(const char* filename, float px, float py, float rad=0, float sx=1, fl
 void point(float px, float py);
 void line(float sx, float sy, float ex, float ey);
 void arrow(float sx, float sy, float ex, float ey, float len=20, float deg=20);
+void arc(float ox, float oy, float ax, float ay, float bx, float by, float radius);
 void rect(float px, float py, float w, float h, float rad = 0);
 void circle(float px, float py, float diameter);
 //font

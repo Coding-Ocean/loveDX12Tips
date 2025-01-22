@@ -1339,6 +1339,32 @@ void arrow(float sx, float sy, float ex, float ey, float arrowLen, float arrowDe
 	}
 
 }
+void arc(float ox, float oy, float ax, float ay, float bx, float by, float radius)
+{
+	ax -= ox;
+	ay -= oy;
+	float al = sqrtf(ax * ax + ay * ay);
+	ax /= al;
+	ay /= al;
+	
+	bx -= ox;
+	by -= oy;
+	float bl = sqrtf(bx * bx + by * by);
+	bx /= bl;
+	by /= bl;
+	
+	float rad = acosf(ax * bx + ay * by);
+	float cross = ax * by - ay * bx;
+	for (float r = 0; r < rad; r += 3.141592f/180) {
+		float cr = cosf(r);
+		float sr = sinf(r);
+		if (cross > 0)sr *= -1;
+		float x = ax * cr + ay * sr;
+		sr *= -1;
+		float y = ax * sr + ay * cr;
+		point(ox + x * radius, oy + y * radius);
+	}
+}
 //‹éŒ`
 void rect(float px, float py, float w, float h, float rad)
 {
