@@ -1516,7 +1516,7 @@ struct FONT_TEXTURE {
 	float texWidth=0, texHeight=0;//テクスチャの幅、高さ
 	float drawWidth=0, drawHeight=0;//描画幅、高さ
 	float ofstX=0, ofstY=0;//描画するときにずらす値
-	float ofstCx = 0, ofstCy = 0;//１文字中央表示用
+	//float ofstCx = 0, ofstCy = 0;//１文字中央表示用
 };
 //フォントテクスチャデータを管理するマップ
 static std::unordered_map<DWORD, FONT_TEXTURE> FontTextureMap;
@@ -1580,12 +1580,12 @@ FONT_TEXTURE* CreateFontTexture(DWORD key)
 	font.tbvIdx = createTextureBufferView(font.textureBuffer);
 	font.texWidth = (float)texWidth;//テクスチャの幅
 	font.texHeight = (float)texHeight;//テクスチャの高さ
-	font.drawWidth = (float)gm.gmCellIncX;//描画する幅
-	font.drawHeight = (float)tm.tmHeight;//描画する高さ
 	font.ofstX = (float)gm.gmptGlyphOrigin.x;
 	font.ofstY = (float)tm.tmAscent - gm.gmptGlyphOrigin.y;//描画する時にずらす値
-	font.ofstCx = (gm.gmCellIncX - texWidth) / 2.0f;
-	font.ofstCy = (tm.tmHeight - texHeight) / 2.0f;
+	font.drawWidth = (float)gm.gmCellIncX;//描画する幅
+	font.drawHeight = (float)tm.tmHeight;//描画する高さ
+	//font.ofstCx = (gm.gmCellIncX - texWidth) / 2.0f;
+	//font.ofstCy = (tm.tmHeight - texHeight) / 2.0f;
 
 	delete[] alphaBmpBuf;
 	delete[] pixels;
@@ -1648,10 +1648,14 @@ float text(const char* str, float x, float y)
 			* XMMatrixTranslation(x + fontTex->ofstX, -(y + fontTex->ofstY), 0);
 		}
 		else{
-			world = XMMatrixTranslation(0.5f, -0.5f, 0)
-			* XMMatrixScaling(fontTex->texWidth, fontTex->texHeight, 1)
-			* XMMatrixTranslation(x + fontTex->ofstCx, -(y + fontTex->ofstCy), 0)
-			* XMMatrixTranslation(-fontTex->drawWidth / 2,  fontTex->drawHeight / 2, 0);
+			world = 
+			//XMMatrixTranslation(0.5f, -0.5f, 0)
+			XMMatrixScaling(fontTex->texWidth, fontTex->texHeight, 1)
+			* XMMatrixTranslation(x, -y, 0)
+				//* XMMatrixTranslation(x + fontTex->ofstX, -(y + fontTex->ofstY), 0)
+			//* XMMatrixTranslation(x + fontTex->ofstCx, -(y + fontTex->ofstCy), 0)
+			//* XMMatrixTranslation(-fontTex->drawWidth / 2,  fontTex->drawHeight / 2, 0)
+				;
 		}
 		auto& con = Constants[ConstantIdxCnt];
 		con.cb0->worldViewProj = world * OrthoProj;

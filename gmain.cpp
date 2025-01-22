@@ -21,13 +21,11 @@ void gmain()
 	float oy = height / 2;
 	//１とする大きさをドット数で指定する
 	float scale = width / 6;
-	//vector a (normalized)
-	float ax = 1;
-	float ay = -1;
-	float al = sqrtf(ax * ax + ay * ay);
-	ax /= al;
-	ay /= al;
-	//vector b (mouse vector)
+	//vector a
+	float ax;
+	float ay;
+	float al;
+	//vector b
 	float bx;
 	float by;
 	float bl;
@@ -38,7 +36,7 @@ void gmain()
 		getInputState();
 		if (isTrigger(KEY_ESC)) closeWindow();
 
-		//描画------------------------------------------------
+		//clear
 		beginMsaaRender();
 		//フルスクリーンの時、rectでウィンドウの枠線を引く
 		noFill();//今回は塗りつぶさないが、もちろんfillで塗りつぶしてもよい。
@@ -55,31 +53,52 @@ void gmain()
 		scale += 10 * mouseWheel;
 		if (scale <= 50)scale = 50;
 		setAxis(ox, oy, scale);
+
+		//normalize vector a. ループの中に入れる必要はないが、ここに書いたほうが分かりやすい
+		ax = 1;
+		ay = 1;
+		al = sqrt(ax * ax + ay * ay);
+		ax /= al;
+		ay /= al;
+		//normalize vector b
+		bx = mathMouseX;
+		by = mathMouseY;
+		bl = sqrt(bx * bx + by * by);//blをradiusとする
+		bx /= bl;
+		by /= bl;
+		//circle
+		mathStrokeWeight(0.05f);
+		stroke(0.6f, 0.6f, 1.0f);
+		mathCircle(0, 0, bl * 2);
+		//setup text font
+		fontRectModeCenter();
+		fontSize(25);
+		fontColor(1, 1, 1);
+		float d = 0.15f;//textの表示位置をずらす値
+		//arrow a
+		stroke(1.0f, 0.5f, 0.5f);
+		float x = ax * bl;
+		float y = ay * bl;
+		mathArrow(0, 0, x, y);
+		mathText("a", x + ax * d, y + ay * d);
+		//arrow b
+		stroke(1.0f, 1.0f, 0.6f);
+		x = bx * bl;
+		y = by * bl;
+		mathArrow(0, 0, x, y);
+		mathText("b", x + bx * d, y + by * d);
+		//arc
+		stroke(0.99f, 0.99f, 0.99f);
+		mathArc(ax, ay, bx, by, bl/6);
+
 		//axis
 		stroke(0.6f, 0.6f, 0.6f);
 		mathAxis();
 
-		//b = mathMouse
-		bx = mathMouseX;
-		by = mathMouseY;
-		bl = sqrt(bx * bx + by * by);
-		//circle
-		mathStrokeWeight(0.05f);
-		stroke(0.5f, 0.5f, 1.0f);
-		mathCircle(0, 0, bl * 2);
-		//arrow a
-		stroke(1.0f, 0.5f, 0.5f);
-		mathArrow(0, 0, ax * bl, ay * bl);
-		//arrow b
-		stroke(1.0f, 1.0f, 0.5f);
-		mathArrow(0, 0, bx, by);
-		//arc
-		stroke(0.9f, 0.9f, 0.9f);
-		mathArc(ax, ay, bx, by, bl/6);
-
 		//info
-		fontSize(30);
+		fontSize(20);
 		fontColor(0.5f, 0.5f, 0.5f);
+		fontRectModeCorner();
 		print("numConstants:%d", numConstants());
 		print("deltaTime:%.3f", delta);
 		print("mathMouseX:%.2f", mathMouseX);

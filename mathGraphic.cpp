@@ -88,6 +88,12 @@ void mathGraph(float (*f)(float), float inc)
 		mathLine(x, f(x), x - inc, f(x - inc));
 	}
 }
+void mathText(const char* str, float px, float py)
+{
+	px = Ox + Scl * px;
+	py = Oy - Scl * py;
+	text(str, px, py);
+}
 float getMathMouseX()
 {
 	return (getMouseX() - Ox) / Scl;
