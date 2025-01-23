@@ -95,6 +95,12 @@ void mathGraph(float (*f)(float), float inc)
 		mathLine(x, f(x), x - inc, f(x - inc));
 	}
 }
+void mathImage(int textureIdx, float px, float py, float rad, float sx, float sy)
+{
+	px = Ox + Scl * px;
+	py = Oy - Scl * py;
+	image(textureIdx, px, py, rad, sx, sy);
+}
 void mathText(const char* str, float px, float py)
 {
 	px = Ox + Scl * px;

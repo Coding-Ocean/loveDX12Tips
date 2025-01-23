@@ -1,4 +1,4 @@
-#define B_
+#define A_
 #ifdef A_
 #include<cmath>
 #include"framework.h"
@@ -16,6 +16,8 @@ void gmain()
 	//数値的には問題ない。
 	hideCursor();
 #endif
+	int img = loadImage("assets/cursor.png");
+
 	//原点の位置をスクリーン座標で指定する
 	float ox = width / 2;
 	float oy = height / 2;
@@ -90,10 +92,12 @@ void gmain()
 		//arc
 		stroke(0.99f, 0.99f, 0.99f);
 		mathArc(ax, ay, bx, by, bl/6);
-
 		//axis
 		stroke(0.6f, 0.6f, 0.6f);
 		mathAxis();
+		//cursor
+		imageColor(1, 1, 1, 0.7f);
+		mathImage(img, mathMouseX, mathMouseY);
 
 		//info
 		fontSize(20);
@@ -192,8 +196,8 @@ void gmain()
 		stroke(0.9f, 0.9f, 0.9f);
 		mathAxis();
 		mathStrokeWeight(0.1f);
-		mathPoint(mathMouseX, mathMouseY);
-		//mathCircle(mathMouseX, mathMouseY, 0.1f);
+		
+
 
 		//info
 		fontSize(30);
