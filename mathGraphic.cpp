@@ -45,6 +45,13 @@ void mathAxis()
 		line(Ox - l, y, Ox + l, y);
 	}
 }
+void mathPoint(float x, float y)
+{
+	//スクリーン座標に変換
+	x = Ox + Scl * x;
+	y = Oy - Scl * y;
+	point(x, y);
+}
 void mathCircle(float x, float y, float diameter)
 {
 	//スクリーン座標に変換

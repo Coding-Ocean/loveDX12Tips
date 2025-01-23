@@ -1,4 +1,4 @@
-#define A_
+#define B_
 #ifdef A_
 #include<cmath>
 #include"framework.h"
@@ -129,6 +129,7 @@ void gmain()
 	window("Math", 720, 720, win);
 #else
 	window("Math", 720, 720, full);
+	hideCursor();
 #endif
 	//Œ´“_‚ÌˆÊ’u
 	float ox = width / 2;
@@ -173,7 +174,7 @@ void gmain()
 		maxX = (width - ox) / scale;
 		px += vx * delta;
 		if (px > maxX)px = minX;
-		mathStrokeWeight(0.03);
+		mathStrokeWeight(0.03f);
 
 		fill(0, 0, 0, 0);
 		stroke(1, 0.5f, 0.5f);
@@ -190,12 +191,17 @@ void gmain()
 		
 		stroke(0.9f, 0.9f, 0.9f);
 		mathAxis();
+		mathStrokeWeight(0.1f);
+		mathPoint(mathMouseX, mathMouseY);
+		//mathCircle(mathMouseX, mathMouseY, 0.1f);
 
 		//info
 		fontSize(30);
 		fontColor(0.5f, 0.5f, 0.5f);
 		print("numConstants:%d", numConstants());
 		print("deltaTime:%.3f", delta);
+		print("mathMouseX:%.2f", mathMouseX);
+		print("mathMouseY:%.2f", mathMouseY);
 
 		//present
 		endMsaaRender();
