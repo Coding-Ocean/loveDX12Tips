@@ -1242,9 +1242,9 @@ void point(float px, float py)
 	CommandList->DrawInstanced(numVertices, 1, 0, 0);
 	ConstantIdxCnt++;
 }
+//線
 //終点に点を描くか否か
 bool DrawEndPointFlag = true;
-//線
 void line(float sx, float sy, float ex, float ey)
 {
 	//コンスタントが足りなかったらつくる
@@ -1275,6 +1275,7 @@ void line(float sx, float sy, float ex, float ey)
 		if (DrawEndPointFlag)point(ex, ey);
 	}
 }
+//矢印
 void arrow(float sx, float sy, float ex, float ey, float arrowLen, float arrowDeg)
 {
 	//コンスタントが足りなかったらつくる
@@ -1337,8 +1338,8 @@ void arrow(float sx, float sy, float ex, float ey, float arrowLen, float arrowDe
 		XMVECTOR v_ = XMVector4Transform(v, world);
 		point(XMVectorGetX(v_), -XMVectorGetY(v_));
 	}
-
 }
+//なす角の弧
 void arc(float ox, float oy, float ax, float ay, float bx, float by, float radius)
 {
 	ax -= ox;
@@ -1355,7 +1356,7 @@ void arc(float ox, float oy, float ax, float ay, float bx, float by, float radiu
 	
 	float rad = acosf(ax * bx + ay * by);
 	float cross = ax * by - ay * bx;
-	for (float r = 0; r < rad; r += 3.141592f/180) {
+	for (float r = 0; r < rad; r += 0.0174532f) {
 		float cr = cosf(r);
 		float sr = sinf(r);
 		if (cross > 0)sr *= -1;
@@ -1365,7 +1366,7 @@ void arc(float ox, float oy, float ax, float ay, float bx, float by, float radiu
 		point(ox + x * radius, oy + y * radius);
 	}
 }
-//矩形
+//矩形（輪郭線あり）
 void rect(float px, float py, float w, float h, float rad)
 {
 	//コンスタントが足りなかったらつくる
@@ -1408,7 +1409,7 @@ void rect(float px, float py, float w, float h, float rad)
 		DrawEndPointFlag = true;
 	}
 }
-//円
+//円（輪郭線あり）
 void circle(float px, float py, float diameter)
 {
 	//コンスタントが足りなかったらつくる
