@@ -28,18 +28,20 @@ void getInputState()
 	POINT pt;
 	GetCursorPos(&pt);
 	ScreenToClient(HWnd, &pt);
-	pt.x = pt.x * (baseWidth() / clientWidth());
-	pt.y = pt.y * baseHeight() / clientHeight(); 
-	if (pt.x < 0)
-		pt.x = 0;
-	else if (pt.x > baseWidth())
-		pt.x = (LONG)baseWidth();
-	if (pt.y < 0)
-		pt.y = 0;
-	else if (pt.y > baseHeight())
-		pt.y = (LONG)baseHeight();
-	InputState[Now][MOUSE_X] = (short)pt.x;
-	InputState[Now][MOUSE_Y] = (short)pt.y;
+	short x = static_cast<short>(pt.x * baseWidth() / clientWidth());
+	short y = static_cast<short>(pt.y * baseHeight() / clientHeight());
+	short w = static_cast<short>(baseWidth());
+	short h = static_cast<short>(baseHeight());
+	if (x < 0)
+		x = 0;
+	else if (x > w)
+		x = w;
+	if (y < 0)
+		y = 0;
+	else if (y > h)
+		y = h;
+	InputState[Now][MOUSE_X] = x;
+	InputState[Now][MOUSE_Y] = y;
 }
 //指定したキーやボタンが押されているか
 int isPress(INPUT_CODE i)
