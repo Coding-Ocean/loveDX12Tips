@@ -384,10 +384,10 @@ void CreatePipeline()
 	BIN_FILE12 ps("assets\\PixelShader.cso");
 	assert(ps.succeeded());
 
-	UINT slot0 = 0;
+	UINT slot0 = 0, slot1 = 1;
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, slot0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    slot0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, slot0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    slot1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 
 	D3D12_RASTERIZER_DESC rasterDesc = {};
@@ -492,6 +492,7 @@ void SetViewport() {
 	ScissorRect.bottom = (LONG)clientHeight();
 }
 void CreateSquareVertexBuffer();
+void CreateSquareTexcoordBuffer();
 void CreateCircleVertexBuffers();
 void CreateWhiteTexture();
 void CreateOrthoProj();
@@ -510,6 +511,7 @@ void createGraphic(int numDescriptors)
 	SetViewport();
 	//2D表示用
 	CreateSquareVertexBuffer();
+	CreateSquareTexcoordBuffer();
 	CreateCircleVertexBuffers();
 	CreateOrthoProj();
 	CreateWhiteTexture();
@@ -938,32 +940,56 @@ void endMsaaRender()
 
 //２D----------------------------------------------------------------------------
 //正方形頂点バッファ。使いまわしする。
-ComPtr<ID3D12Resource>   SquareVertexBuffer = nullptr;
-D3D12_VERTEX_BUFFER_VIEW SquareVbv;
+ComPtr<ID3D12Resource>   SquarePositionBuffer = nullptr;
+D3D12_VERTEX_BUFFER_VIEW SquareVpbv;
 void CreateSquareVertexBuffer()
 {
-	//共有する頂点バッファ
-	{
-		unsigned numVertexElements = 5;//１頂点の要素数
-		float vertices[] = {
-			//position            texcoord
-			-0.5f,  0.5f,  0.0f,  0.0f,  0.0f, //左上
-			-0.5f, -0.5f,  0.0f,  0.0f,  1.0f, //左下
-			 0.5f,  0.5f,  0.0f,  1.0f,  0.0f, //右上
-			 0.5f, -0.5f,  0.0f,  1.0f,  1.0f, //右下
-		};
-		//データサイズを求めておく
-		UINT sizeInBytes = sizeof(vertices);
-		UINT strideInBytes = sizeof(float) * numVertexElements;
-		//バッファをつくる
-		Hr = createBuffer(sizeInBytes, SquareVertexBuffer);
-		assert(SUCCEEDED(Hr));
-		//バッファにデータを入れる
-		Hr = updateBuffer(vertices, sizeInBytes, SquareVertexBuffer);
-		assert(SUCCEEDED(Hr));
-		//ビューをつくる
-		createVertexBufferView(SquareVertexBuffer, sizeInBytes, strideInBytes, SquareVbv);
-	}
+	//共有する位置バッファ
+	unsigned numVertexElements = 3;//１頂点の要素数
+	float positions[] = {
+		-0.5f,  0.5f,  0.0f, //左上
+		-0.5f, -0.5f,  0.0f, //左下
+		 0.5f,  0.5f,  0.0f, //右上
+		 0.5f, -0.5f,  0.0f, //右下
+	};
+	//データサイズを求めておく
+	UINT sizeInBytes = sizeof(positions);
+	UINT strideInBytes = sizeof(float) * numVertexElements;
+	//バッファをつくる
+	Hr = createBuffer(sizeInBytes, SquarePositionBuffer);
+	assert(SUCCEEDED(Hr));
+	//バッファにデータを入れる
+	Hr = updateBuffer(positions, sizeInBytes, SquarePositionBuffer);
+	assert(SUCCEEDED(Hr));
+	//ビューをつくる
+	createVertexBufferView(SquarePositionBuffer, sizeInBytes, strideInBytes, SquareVpbv);
+}
+std::vector<ComPtr<ID3D12Resource>>   SquareTexcoordBuffers;
+std::vector<D3D12_VERTEX_BUFFER_VIEW> TexcoordViews;
+void CreateSquareTexcoordBuffer()
+{
+	UINT numVertexElements = 2;//１頂点の要素数
+	float texcoords[] = {
+		0.0f,  0.0f, //左上
+		0.0f,  1.0f, //左下
+		1.0f,  0.0f, //右上
+		1.0f,  1.0f, //右下
+	};
+	//データサイズを求めておく
+	UINT sizeInBytes = sizeof(texcoords);
+	UINT strideInBytes = sizeof(float) * numVertexElements;
+	//バッファをつくる
+	ComPtr <ID3D12Resource> tmpBuffer;
+	Hr = createBuffer(sizeInBytes, tmpBuffer);
+	assert(SUCCEEDED(Hr));
+	//バッファにデータを入れる
+	Hr = updateBuffer(texcoords, sizeInBytes, tmpBuffer);
+	assert(SUCCEEDED(Hr));
+	SquareTexcoordBuffers.emplace_back(tmpBuffer);
+	//ビューをつくる
+	D3D12_VERTEX_BUFFER_VIEW tmpView;
+	createVertexBufferView(SquareTexcoordBuffers.back(), sizeInBytes, strideInBytes, tmpView);
+	TexcoordViews.emplace_back(tmpView);
 }
 
 //円の頂点バッファ（複数の大きさ）
@@ -1042,13 +1068,14 @@ void AutoCreateConstant()
 
 //テクスチャ構造体
 struct TEXTURE {
-	ComPtr<ID3D12Resource> textureBuffer;
 	UINT tbvIdx=-1;
 	float texWidth=0;
 	float texHeight=0;
+	UINT coordIdx = 0;
 };
 //テクスチャ配列
 std::vector<TEXTURE>Textures;
+std::vector<ComPtr<ID3D12Resource>> TextureBuffers;
 //テクスチャ重複チェック
 std::unordered_map<std::string, int> DuplicateCheckMap;
 //#####debug#####
@@ -1058,12 +1085,16 @@ int loadImage(const char* filename)
 {
 	auto itr = DuplicateCheckMap.find(filename);
 	if (itr == DuplicateCheckMap.end()) {
-		TEXTURE tmp;
+		ComPtr<ID3D12Resource> textureBuffer;
 		int w, h;
-		createTextureBufferFromFile(filename, tmp.textureBuffer, &w, &h);
-		tmp.tbvIdx = createTextureBufferView(tmp.textureBuffer);
+		createTextureBufferFromFile(filename, textureBuffer, &w, &h);
+		TextureBuffers.emplace_back(textureBuffer);
+
+		TEXTURE tmp;
+		tmp.tbvIdx = createTextureBufferView(TextureBuffers.back());
 		tmp.texWidth = (float)w;
 		tmp.texHeight = (float)h;
+		tmp.coordIdx = 0;
 		Textures.emplace_back(tmp);
 		int idx = (int)Textures.size() - 1;
 		DuplicateCheckMap[filename] = idx;
@@ -1073,12 +1104,50 @@ int loadImage(const char* filename)
 		return itr->second;
 	}
 }
+int cutImage(int idx, float left, float top, float w, float h)
+{
+	assert(idx < Textures.size());
+	TEXTURE tex = Textures[idx];
+	float l = left / tex.texWidth;
+	float t = top / tex.texHeight;
+	float r = (left + w) / tex.texWidth;
+	float b = (top + h) / tex.texHeight;
+	UINT numVertexElements = 2;//１頂点の要素数
+	float texcoords[] = {
+		l, t,
+		l, b,
+		r, t,
+		r, b,
+	};
+	//データサイズを求めておく
+	UINT sizeInBytes = sizeof(texcoords);
+	UINT strideInBytes = sizeof(float) * numVertexElements;
+	//バッファをつくる
+	ComPtr <ID3D12Resource> tmpBuffer;
+	Hr = createBuffer(sizeInBytes, tmpBuffer);
+	assert(SUCCEEDED(Hr));
+	//バッファにデータを入れる
+	Hr = updateBuffer(texcoords, sizeInBytes, tmpBuffer);
+	assert(SUCCEEDED(Hr));
+	SquareTexcoordBuffers.emplace_back(tmpBuffer);
+	//ビューをつくる
+	D3D12_VERTEX_BUFFER_VIEW tmpView;
+	createVertexBufferView(SquareTexcoordBuffers.back(), sizeInBytes, strideInBytes, tmpView);
+	TexcoordViews.emplace_back(tmpView);
+	//Textures構造体に追加
+	tex.coordIdx = static_cast<int>(TexcoordViews.size() - 1);
+	tex.texWidth = w;
+	tex.texHeight = h;
+	Textures.emplace_back(tex);
+	return static_cast<int>(Textures.size()-1);
+}
 //テクスチャを張り付けた四角形の描画
-void drawImage(UINT cbvIdx, UINT tbvIdx)
+void drawImage(UINT cbvIdx, UINT tbvIdx, UINT texcoordIdx=0)
 {
 	//頂点をセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	CommandList->IASetVertexBuffers(0, 1, &SquareVbv);
+	D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { SquareVpbv,TexcoordViews[texcoordIdx] };
+	CommandList->IASetVertexBuffers(0, 2, vbvs);
 	//コンスタントをセット
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvIdx;
@@ -1145,7 +1214,7 @@ void image(int textureIdx, float px, float py, float rad, float sx, float sy)
 	con.cb0->diffuse = { IMGR,IMGG,IMGB,IMGA };
 
 	//描画
-	drawImage(con.cbvIdx, tex.tbvIdx);
+	drawImage(con.cbvIdx, tex.tbvIdx, tex.coordIdx);
 }
 
 //初学者用ファイル名直接指定バージョン
