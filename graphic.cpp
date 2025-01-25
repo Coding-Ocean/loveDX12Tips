@@ -939,9 +939,9 @@ void endMsaaRender()
 }
 
 //２D----------------------------------------------------------------------------
-//正方形頂点バッファ。使いまわしする。
+//正方形座標バッファ。使いまわしする。
 ComPtr<ID3D12Resource>   SquarePositionBuffer = nullptr;
-D3D12_VERTEX_BUFFER_VIEW SquareVpbv;
+D3D12_VERTEX_BUFFER_VIEW SquarePositionView;
 void CreateSquareVertexBuffer()
 {
 	//共有する位置バッファ
@@ -962,10 +962,11 @@ void CreateSquareVertexBuffer()
 	Hr = updateBuffer(positions, sizeInBytes, SquarePositionBuffer);
 	assert(SUCCEEDED(Hr));
 	//ビューをつくる
-	createVertexBufferView(SquarePositionBuffer, sizeInBytes, strideInBytes, SquareVpbv);
+	createVertexBufferView(SquarePositionBuffer, sizeInBytes, strideInBytes, SquarePositionView);
 }
+//正方形テクスチャ座標バッファ。画像の一部を切り取るために配列で用意する
 std::vector<ComPtr<ID3D12Resource>>   SquareTexcoordBuffers;
-std::vector<D3D12_VERTEX_BUFFER_VIEW> TexcoordViews;
+std::vector<D3D12_VERTEX_BUFFER_VIEW> SquareTexcoordViews;
 void CreateSquareTexcoordBuffer()
 {
 	UINT numVertexElements = 2;//１頂点の要素数
@@ -989,7 +990,7 @@ void CreateSquareTexcoordBuffer()
 	//ビューをつくる
 	D3D12_VERTEX_BUFFER_VIEW tmpView;
 	createVertexBufferView(SquareTexcoordBuffers.back(), sizeInBytes, strideInBytes, tmpView);
-	TexcoordViews.emplace_back(tmpView);
+	SquareTexcoordViews.emplace_back(tmpView);
 }
 
 //円の頂点バッファ（複数の大きさ）
@@ -1068,10 +1069,10 @@ void AutoCreateConstant()
 
 //テクスチャ構造体
 struct TEXTURE {
-	UINT tbvIdx=-1;
-	float texWidth=0;
-	float texHeight=0;
-	UINT coordIdx = 0;
+	UINT tbvIdx = -1;
+	float texWidth = 0;
+	float texHeight = 0;
+    UINT coordIdx = 0;//テクスチャ座標バッファのインデックス
 };
 //テクスチャ配列
 std::vector<TEXTURE>Textures;
@@ -1079,7 +1080,7 @@ std::vector<ComPtr<ID3D12Resource>> TextureBuffers;
 //テクスチャ重複チェック
 std::unordered_map<std::string, int> DuplicateCheckMap;
 //#####debug#####
-size_t numLoadTextures() { return Textures.size(); }
+size_t numLoadTextures() { return TextureBuffers.size(); }
 //テクスチャを読み込む
 int loadImage(const char* filename)
 {
@@ -1107,6 +1108,7 @@ int loadImage(const char* filename)
 int cutImage(int idx, float left, float top, float w, float h)
 {
 	assert(idx < Textures.size());
+    //元のテクスチャの情報をコピー
 	TEXTURE tex = Textures[idx];
 	float l = left / tex.texWidth;
 	float t = top / tex.texHeight;
@@ -1133,9 +1135,10 @@ int cutImage(int idx, float left, float top, float w, float h)
 	//ビューをつくる
 	D3D12_VERTEX_BUFFER_VIEW tmpView;
 	createVertexBufferView(SquareTexcoordBuffers.back(), sizeInBytes, strideInBytes, tmpView);
-	TexcoordViews.emplace_back(tmpView);
+	SquareTexcoordViews.emplace_back(tmpView);
 	//Textures構造体に追加
-	tex.coordIdx = static_cast<int>(TexcoordViews.size() - 1);
+    //tex.tbvIdxはコピーしたままの値を使うのがポイント
+	tex.coordIdx = static_cast<int>(SquareTexcoordViews.size() - 1);
 	tex.texWidth = w;
 	tex.texHeight = h;
 	Textures.emplace_back(tex);
@@ -1146,8 +1149,11 @@ void drawImage(UINT cbvIdx, UINT tbvIdx, UINT texcoordIdx=0)
 {
 	//頂点をセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	D3D12_VERTEX_BUFFER_VIEW vbvs[2] = { SquareVpbv,TexcoordViews[texcoordIdx] };
-	CommandList->IASetVertexBuffers(0, 2, vbvs);
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[2] = { 
+		SquarePositionView,
+		SquareTexcoordViews[texcoordIdx] 
+	};
+	CommandList->IASetVertexBuffers(0, 2, vertexBufferViews);
 	//コンスタントをセット
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvIdx;

@@ -19,7 +19,6 @@ void gmain()
 	hideCursor();
 #endif
 	//cursor image
-	int img = loadImage("assets/cursor.png");
 	int img1 = loadImage("assets/test2.png");
 	int img2 = cutImage(img1, 48 * 0, 48 * 0, 48, 48);
 	int img3 = cutImage(img1, 48 * 1, 48 * 0, 48, 48);
@@ -44,14 +43,12 @@ void gmain()
 		image(img2, width / 2 - 48 * scale, height / 2, 0, scale, scale);
 		image(img3, width / 2, height / 2, 0, scale, scale);
 		image(img4, width / 2 + 48 * scale, height / 2, 0, scale, scale);
-		//cursor
-		rectModeCorner();
-		image(img, mouseX, mouseY);
 		//info
 		fontSize(20);
 		fontColor(0.5f, 0.5f, 0.5f);
 		fontRectModeCorner();
 		print("numConstants:%d", numConstants());
+		print("numTextures:%d", numLoadTextures());
 		print("deltaTime:%.3f", delta);
 		print("mouseX:%.2f", mouseX);
 		print("mouseY:%.2f", mouseY);
