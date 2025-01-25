@@ -494,6 +494,7 @@ void SetViewport() {
 void CreateSquareVertexBuffer();
 void CreateSquareTexcoordBuffer();
 void CreateCircleVertexBuffers();
+void CreateCircleTexcoordBuffers();
 void CreateWhiteTexture();
 void CreateOrthoProj();
 void InitConstantIdxCnt();
@@ -513,6 +514,7 @@ void createGraphic(int numDescriptors)
 	CreateSquareVertexBuffer();
 	CreateSquareTexcoordBuffer();
 	CreateCircleVertexBuffers();
+	CreateCircleTexcoordBuffers();
 	CreateOrthoProj();
 	CreateWhiteTexture();
 }
@@ -996,13 +998,13 @@ void CreateSquareTexcoordBuffer()
 //円の頂点バッファ（複数の大きさ）
 const int NumCircles = 5;
 int NumAngles[NumCircles] = { 8,16,32,64,128 };
-ComPtr<ID3D12Resource>   CircleVertexBuffer[NumCircles];
-D3D12_VERTEX_BUFFER_VIEW CircleVbv[NumCircles];
+ComPtr<ID3D12Resource>   CirclePositionBuffer[NumCircles];
+D3D12_VERTEX_BUFFER_VIEW CirclePositionView[NumCircles];
 void CreateCircleVertexBuffers()
 {
 	for(int i=0; i<NumCircles; ++i){
 		int num = NumAngles[i];
-		const int numVertexElements = 5;//１頂点の要素数
+		const int numVertexElements = 3;//１頂点の要素数
 		float* v = new float[num * numVertexElements]{};//オールゼロクリア
 		float rad = 3.1415926f * 2 / num;
 		int j = 0;
@@ -1021,19 +1023,56 @@ void CreateCircleVertexBuffers()
 		UINT sizeInBytes = sizeof(float) * num * numVertexElements;
 		UINT strideInBytes = sizeof(float) * numVertexElements;
 		//バッファをつくる
-		Hr = createBuffer(sizeInBytes, CircleVertexBuffer[i]);
+		Hr = createBuffer(sizeInBytes, CirclePositionBuffer[i]);
 		assert(SUCCEEDED(Hr));
 		//バッファにデータを入れる
-		Hr = updateBuffer(v, sizeInBytes, CircleVertexBuffer[i]);
+		Hr = updateBuffer(v, sizeInBytes, CirclePositionBuffer[i]);
 		assert(SUCCEEDED(Hr));
 		//ビューをつくる
-		createVertexBufferView(CircleVertexBuffer[i], 
-			sizeInBytes, strideInBytes, CircleVbv[i]);
+		createVertexBufferView(CirclePositionBuffer[i], 
+			sizeInBytes, strideInBytes, CirclePositionView[i]);
 
 		delete[] v;
 	}
 }
+ComPtr<ID3D12Resource>   CircleTexcoordBuffer[NumCircles];
+D3D12_VERTEX_BUFFER_VIEW CircleTexcoordView[NumCircles];
+void CreateCircleTexcoordBuffers()
+{
+	for (int i = 0; i < NumCircles; ++i) {
+		int num = NumAngles[i];
+		const int numVertexElements = 2;//１頂点の要素数
+		float* v = new float[num * numVertexElements] {};//オールゼロクリア
+		//ここは必要な時に考えます
+		//float rad = 3.1415926f * 2 / num;
+		//int j = 0;
+		//int k = 0;
+		//v[k] = 0.5f; v[k + 1] = 0.0f;
+		//for (j = 1; j < num / 2; j++) {
+		//	k += numVertexElements;
+		//	v[k] = cosf(rad * j) * 0.5f, v[k + 1] = sinf(rad * j) * 0.5f;
+		//	k += numVertexElements;
+		//	v[k] = cosf(rad * j) * 0.5f, v[k + 1] = -sinf(rad * j) * 0.5f;
+		//}
+		//k += numVertexElements;
+		//v[k] = -0.5f; v[k + 1] = 0.0f;
 
+		//データサイズを求めておく
+		UINT sizeInBytes = sizeof(float) * num * numVertexElements;
+		UINT strideInBytes = sizeof(float) * numVertexElements;
+		//バッファをつくる
+		Hr = createBuffer(sizeInBytes, CircleTexcoordBuffer[i]);
+		assert(SUCCEEDED(Hr));
+		//バッファにデータを入れる
+		Hr = updateBuffer(v, sizeInBytes, CircleTexcoordBuffer[i]);
+		assert(SUCCEEDED(Hr));
+		//ビューをつくる
+		createVertexBufferView(CircleTexcoordBuffer[i],
+			sizeInBytes, strideInBytes, CircleTexcoordView[i]);
+
+		delete[] v;
+	}
+}
 //マップ用コンスタントバッファ構造体
 struct CONST_BUF0 {
 	XMMATRIX worldViewProj;
@@ -1299,11 +1338,14 @@ void point(float px, float py)
 	else if (StrokeWeight <= 200)idx = 2;
 	else if (StrokeWeight <= 800)idx = 3;
 	else idx = 4;
-	auto& Vbv = CircleVbv[idx];
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[2] = {
+		CirclePositionView[idx],
+        CircleTexcoordView[idx]
+	};
 
 	//頂点をセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	CommandList->IASetVertexBuffers(0, 1, &Vbv);
+	CommandList->IASetVertexBuffers(0, 2, vertexBufferViews);
 	//コンスタントをセット
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 	hCbvTbvHeap.ptr += CbvTbvIncSize * con.cbvIdx;
@@ -1313,7 +1355,7 @@ void point(float px, float py)
 	hCbvTbvHeap.ptr += CbvTbvIncSize * WhiteTbvIdx;
 	CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
 	//描画
-	UINT numVertices = Vbv.SizeInBytes / Vbv.StrideInBytes;
+	UINT numVertices = CirclePositionView[idx].SizeInBytes / CirclePositionView[idx].StrideInBytes;
 	CommandList->DrawInstanced(numVertices, 1, 0, 0);
 	ConstantIdxCnt++;
 }
@@ -1498,18 +1540,21 @@ void circle(float px, float py, float diameter)
 	con.cb0->worldViewProj = world;
 	//ディフューズカラー⇒コンスタントにセット
 	con.cb0->diffuse = { FillR,FillG,FillB,FillA };
-
+    //大きさによる頂点バッファビューの選択
 	int idx = 0;
 	if		(diameter <=  10) { idx = 0; }
 	else if (diameter <=  50) { idx = 1; }
 	else if (diameter <= 200) { idx = 2; }
 	else if (diameter <= 800) { idx = 3; }
 	else					  { idx = 4; }
-	auto& Vbv = CircleVbv[idx];
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[2] = {
+		CirclePositionView[idx],
+		CircleTexcoordView[idx]
+	};
 
 	//頂点をセット
 	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	CommandList->IASetVertexBuffers(0, 1, &Vbv);
+	CommandList->IASetVertexBuffers(0, 2, vertexBufferViews);
 	//コンスタントをセット
 	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
 	hCbvTbvHeap.ptr += CbvTbvIncSize * con.cbvIdx;
@@ -1519,7 +1564,7 @@ void circle(float px, float py, float diameter)
 	hCbvTbvHeap.ptr += CbvTbvIncSize * WhiteTbvIdx;
 	CommandList->SetGraphicsRootDescriptorTable(1, hCbvTbvHeap);
 	//描画
-	UINT numVertices = Vbv.SizeInBytes / Vbv.StrideInBytes;
+	UINT numVertices = CirclePositionView[idx].SizeInBytes / CirclePositionView[idx].StrideInBytes;
 	CommandList->DrawInstanced(numVertices, 1, 0, 0);
 	ConstantIdxCnt++;
 

@@ -1,16 +1,14 @@
 #define A_
 #ifdef A_
-//math系関数を使用しないでつくる。
-//デカルト座標で考え、スクリーン座標に変換して描画する。
 #include<cmath>
 #include"framework.h"
 #include"mathGraphic.h"
 void gmain()
 {
 #if 1
-	window("Math", 128*6, 72*6, win);
+	window("cutImage", 1280, 720, win);
 #else
-	window("Math", 128, 72, full);
+	window("Math", 1280, 720, full);
 	//フルスクリーンモードで、
 	//指定した幅と高さのアスペクト比と
 	//ディスプレイ設定のアスペクト比が違う場合
@@ -23,6 +21,9 @@ void gmain()
 	int img2 = cutImage(img1, 48 * 0, 48 * 0, 48, 48);
 	int img3 = cutImage(img1, 48 * 1, 48 * 0, 48, 48);
 	int img4 = cutImage(img1, 48 * 2, 48 * 0, 48, 48);
+	//int imgs[3];
+	//int idx = 0;
+	//int vdx = 1;
 	initDeltaTime();
 	while (!quit())
 	{
@@ -36,10 +37,19 @@ void gmain()
 		stroke(0.5f, 0.5f, 0.5f);
 		strokeWeight(2);
 		rectModeCorner();
-		//rect(0, 0, width, height);
+		rect(0, 0, width, height);
+		//circle
+        fill(0.9f, 0.5f, 0.5f);
+		stroke(1.0f, 1.0f, 1.0f);
+        strokeWeight(10);
+        circle(80, height / 2, 500);
+		//rect
+        fill(0.5f, 0.5f, 0.9f);
+        stroke(1.0f, 1.0f, 1.0f);
+        rect(width / 2, height / 2, 500, 500, 0.5f);
 		//image
 		rectModeCenter();
-		float scale = 4;
+		float scale = 1;
 		image(img2, width / 2 - 48 * scale, height / 2, 0, scale, scale);
 		image(img3, width / 2, height / 2, 0, scale, scale);
 		image(img4, width / 2 + 48 * scale, height / 2, 0, scale, scale);
