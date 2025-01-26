@@ -5,30 +5,33 @@
 void gmain()
 {
 #if 0
-	window("divide image", 640, 320, win);
+	window("divide image", 640, 360, win);
 #else
-	window("divide image", 640, 320, full);
+	window("divide image", 640, 360, full);
 #endif
 	hideCursor();
     int cursor = loadImage("assets/cursor.png");
     
 	//画像を分割してdstImgsに画像番号を格納
 	int srcImg = loadImage("assets/characters.png");
-	const int row = 8, col = 12;
+	const int col = 12, row = 8, w = 48, h = 64;
 	int dstImgs[row * col];
-	int w = 48, h = 64;
-	divideImage(srcImg, row, col, w, h, dstImgs);
+	divideImage(srcImg, col, row, w, h, dstImgs);
 
 	//dstImgsからキャラを選択してimgsにコピー
     int charac = 0, charar = 0;//character column, character row
-	int ofsc = 3 * charac, ofsr = 4 * charar;
-	int imgs[16];
+    int ofsc = 3 * charac, ofsr = 4 * charar;//offset column, offset row
+    int imgs[4 * 4];//最終的に４＊４の画像番号配列にする
 	for (int r = 0; r < 4; r++) {
-		int c;
-		for (c = 0; c < 3; c++) {
-			imgs[4 * r + c] = dstImgs[col * (r + ofsr) + (c + ofsc)];
+		for (int c = 0; c < 4; c++) {
+			if (c <= 2) {
+				imgs[4 * r + c] = dstImgs[col * (r + ofsr) + (c + ofsc)];
+			}
+			else {
+                //3列目は1列目の画像を使う
+				imgs[4 * r + c] = dstImgs[col * (r + ofsr) + (1 + ofsc)];
+			}
 		}
-		imgs[4 * r + c] = dstImgs[col * (r + ofsr) + (1 + ofsc)];
 	}
 	int idx = 0;
 	

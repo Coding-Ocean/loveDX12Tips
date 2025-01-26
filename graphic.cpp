@@ -1189,7 +1189,7 @@ int cutImage(int idx, int left, int top, int w, int h)
 	Textures.emplace_back(tex);
 	return static_cast<int>(Textures.size()-1);
 }
-void divideImage(int srcImg, int row, int col, int w, int h, int* dstImgs)
+void divideImage(int srcImg, int col, int row, int w, int h, int* dstImgs)
 {
 	for (int r = 0; r < row; r++) {
 		for (int c = 0; c < col; c++) {
