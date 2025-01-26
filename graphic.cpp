@@ -750,7 +750,10 @@ void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes
 }
 UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer)
 {
-	assert(CurrentCbvTbvIdx < MaxCbvTbvIdxs);
+	if (CurrentCbvTbvIdx >= MaxCbvTbvIdxs) {
+		MessageBoxA(hwnd(), "", "ディスクリプタヒープが足りません", 0);
+		exit(1);
+	}
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 	desc.BufferLocation = constantBuffer->GetGPUVirtualAddress();
 	desc.SizeInBytes = static_cast<UINT>(constantBuffer->GetDesc().Width);
@@ -761,7 +764,10 @@ UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer)
 }
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer)
 {
-	assert(CurrentCbvTbvIdx < MaxCbvTbvIdxs);
+	if (CurrentCbvTbvIdx >= MaxCbvTbvIdxs) {
+		MessageBoxA(hwnd(), "", "ディスクリプタヒープが足りません", 0);
+		exit(1);
+	}
 	D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
 	desc.Format = textureBuffer->GetDesc().Format;
 	desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -1144,7 +1150,7 @@ int loadImage(const char* filename)
 		return itr->second;
 	}
 }
-int cutImage(int idx, float left, float top, float w, float h)
+int cutImage(int idx, int left, int top, int w, int h)
 {
 	assert(idx < Textures.size());
     //元のテクスチャの情報をコピー
@@ -1178,10 +1184,18 @@ int cutImage(int idx, float left, float top, float w, float h)
 	//Textures構造体に追加
     //tex.tbvIdxはコピーしたままの値を使うのがポイント
 	tex.coordIdx = static_cast<int>(SquareTexcoordViews.size() - 1);
-	tex.texWidth = w;
-	tex.texHeight = h;
+	tex.texWidth = static_cast<float>(w);
+	tex.texHeight = static_cast<float>(h);
 	Textures.emplace_back(tex);
 	return static_cast<int>(Textures.size()-1);
+}
+void divideImage(int srcImg, int row, int col, int w, int h, int* dstImgs)
+{
+	for (int r = 0; r < row; r++) {
+		for (int c = 0; c < col; c++) {
+			dstImgs[col * r + c] = cutImage(srcImg, w * c, h * r, w, h);
+		}
+	}
 }
 //テクスチャを張り付けた四角形の描画
 void drawImage(UINT cbvIdx, UINT tbvIdx, UINT texcoordIdx=0)

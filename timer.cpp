@@ -3,7 +3,7 @@
 
 unsigned int PreTime = 0;
 float DeltaTime = 0;
-float ElapsedTime = 0;
+float ElapsedTime[10] = {};
 
 void initDeltaTime()
 {
@@ -16,14 +16,18 @@ void setDeltaTime()
 	DeltaTime = (curTime - PreTime) / 1000.0f;
 	PreTime = curTime;
 }
-bool timer(float interval)
+bool timer(int number, float interval)
 {
-	ElapsedTime += DeltaTime;
-	if (ElapsedTime >= interval) {
-		ElapsedTime -= interval;
+	ElapsedTime[number] += DeltaTime;
+	if (ElapsedTime[number] >= interval) {
+		ElapsedTime[number] -= interval;
 		return true;
 	}
 	return false;
+}
+void resetTimer(int number)
+{
+	ElapsedTime[number] = 0;
 }
 float deltaTime()
 {

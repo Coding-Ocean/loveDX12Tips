@@ -1,29 +1,37 @@
 #define A_
 #ifdef A_
-#include<cmath>
 #include"framework.h"
-#include"mathGraphic.h"
+
 void gmain()
 {
-#if 1
-	window("cutImage", 1280, 720, win);
+#if 0
+	window("divide image", 640, 320, win);
 #else
-	window("Math", 1280, 720, full);
-	//フルスクリーンモードで、
-	//指定した幅と高さのアスペクト比と
-	//ディスプレイ設定のアスペクト比が違う場合
-	//実際のカーソル位置と使用するカーソル位置がずれるので、隠さないといけない。
-	//数値的には問題ない。
-	hideCursor();
+	window("divide image", 640, 320, full);
 #endif
-	//cursor image
-	int img1 = loadImage("assets/test2.png");
-	int img2 = cutImage(img1, 48 * 0, 48 * 0, 48, 48);
-	int img3 = cutImage(img1, 48 * 1, 48 * 0, 48, 48);
-	int img4 = cutImage(img1, 48 * 2, 48 * 0, 48, 48);
-	//int imgs[3];
-	//int idx = 0;
-	//int vdx = 1;
+	hideCursor();
+    int cursor = loadImage("assets/cursor.png");
+    
+	//画像を分割してdstImgsに画像番号を格納
+	int srcImg = loadImage("assets/characters.png");
+	const int row = 8, col = 12;
+	int dstImgs[row * col];
+	int w = 48, h = 64;
+	divideImage(srcImg, row, col, w, h, dstImgs);
+
+	//dstImgsからキャラを選択してimgsにコピー
+    int charac = 0, charar = 0;//character column, character row
+	int ofsc = 3 * charac, ofsr = 4 * charar;
+	int imgs[16];
+	for (int r = 0; r < 4; r++) {
+		int c;
+		for (c = 0; c < 3; c++) {
+			imgs[4 * r + c] = dstImgs[col * (r + ofsr) + (c + ofsc)];
+		}
+		imgs[4 * r + c] = dstImgs[col * (r + ofsr) + (1 + ofsc)];
+	}
+	int idx = 0;
+	
 	initDeltaTime();
 	while (!quit())
 	{
@@ -32,27 +40,24 @@ void gmain()
 		if (isTrigger(KEY_ESC)) closeWindow();
 		//clear
 		beginMsaaRender();
-		//フルスクリーンの時、rectでウィンドウの枠線を引く
-		noFill();//今回は塗りつぶさないが、もちろんfillで塗りつぶしてもよい。
-		stroke(0.5f, 0.5f, 0.5f);
-		strokeWeight(2);
-		rectModeCorner();
+		//background rect
+		fill(1.0f, 1.0f, 0.55f); noStroke(); rectModeCorner();
 		rect(0, 0, width, height);
 		//circle
-        fill(0.9f, 0.5f, 0.5f);
-		stroke(1.0f, 1.0f, 1.0f);
-        strokeWeight(10);
-        circle(80, height / 2, 500);
+        fill(0.9f, 0.5f, 0.5f);	stroke(1.0f, 1.0f, 1.0f); strokeWeight(10);
+        circle(-80, height / 2+10, width-140);
 		//rect
-        fill(0.5f, 0.5f, 0.9f);
-        stroke(1.0f, 1.0f, 1.0f);
-        rect(width / 2, height / 2, 500, 500, 0.5f);
+        fill(0.5f, 0.5f, 0.9f); stroke(1.0f, 1.0f, 1.0f); rectModeCenter();
+        rect(width+50, height / 2+200, 500, 500, 0.5f);
+
 		//image
-		rectModeCenter();
-		float scale = 1;
-		image(img2, width / 2 - 48 * scale, height / 2, 0, scale, scale);
-		image(img3, width / 2, height / 2, 0, scale, scale);
-		image(img4, width / 2 + 48 * scale, height / 2, 0, scale, scale);
+		if (timer(0, 0.2f))++idx %= 16;
+		float scale = 2;
+		image(imgs[idx], width / 2, height / 2, 0, scale, scale);
+
+		//cursor
+        rectModeCorner();
+        image(cursor, mouseX, mouseY);
 		//info
 		fontSize(20);
 		fontColor(0.5f, 0.5f, 0.5f);

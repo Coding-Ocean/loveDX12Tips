@@ -40,7 +40,8 @@ void noStroke();
 //image
 void imageColor(float r, float g, float b, float a=1);
 int loadImage(const char* filename);
-int cutImage(int idx, float left, float top, float w, float h);
+int cutImage(int idx, int left, int top, int w, int h);
+void divideImage(int srcImg, int row, int col, int w, int h, int* dstImgs);
 void image(int textureIdx, float px, float py, float rad=0, float sx = 1, float sy = 1);
 void image(const char* filename, float px, float py, float rad=0, float sx=1, float sy=1);
 //shapes

@@ -4,4 +4,5 @@
 void initDeltaTime();
 void setDeltaTime();
 float deltaTime();
-bool timer(float interval);
+bool timer(int number, float interval);
+void resetTimer(int number);
