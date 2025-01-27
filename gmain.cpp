@@ -2,6 +2,39 @@
 #ifdef A_
 #include"framework.h"
 
+void selectImgs(int* allImgs, int col, int row, int* imgs)
+{
+	//選択するキャラクタの列と行を決定
+	static int charac = 0, charar = 1;//character column, character row
+	if (isTrigger(KEY_D)) {
+		++charac %= col / 3;
+	}
+	if (isTrigger(KEY_S)) {
+		++charar %= row / 4;
+	}
+	if (isTrigger(KEY_A)) {
+		--charac;
+		if (charac < 0)charac += col / 3;
+	}
+	if (isTrigger(KEY_W)) {
+		--charar;
+		if (charar < 0)charar += row / 4;
+	}
+	//選択されたキャラをimgsにコピー
+	int ofsc = 3 * charac, ofsr = 4 * charar;//offset column, offset row
+	for (int r = 0; r < 4; r++) {
+		for (int c = 0; c < 4; c++) {
+			if (c <= 2) {
+				imgs[4 * r + c] = allImgs[col * (r + ofsr) + (c + ofsc)];
+			}
+			else {
+				//3列目は1列目の画像を使う
+				imgs[4 * r + c] = allImgs[col * (r + ofsr) + (1 + ofsc)];
+			}
+		}
+	}
+}
+
 void gmain()
 {
 #if 0
@@ -11,28 +44,16 @@ void gmain()
 #endif
 	hideCursor();
     int cursor = loadImage("assets/cursor.png");
-    
-	//画像を分割してdstImgsに画像番号を格納
 	int srcImg = loadImage("assets/characters.png");
+	
+	//srcImgの画像を分割してallImgsに画像番号を格納
 	const int col = 12, row = 8, w = 48, h = 64;
-	int dstImgs[row * col];
-	divideImage(srcImg, col, row, w, h, dstImgs);
+	int allImgs[row * col];
+	divideImage(srcImg, col, row, w, h, allImgs);
 
-	//dstImgsからキャラを選択してimgsにコピー
-    int charac = 0, charar = 0;//character column, character row
-    int ofsc = 3 * charac, ofsr = 4 * charar;//offset column, offset row
-    int imgs[4 * 4];//最終的に４＊４の画像番号配列にする
-	for (int r = 0; r < 4; r++) {
-		for (int c = 0; c < 4; c++) {
-			if (c <= 2) {
-				imgs[4 * r + c] = dstImgs[col * (r + ofsr) + (c + ofsc)];
-			}
-			else {
-                //3列目は1列目の画像を使う
-				imgs[4 * r + c] = dstImgs[col * (r + ofsr) + (1 + ofsc)];
-			}
-		}
-	}
+	//allImgsからキャラを選択してimgsにコピー
+	int imgs[4 * 4];//最終的に４＊４の画像番号配列にする
+	selectImgs(allImgs, col, row, imgs);
 	int idx = 0;
 	
 	initDeltaTime();
@@ -41,6 +62,10 @@ void gmain()
 		setDeltaTime();
 		getInputState();
 		if (isTrigger(KEY_ESC)) closeWindow();
+
+		if (isTrigger(KEY_D) || isTrigger(KEY_S) || isTrigger(KEY_A)|| isTrigger(KEY_W))
+			selectImgs(allImgs, col, row, imgs);
+
 		//clear
 		beginMsaaRender();
 		//background rect
