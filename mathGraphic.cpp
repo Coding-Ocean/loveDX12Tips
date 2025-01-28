@@ -8,7 +8,7 @@ static float Ox, Oy;
 //1‚Æ‚·‚é‘å‚«‚³
 static float Scl;
 
-void setAxis(float ox, float oy, float scl)
+void mathSetAxis(float ox, float oy, float scl)
 {
 	Ox = ox;
 	Oy = oy;

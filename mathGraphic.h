@@ -2,7 +2,7 @@
 #define mathMouseX getMathMouseX()
 #define mathMouseY getMathMouseY()
 void mathStrokeWeight(float sw);
-void setAxis(float ox, float oy, float scale);
+void mathSetAxis(float ox, float oy, float scale);
 void mathAxis();
 void mathPoint(float px, float py);
 void mathLine(float sx, float sy, float ex, float ey);
