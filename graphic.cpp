@@ -273,6 +273,7 @@ ComPtr<ID3D12Resource> MsaaRenderBuffer;
 ComPtr<ID3D12DescriptorHeap> MsaaRtvHeap;
 ComPtr<ID3D12Resource> MsaaDepthStencilBuffer;
 ComPtr<ID3D12DescriptorHeap> MsaaDsvHeap;
+ComPtr<ID3D12PipelineState> MsaaPipelineState;
 UINT SAMPLE_COUNT = 8;
 UINT SampleCount = 1;
 void CreateMsaaRenderTarget()
@@ -397,7 +398,7 @@ void beginMsaaRender()
 	//ディスクリプタヒープをＧＰＵにセット
 	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
 	//パイプラインステートをセット
-	CommandList->SetPipelineState(PipelineState.Get());
+	CommandList->SetPipelineState(MsaaPipelineState.Get());
 	//ルートシグニチャをセット
 	CommandList->SetGraphicsRootSignature(RootSignature.Get());
 }
@@ -570,15 +571,21 @@ void CreatePipeline()
 	pipelineDesc.DepthStencilState = depthStencilDesc;
 	pipelineDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 	pipelineDesc.SampleMask = UINT_MAX;
-	//===
-	pipelineDesc.SampleDesc.Count = SampleCount;
-	
 	pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	pipelineDesc.NumRenderTargets = 1;
 	pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	//===msaa off
+	pipelineDesc.SampleDesc.Count = 1;
 	Hr = Device->CreateGraphicsPipelineState(
 		&pipelineDesc,
 		IID_PPV_ARGS(PipelineState.GetAddressOf())
+	);
+	assert(SUCCEEDED(Hr));
+	//===msaa on
+	pipelineDesc.SampleDesc.Count = SampleCount;
+	Hr = Device->CreateGraphicsPipelineState(
+		&pipelineDesc,
+		IID_PPV_ARGS(MsaaPipelineState.GetAddressOf())
 	);
 	assert(SUCCEEDED(Hr));
 
