@@ -63,8 +63,11 @@ void gmain()
 		getInputState();
 		if (isTrigger(KEY_ESC)) closeWindow();
 
-		if (isTrigger(KEY_D) || isTrigger(KEY_S) || isTrigger(KEY_A)|| isTrigger(KEY_W))
+		if (isTrigger(KEY_D) || isTrigger(KEY_S) || isTrigger(KEY_A) || isTrigger(KEY_W))
+		{
 			selectImgs(allImgs, col, row, imgs);
+			idx = 0;
+		}
 
 		//clear
 		beginMsaaRender();
