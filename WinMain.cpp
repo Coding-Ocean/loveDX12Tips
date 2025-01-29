@@ -1,3 +1,45 @@
+#if 1
+#include"graphic.h"
+
+//Îü‚ğˆø‚­
+void diagonalLine()
+{
+	strokeWeight(5);
+	line(width / 4, height / 2, width / 4 * 3, height / 2 - 22);
+}
+
+int GameMain()
+{
+	window("MSAA", 1920 / 2, 1080 / 2);
+
+	int cnt = 0;
+	int sw = 0;
+	while (!quit())
+	{
+		if (++cnt % 240 == 0) {
+			sw = 1 - sw;
+		}
+		if (sw) {
+			beginMsaaRender();
+			diagonalLine();
+			print("MSAA On");
+			endMsaaRender();
+		}
+		else {
+			beginRender();
+			diagonalLine();
+			print("MSAA Off");
+			endRender();
+		}
+	}
+
+	waitGPU();
+	closeEventHandle();
+	return msg_wparam();
+}
+#endif
+
+#if 0
 #include"graphic.h"
 
 int GameMain()
@@ -90,3 +132,4 @@ int GameMain()
 	closeEventHandle();
 	return msg_wparam();
 }
+#endif
