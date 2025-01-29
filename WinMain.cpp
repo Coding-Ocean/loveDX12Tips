@@ -3,7 +3,7 @@
 int GameMain()
 {
 	window("2DGraphics", 1600, 900);
-	clearColor(0.8f, 0.8f, 0.8f);
+	clearColor(0.8f, 0.7f, 0.8f);
 
 	float rad = 0;
 	int cnt = 0;
