@@ -109,6 +109,7 @@ void setMousePos(float x, float y)
 void createInput()
 {
 	HWnd = hwnd();
+	hideCursor();
 	//ウィンドウ中央にマウスをセット
 	//RECT rect;
 	//GetClientRect(HWnd, &rect);

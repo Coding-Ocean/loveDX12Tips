@@ -23,3 +23,15 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ INT)
 	timeEndPeriod(1);
 	return msg_wparam();
 }
+
+//
+void debugPrint()
+{
+	print("numConstants:%d", numConstants());
+	print("numLoadTextures:%d", numLoadTextures());
+	print("numFontTextures:%d", numFontTextures());
+	print("deltaTime:%.3f", delta);
+	print("mouseX:%.2f", mouseX);
+	print("mouseY:%.2f", mouseY);
+}
+

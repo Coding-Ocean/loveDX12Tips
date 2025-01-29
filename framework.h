@@ -17,3 +17,6 @@ void window(
 	int numDescriptors = 2000, 
 	bool centered=true
 );
+
+void debugPrint();
+

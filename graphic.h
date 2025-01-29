@@ -23,7 +23,7 @@ UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer);
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
 //•`‰æŒn
 void clearColor(float r, float g, float b);
-void backgroundRect();
+void backgroundRect(float r, float g, float b);
 void beginRender();
 void endRender();
 void beginMsaaRender();
@@ -44,6 +44,7 @@ int cutImage(int idx, int left, int top, int w, int h);
 void divideImage(int srcImg, int col, int row, int w, int h, int* dstImgs);
 void image(int textureIdx, float px, float py, float rad=0, float sx = 1, float sy = 1);
 void image(const char* filename, float px, float py, float rad=0, float sx=1, float sy=1);
+void cursor();
 //shapes
 void point(float px, float py);
 void line(float sx, float sy, float ex, float ey);
@@ -57,9 +58,11 @@ constexpr ULONG EN = 0;
 void fontFace(const char* fontname, unsigned charset);
 void fontSize(int size);
 void fontColor(float r, float g, float b, float a=1);
+void fontShadowColor(float r, float g, float b, float a);
 void fontRectModeCorner();
 void fontRectModeCenter();
 float text(const char* str, float x, float y);
+float text(float x, float y, const char* format, ...);
 void setPrintInitX(float initX);
 void setPrintInitY(float initY);
 void print(const char* format, ...);

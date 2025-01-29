@@ -1,3 +1,124 @@
+//’²®—p
+#if 0
+#include"framework.h"
+void gmain()
+{
+	window("Game", 1920, 1080, full);
+
+	float radius = 250;
+	initDeltaTime();
+	while (!quit())
+	{
+		setDeltaTime();
+		getInputState();
+		if (isTrigger(KEY_ESC)) closeWindow();
+
+		//clear
+		beginMsaaRender();
+        backgroundRect(0.9f,0.8f,0.8f);
+
+		
+		fill(1, 1, 1); strokeWeight(5);
+		circle(width / 2, height / 2, radius*2);
+
+		if (isTrigger(KEY_W))radius += 1;
+		if (isTrigger(KEY_S))radius -= 1;
+		if (isPress(KEY_D))radius += 1;
+		if (isPress(KEY_A))radius -= 1;
+
+        rectModeCorner();
+		{
+			float l = width/2-125, t = height/2-50, w = 100, h = 100;
+			if (mouseX > l && mouseX < l + w && mouseY > t && mouseY < t + h)
+			{
+				fill(0.9f, 0.8f, 0.8f, 1);
+				radius += 1;
+			}
+			else
+			{
+				fill(0.5f, 0.5f, 0.5f, 1);
+			}
+			strokeWeight(5);
+			rect(l, t, w, h);
+		}
+		{
+			float l = width/2+25, t = height/2-50, w = 100, h = 100;
+			if (mouseX > l && mouseX < l + w && mouseY > t && mouseY < t + h)
+			{
+				fill(0.9f, 0.8f, 0.8f, 1);
+				radius -= 1;
+                if (radius < 1)radius = 1;
+			}
+			else
+			{
+				fill(0.5f, 0.5f, 0.5f, 1);
+			}
+			strokeWeight(5);
+			rect(l, t, w, h);
+		}
+		
+		//info
+		fontColor(1.f, 1.f, 1.f, 1.0f);
+		fontShadowColor(0.f, 0.f, 0.f, 1.0f);
+		fontSize(50);
+		fontRectModeCorner();
+        debugPrint();
+
+		//present
+        cursor();
+		endMsaaRender();
+	}
+}
+#endif
+//math
+#if 0
+#include"framework.h"
+void gmain()
+{
+	window("divide image", 640 * 2, 360 * 2);
+	int srcImg = loadImage("assets/characters.png");
+
+	initDeltaTime();
+	while (!quit())
+	{
+		setDeltaTime();
+		getInputState();
+		if (isTrigger(KEY_ESC)) closeWindow();
+
+		//clear
+		beginMsaaRender();
+		//math functions
+		mathSetAxis(width / 2, height/2, 100);
+		stroke(1.f, 1.f, 1.f);
+		mathAxis();
+		float ax = 1, ay = -0.5f;
+		float bx = mathMouseX, by = mathMouseY;
+		float radius = sqrtf(bx * bx + by * by) * 0.2f;
+		strokeWeight(5);
+		stroke(1.f, 1.f, 0.5f);
+		mathArrow(0, 0, ax, ay);
+		stroke(1.f, 0.5f, 0.5f);
+		mathArrow(0, 0, bx, by);
+		stroke(0.8f, 0.8f, 0.8f);
+		mathArc(ax, ay, bx, by, 0.2f);
+
+		fontSize(25);
+		fontColor(1, 1, 1);
+		text(mouseX, mouseY, "  (%.2f,%.2f)", mathMouseX, mathMouseY);
+
+		//info
+		fontColor(1.f, 1.f, 1.f);
+		fontRectModeCorner();
+        debugPrint();
+		print("mathMouseX:%.2f", mathMouseX);
+		print("mathMouseY:%.2f", mathMouseY);
+		
+		//present
+		cursor();
+		endMsaaRender();
+	}
+}
+#endif
 //‚²‚Á‚½ŽÏƒTƒ“ƒvƒ‹
 #if 1
 #include"framework.h"
@@ -36,9 +157,7 @@ void selectImgs(int* allImgs, int col, int row, int* imgs)
 
 void gmain()
 {
-	window("divide image", 640, 360, false);
-	hideCursor();
-    int cursor = loadImage("assets/cursor.png");
+	window("divide image", 16 * 100, 9 * 100);
 	int srcImg = loadImage("assets/characters.png");
 	
 	//srcImg‚Ì‰æ‘œ‚ð•ªŠ„‚µ‚ÄallImgs‚É‰æ‘œ”Ô†‚ðŠi”[
@@ -75,7 +194,10 @@ void gmain()
 		//rect
         fill(0.5f, 0.5f, 0.9f); stroke(1.0f, 1.0f, 1.0f); rectModeCenter();
         rect(width+50, height / 2+200, 500, 500, 0.5f);
-
+		//image
+		if (timer(0, 0.2f))++idx %= 16;
+		float scale = 2;
+		image(imgs[idx], width / 2, height / 2, 0, scale, scale);
 		//math functions
 		stroke(0.5f, 1.0f, 0.5f);
 		mathSetAxis(width / 4 * 3, 242, 100);
@@ -83,21 +205,19 @@ void gmain()
 		float ax = 1, ay = -0.5f;
 		float bx = mathMouseX, by = mathMouseY;
 		float radius = sqrtf(bx * bx + by * by)*0.2f;
+		strokeWeight(5);
 		mathArrow(0, 0, ax, ay);
 		mathArrow(0, 0, bx, by);
 		mathArc(ax, ay, bx, by, radius);
-
-		//image
-		if (timer(0, 0.2f))++idx %= 16;
-		float scale = 2;
-		image(imgs[idx], width / 2, height / 2, 0, scale, scale);
+		fontColor(1, 1, 1);
+		fontShadowColor(0.f, 0.f, 0.f, 1.f);
+		text(mouseX, mouseY, "  (%.2f,%.2f)", mathMouseX,mathMouseY);
 
 		//cursor
-        rectModeCorner();
-        image(cursor, mouseX, mouseY);
+		cursor();
 		//info
-		fontSize(20);
-		fontColor(0.5f, 0.5f, 0.5f);
+		//fontSize(20);
+		fontColor(1.f, 1.f, 1.f);
 		fontRectModeCorner();
 		print("numConstants:%d", numConstants());
 		print("numLoadTextures:%d", numLoadTextures());

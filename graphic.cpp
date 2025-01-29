@@ -13,6 +13,7 @@
 #include"BIN_FILE12.h"
 #include"graphic.h"
 #include"window.h"
+#include"input.h"
 
 //グローバル変数-----------------------------------------------------------------
 // デバイス
@@ -509,6 +510,7 @@ void InitPrintPosY();
 
 //パブリックな関数---------------------------------------------------------------
 //システム系
+int CursorImg = 0;
 void createGraphic(int numDescriptors)
 {
 	CreateDevice();
@@ -524,6 +526,7 @@ void createGraphic(int numDescriptors)
 	CreateCircleTexcoordBuffers();
 	CreateOrthoProj();
 	CreateWhiteTexture();
+	CursorImg = loadImage("assets/cursor.png");
 }
 void waitGPU()
 {
@@ -790,8 +793,10 @@ void clearColor(float r, float g, float b)
 {
 	ClearColor[0] = r; ClearColor[1] = g; ClearColor[2] = b;
 }
-void backgroundRect()
+void backgroundRect(float r, float g, float b)
 {
+	fill(r,g,b);
+	noStroke();
 	rectModeCorner();
 	rect(0, 0, width, height);
 }
@@ -1355,7 +1360,7 @@ void point(float px, float py)
 	//大きさによる頂点バッファビューの選択
 	int idx=0;
 	if      (StrokeWeight <=  10)idx = 0;
-	else if (StrokeWeight <=  50)idx = 1;
+	else if (StrokeWeight <=  40)idx = 1;
 	else if (StrokeWeight <= 200)idx = 2;
 	else if (StrokeWeight <= 800)idx = 3;
 	else idx = 4;
@@ -1564,7 +1569,7 @@ void circle(float px, float py, float diameter)
     //大きさによる頂点バッファビューの選択
 	int idx = 0;
 	if		(diameter <=  10) { idx = 0; }
-	else if (diameter <=  50) { idx = 1; }
+	else if (diameter <=  40) { idx = 1; }
 	else if (diameter <= 200) { idx = 2; }
 	else if (diameter <= 800) { idx = 3; }
 	else					  { idx = 4; }
@@ -1616,6 +1621,12 @@ void fontColor(float r, float g, float b, float a)
 {
 	FONTR = r; FONTG = g; FONTB = b; FONTA = a;
 }
+float FONT_SHADOW_R = 0, FONT_SHADOW_G = 0, FONT_SHADOW_B = 0, FONT_SHADOW_A = 0;
+void fontShadowColor(float r, float g, float b, float a)
+{
+	FONT_SHADOW_R = r, FONT_SHADOW_G = g, FONT_SHADOW_B = b, FONT_SHADOW_A = a;
+}
+
 //現在描画中のフォントフェイス構造体
 struct CURRENT_FONT_FACE {
 	std::string name; unsigned long charset; int idx; int size;
@@ -1774,9 +1785,27 @@ float text(const char* str, float x, float y)
 			fontTex = &itr->second;
 		}
 
-		//コンスタントが足りなかったらつくる
+        if (FONT_SHADOW_A > 0) {
+            AutoCreateConstant();
+            XMMATRIX world;
+            if (FontRectMode == CORNER) {
+                world = XMMatrixTranslation(0.5f, -0.5f, 0)
+                    * XMMatrixScaling(fontTex->texWidth, fontTex->texHeight, 1)
+                    * XMMatrixTranslation(x + fontTex->ofstX + 1, -(y + fontTex->ofstY + 1), 0);
+            }
+            else {
+                world =
+                    XMMatrixScaling(fontTex->texWidth, fontTex->texHeight, 1)
+                    * XMMatrixTranslation(x + 1, -(y + 1), 0);
+            }
+            auto& con = Constants[ConstantIdxCnt];
+            con.cb0->worldViewProj = world * OrthoProj;
+            con.cb0->diffuse = { FONT_SHADOW_R,FONT_SHADOW_G,FONT_SHADOW_B,FONT_SHADOW_A };
+            //描画
+            DrawImage(con.cbvIdx, fontTex->tbvIdx);
+        }
+
 		AutoCreateConstant();
-		
 		XMMATRIX world;
 		if (FontRectMode == CORNER) {
 			world = XMMatrixTranslation(0.5f, -0.5f, 0)
@@ -1791,7 +1820,6 @@ float text(const char* str, float x, float y)
 		auto& con = Constants[ConstantIdxCnt];
 		con.cb0->worldViewProj = world * OrthoProj;
 		con.cb0->diffuse = { FONTR,FONTG,FONTB,FONTA };
-		
 		//描画
 		DrawImage(con.cbvIdx, fontTex->tbvIdx);
 
@@ -1800,6 +1828,15 @@ float text(const char* str, float x, float y)
 	}
 	//横に続けて別の文字列を表示するための座標を返す
 	return x;
+}
+float text(float x, float y, const char* format, ...)
+{
+    char str[256];
+    va_list args;
+    va_start(args, format);
+    vsprintf_s(str, format, args);
+    va_end(args);
+    return text(str, x, y);
 }
 //情報表示の左上座標
 float PrintInitX = 5;
@@ -1839,4 +1876,10 @@ USER_FONT::USER_FONT(const char* filename)
 }
 USER_FONT::~USER_FONT() {
 	RemoveFontResourceExA(Filename.c_str(), FR_PRIVATE, 0);
+}
+
+void cursor()
+{
+	rectModeCorner();
+	image(CursorImg, mouseX, mouseY);
 }

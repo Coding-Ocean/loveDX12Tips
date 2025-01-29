@@ -146,7 +146,6 @@
     <ClInclude Include="graphic.h" />
     <ClInclude Include="input.h" />
     <ClInclude Include="mathGraphic.h" />
-    <ClInclude Include="stb_image.h" />
     <ClInclude Include="timer.h" />
     <ClInclude Include="toWide.h" />
     <ClInclude Include="window.h" />
