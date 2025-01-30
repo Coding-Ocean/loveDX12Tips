@@ -23,7 +23,7 @@ UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer);
 UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
 //•`‰æŒn
 void clearColor(float r, float g, float b);
-void backgroundRect(float r, float g, float b);
+void backgroundRect();
 void beginRender();
 void endRender();
 void beginMsaaRender();
@@ -39,6 +39,8 @@ void strokeWeight(float sw);
 void noStroke();
 //image
 void imageColor(float r, float g, float b, float a=1);
+int textureWidth(int idx);
+int textureHeight(int idx);
 int loadImage(const char* filename);
 int cutImage(int idx, int left, int top, int w, int h);
 void divideImage(int srcImg, int col, int row, int w, int h, int* dstImgs);
@@ -74,7 +76,6 @@ public:
 	USER_FONT(const char* filename);
 	~USER_FONT();
 };
-
 //#####debug#####
 size_t numConstants();
 size_t numLoadTextures();

@@ -793,10 +793,8 @@ void clearColor(float r, float g, float b)
 {
 	ClearColor[0] = r; ClearColor[1] = g; ClearColor[2] = b;
 }
-void backgroundRect(float r, float g, float b)
+void backgroundRect()
 {
-	fill(r,g,b);
-	noStroke();
 	rectModeCorner();
 	rect(0, 0, width, height);
 }
@@ -1163,6 +1161,16 @@ int loadImage(const char* filename)
 	else {
 		return itr->second;
 	}
+}
+int textureWidth(int idx)
+{
+	assert(idx < Textures.size());
+	return static_cast<int>(Textures[idx].texWidth);
+}
+int textureHeight(int idx)
+{
+	assert(idx < Textures.size());
+	return static_cast<int>(Textures[idx].texHeight);
 }
 //読み込み済みテクスチャの一部を切り取る「テクスチャ座標バッファ」をつくる
 int cutImage(int idx, int left, int top, int w, int h)
