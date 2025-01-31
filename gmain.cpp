@@ -1,5 +1,5 @@
 //‰æ‘œØ‚èæ‚èA•ªŠ„A•`‰æƒTƒ“ƒvƒ‹
-#if 0
+#if 1
 #include"framework.h"
 void gmain()
 {
@@ -166,7 +166,7 @@ void gmain()
 }
 #endif
 //math function graph
-#if 1
+#if 0
 #include<cmath>
 #include"framework.h"
 #include"mathGraphic.h"
@@ -293,7 +293,7 @@ void selectImgs(int* allImgs, int col, int row, int* imgs)
 
 void gmain()
 {
-	window("divide image", 16 * 100, 9 * 100);
+	window("divide image", 16 * 80, 9 * 80, full);
 	int srcImg = loadImage("assets/characters.png");
 	
 	//srcImg‚Ì‰æ‘œ‚ğ•ªŠ„‚µ‚ÄallImgs‚É‰æ‘œ”Ô†‚ğŠi”[
@@ -326,17 +326,17 @@ void gmain()
 		rect(0, 0, width, height);
 		//circle
 		fill(0.9f, 0.5f, 0.5f);	stroke(1.0f, 1.0f, 1.0f); strokeWeight(10);
-        circle(-80, height / 2+10, width-140);
+        circle(-200, height / 2+80, width-140);
 		//rect
         fill(0.5f, 0.5f, 0.9f); stroke(1.0f, 1.0f, 1.0f); rectModeCenter();
-        rect(width+50, height / 2+200, 500, 500, 0.5f);
+        rect(width-100, height / 2+200, 700, 700, 0.5f);
 		//image
 		if (timer(0, 0.2f))++idx %= 16;
 		float scale = 2;
 		image(imgs[idx], width / 2, height / 2, 0, scale, scale);
 		//math functions
 		stroke(0.5f, 1.0f, 0.5f);
-		mathSetAxis(width / 4 * 3, 242, 100);
+		mathSetAxis(width-120, 600, 100);
 		mathAxis();
 		float ax = 1, ay = -0.5f;
 		float bx = mathMouseX, by = mathMouseY;
@@ -344,7 +344,7 @@ void gmain()
 		strokeWeight(5);
 		mathArrow(0, 0, ax, ay);
 		mathArrow(0, 0, bx, by);
-		mathArc(ax, ay, bx, by, radius);
+		mathArc(ax, ay, bx, by, 0.2f);
 		fontColor(1, 1, 1);
 		fontShadowColor(0.f, 0.f, 0.f, 1.f);
 		text(mouseX, mouseY, "  (%.2f,%.2f)", mathMouseX,mathMouseY);
@@ -352,7 +352,7 @@ void gmain()
 		//cursor
 		cursor();
 		//info
-		//fontSize(20);
+		fontSize(20);
 		fontColor(1.f, 1.f, 1.f);
 		fontRectModeCorner();
 		print("numConstants:%d", numConstants());
