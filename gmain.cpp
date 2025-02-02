@@ -3,7 +3,7 @@
 #include"framework.h"
 void gmain()
 {
-	window("Game", 640, 360, full);
+	window("Game", 640, 360);
 
 	//original image
 	int orgImg = loadImage("assets/character.png");
@@ -45,26 +45,107 @@ void gmain()
 		float x = width / 4 - texWidth / 2;//画面幅1/4-画像幅/2に配置
         float y = (height - texHeight) / 2;//画像の上端が画面の中央に来るようにする
         image(orgImg, x, y);
-        text("originalImage", x, y - size);
+        text(" originalImage", x, y - size);
 
         //cut image
 		x = width / 2;
         image(cutImg, x, y);
-        text("cutImage", x, y - size);
+        text(" cutImage", x, y - size);
         
         //divide image
 		static int idx = 0;
         if (timer(0, 0.25f)) ++idx %= col*row;//0.25秒ごとに画像番号を切り替える
         x = width / 4 * 3;
         image(divImg[idx], x, y);
-		text("divideImage", x, y - size);
+		text(" divideImage", x, y - size);
 
 		//present
 		endMsaaRender();
 	}
 }
 #endif
-//math vector
+//フォントを変えるサンプル
+#if 0
+#include"framework.h"
+void gmain()
+{
+	window("Font", 1280, 720);
+	setPrintInitX(330);
+	fontSize(100);
+	beginRender();
+	for (int i = 0; i < 7; i++) {
+		switch (i) {
+		case 0:fontFace("Cooper Black", EN); break;
+		case 1:fontFace("Comic Sans MS", EN); break;
+		case 2:fontFace("Bauhaus 93", EN); break;
+		case 3:fontFace("Kristen ITC", EN); break;
+		case 4:fontFace("Harlow Solid Italic", EN); break;
+		case 5:fontFace("Showcard Gothic", EN); break;
+		case 6:fontFace("jokerman", EN); break;
+		}
+		fontColor(1, 1.0f / 6 * i, 1);
+		print("%d.Coding Ocean", i);
+	}
+	endRender();
+	while (!quit()) {
+		getInputState();
+		if (isTrigger(KEY_ESC))
+			closeWindow();
+	}
+}
+#endif
+//インストールしていないフォントを使うサンプル
+#if 0
+#include<memory>
+#include"framework.h"
+void gmain()
+{
+	window("Font2", 1280, 720);
+
+	//assetsフォルダ内に用意したフォントが使える（ループ中にいれてはいけない）
+	USER_FONT uf("assets\\PixelMplus12-Regular.ttf");
+	fontFace("PixelMplus12", JP);
+
+	//文字列（全角文字前提）
+	const char* str{ "白魔導士はエリクサーをなくして死んだ" };
+	size_t strLen = strlen(str);
+	auto dispStr = std::make_unique<char[]>(strLen + 1);//ループの中で表示する文字だけここにコピーする
+	strLen /= 2;//全角文字数にする
+	int dispCnt = 0;//表示全角文字数
+	initDeltaTime();
+	while (!quit()) {
+		setDeltaTime();
+		getInputState();
+		if (isTrigger(KEY_ESC)) closeWindow();
+
+		//表示する文字をdispCntの数だけstrからdispStrにコピーする
+		if (dispCnt < strLen) {
+			if (timer(0, 0.1f)) {
+				++dispCnt;
+				strncpy_s(dispStr.get(), dispCnt * 2 + 1, str, dispCnt * 2);
+			}
+		}
+		else {
+			//表示終了後、１秒待ってdispCntをリセット
+			if (timer(1, 1.0f)) {
+				dispCnt = 0;
+			}
+		}
+
+		beginRender();
+		//表示枠
+		fill(0, 0, 1); stroke(1, 1, 1); strokeWeight(10);
+		rect((width - 1200) / 2, (height - 200) / 2, 1200, 200);
+		//文字列表示
+		fontSize(70); fontColor(1, 1, 1); 
+		text(dispStr.get(), 64, (height - 70) / 2);
+		//カーソル表示
+		cursor();
+		endRender();
+	}
+}
+#endif
+//デカルト座標でベクトルを学ぶためのサンプル
 #if 0
 #include<cmath>
 #include"framework.h"
@@ -165,7 +246,7 @@ void gmain()
 	}
 }
 #endif
-//math function graph
+//デカルト座標でグラフを表示するサンプル
 #if 0
 #include<cmath>
 #include"framework.h"
@@ -255,7 +336,7 @@ void gmain()
 	}
 }
 #endif
-//ごった煮サンプル
+//circle,rect,影font,msaaサンプル
 #if 0
 #include"framework.h"
 void selectImgs(int* allImgs, int col, int row, int* imgs)
@@ -329,7 +410,7 @@ void gmain()
         circle(-200, height / 2+80, width-140);
 		//rect
         fill(0.5f, 0.5f, 0.9f); stroke(1.0f, 1.0f, 1.0f); rectModeCenter();
-        rect(width-100, height / 2+200, 700, 700, 0.5f);
+        rect(width-100, height / 2+200, 700, 700, 0.05f);
 		//image
 		if (timer(0, 0.2f))++idx %= 16;
 		float scale = 2;
@@ -368,7 +449,7 @@ void gmain()
 	}
 }
 #endif
-//調整用
+//circle調整用
 #if 0
 #include"framework.h"
 void gmain()
