@@ -77,10 +77,10 @@ void STATIC_MESH::create()
 	}
 }
 
-void STATIC_MESH::update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos)
+void STATIC_MESH::update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& lightPos)
 {
 	Mesh.cb0->lightPos = lightPos;
-	Mesh.cb0->viewProj = view * proj;
+	Mesh.cb0->viewProj = viewProj;
 	Mesh.cb0->world = world;
 }
 

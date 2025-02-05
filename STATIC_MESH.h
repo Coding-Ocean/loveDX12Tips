@@ -31,7 +31,7 @@ public:
 	STATIC_MESH();
 	~STATIC_MESH();
 	void create();
-	void update(XMMATRIX& world, XMMATRIX& view, XMMATRIX& proj, XMFLOAT4& lightPos);
+	void update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& lightPos);
 	void draw();
 };
 
