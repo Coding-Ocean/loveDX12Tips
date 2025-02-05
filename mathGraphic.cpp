@@ -107,6 +107,15 @@ void mathText(const char* str, float px, float py)
 	py = Oy - Scl * py;
 	text(str, px, py);
 }
+void mathText(float px, float py, const char* format, ...)
+{
+	char str[256];
+	va_list args;
+	va_start(args, format);
+	vsprintf_s(str, format, args);
+	va_end(args);
+	mathText(str, px, py);
+}
 float getMathMouseX()
 {
 	return (getMouseX() - Ox) / Scl;

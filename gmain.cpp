@@ -347,7 +347,7 @@ void gmain()
 		mathArc(ax, ay, bx, by, 0.2f);
 		fontColor(1, 1, 1);
 		fontShadowColor(0.f, 0.f, 0.f, 1.f);
-		text(mouseX, mouseY, "  (%.2f,%.2f)", mathMouseX,mathMouseY);
+		mathText(bx,by, "  (%.2f,%.2f)", mathMouseX,mathMouseY);
 
 		//cursor
 		cursor();

@@ -12,5 +12,6 @@ void mathCircle(float x, float y, float diameter);
 void mathGraph(float (*f)(float), float inc = 0.1f);
 void mathImage(int textureIdx, float px, float py, float rad = 0, float sx = 1, float sy = 1);
 void mathText(const char* str, float px, float py);
+void mathText(float px, float py, const char* format, ...);
 float getMathMouseX();
 float getMathMouseY();
