@@ -9,8 +9,7 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 	//つくる--------------------------------------------------------------
 	//全てのコンスタントバッファビュー、テクスチャバッファビューの入れ物を用意する
 	//１つのメッシュにビュー３つ × メッシュ３つ ＝ ９
-	createDescriptorHeap(3*3);
-	
+	createDescriptorHeap(3 * 3);
 	HIERARCHY_MESH hierarchyMesh;
 	hierarchyMesh.create();
 
@@ -20,11 +19,11 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//ワールドマトリックス
 		XMMATRIX world = XMMatrixIdentity();
 		//ビューマトリックス
-		float r = 0.3f;
+		float r = 40 * 3.141592f / 180;
 		float radius = 3.6f;
 		XMFLOAT3 eye = {-sin(r)*radius, 0.7f, -cos(r)*radius}, focus = {0, 0, 0}, up = {0, 1, 0};
 		XMMATRIX view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&focus), XMLoadFloat3(&up));
-		//プロジェクションマトリックス
+		//ビュー×プロジェクションマトリックス
 		XMMATRIX viewProj = view * XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
 		//ライトの位置
 		XMFLOAT4 lightPos(0, 1, 0, 0);

@@ -10,7 +10,6 @@ HIERARCHY_MESH::~HIERARCHY_MESH()
 {
 	for (auto& mesh : Meshes) {
 		unmapBuffer(mesh.constBuffer0);
-		unmapBuffer(mesh.constBuffer1);
 	}
 }
 
@@ -72,6 +71,8 @@ void HIERARCHY_MESH::create()
 			//データを入れる
 			mesh.cb1->ambient = { Ambient[i][0],Ambient[i][1],Ambient[i][2],Ambient[i][3] };
 			mesh.cb1->diffuse = { Diffuse[i][0],Diffuse[i][1],Diffuse[i][2],Diffuse[i][3] };
+			//アンマップする
+			unmapBuffer(mesh.constBuffer1);
 			//ビューをつくる
 			createConstantBufferView(mesh.constBuffer1);
 		}
