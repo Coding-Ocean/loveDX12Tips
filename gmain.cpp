@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 0
+#if 1
 #include"framework.h"
 void gmain()
 {
@@ -333,7 +333,7 @@ void gmain()
 }
 #endif
 //circle,rect,影font,msaaサンプル
-#if 1
+#if 0
 #include"framework.h"
 void selectImgs(int* allImgs, int col, int row, int* imgs)
 {
