@@ -147,9 +147,7 @@ void gmain()
 #endif
 //デカルト座標でベクトルを学ぶためのサンプル
 #if 0
-#include<cmath>
 #include"framework.h"
-#include"mathGraphic.h"
 void gmain()
 {
 	window("Math", 640, 640, full);
@@ -248,9 +246,7 @@ void gmain()
 #endif
 //デカルト座標でグラフを表示するサンプル
 #if 0
-#include<cmath>
 #include"framework.h"
-#include"mathGraphic.h"
 //2次関数
 float quadratic(float x)
 {
