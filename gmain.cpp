@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 1
+#if 0
 #include"framework.h"
 void gmain()
 {
@@ -333,12 +333,12 @@ void gmain()
 }
 #endif
 //circle,rect,影font,msaaサンプル
-#if 0
+#if 1
 #include"framework.h"
 void selectImgs(int* allImgs, int col, int row, int* imgs)
 {
 	//選択するキャラクタの列と行を決定
-	static int charac = 0, charar = 1;//character column, character row
+	static int charac = 1, charar = 1;//character column, character row
 	if (isTrigger(KEY_D)) {
 		++charac %= col / 3;
 	}
@@ -413,33 +413,21 @@ void gmain()
 		image(imgs[idx], width / 2, height / 2, 0, scale, scale);
 		//math functions
 		stroke(0.5f, 1.0f, 0.5f);
-		mathSetAxis(width-120, 600, 100);
+		mathSetAxis(width-300, height/2+62, 100);
 		mathAxis();
-		float ax = 1, ay = -0.5f;
-		float bx = mathMouseX, by = mathMouseY;
-		float radius = sqrtf(bx * bx + by * by)*0.2f;
+		float ax = mathMouseX, ay = mathMouseY;
 		strokeWeight(5);
 		mathArrow(0, 0, ax, ay);
-		mathArrow(0, 0, bx, by);
-		mathArc(ax, ay, bx, by, 0.2f);
-		fontColor(1, 1, 1);
-		fontShadowColor(0.f, 0.f, 0.f, 1.f);
-		mathText(bx,by, "  (%.2f,%.2f)", mathMouseX,mathMouseY);
+		mathText(ax, ay, "  (%.2f,%.2f)", ax, ay);
 
 		//cursor
 		cursor();
 		//info
 		fontSize(20);
 		fontColor(1.f, 1.f, 1.f);
+		fontShadowColor(0.f, 0.f, 0.f, 1.f);
 		fontRectModeCorner();
-		print("numConstants:%d", numConstants());
-		print("numLoadTextures:%d", numLoadTextures());
-		print("numFontTextures:%d", numFontTextures());
-		print("deltaTime:%.3f", delta);
-		print("mouseX:%.2f", mouseX);
-		print("mouseY:%.2f", mouseY);
-		print("mathMouseX:%.2f", mathMouseX);
-		print("mathMouseY:%.2f", mathMouseY);
+		debugPrint();
 		//present
 		endMsaaRender();
 	}

@@ -27,6 +27,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ INT)
 //
 void debugPrint()
 {
+	print("numDescriptors:%d", numConstants() + numLoadTextures() + numFontTextures());
 	print("numConstants:%d", numConstants());
 	print("numLoadTextures:%d", numLoadTextures());
 	print("numFontTextures:%d", numFontTextures());
