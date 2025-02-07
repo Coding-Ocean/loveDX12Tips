@@ -761,7 +761,7 @@ void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes
 UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer)
 {
 	if (CurrentCbvTbvIdx >= MaxCbvTbvIdxs) {
-		MessageBoxA(hwnd(), "", "ディスクリプタヒープが足りません", 0);
+		MessageBoxA(hwnd(), "ディスクリプタヒープが足りません", "Error", 0);
 		exit(1);
 	}
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
