@@ -20,9 +20,7 @@ void SKELETAL_MESH::create()
 
 	//メッシュ配列をつくる(配列といっても今回はメッシュ１つ)
 	for (int i = 0; i < ::NumMeshes; ++i) {
-
 		MESH mesh;
-		
 		//頂点バッファ
 		{
 			//データサイズを求めておく
@@ -82,25 +80,24 @@ void SKELETAL_MESH::create()
 			//ビューをつくる
 			createTextureBufferView(mesh.textureBuffer);
 		}
-
 		Meshes.push_back(mesh);
 	}
 
-	//ボーン階層マトリックス
+	//ボーンマトリックス
 	{
 		for (int i = 0; i < ::NumBones; ++i) {
 			BONE bone;
-			
-			//親のインデックス
-			bone.parentIdx = ::ParentIdx[i];
 
 			//親から見た相対姿勢行列
 			bone.bindWorld = ::BindWorld[i];
 
 			//アニメーションデータ。キーフレーム行列
 			for (int j = 0; j < ::NumKeyframes; j++) {
-				bone.keyframeWorlds.push_back(KeyframeWorlds[j][i]);
+				bone.keyframeWorlds.push_back(KeyframeWorlds[i][j]);
 			}
+
+			//親のインデックス
+			bone.parentIdx = ::ParentIdx[i];
 
 			Bones.push_back(bone);
 		}
@@ -127,8 +124,7 @@ void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& lightP
 		FrameCount = 0;
 	}
 	//キーフレーム行列の線形補間
-	float t = FrameCount % Interval;
-	t /= Interval;
+	float t = static_cast<float>(FrameCount % Interval) / Interval;
 	for (int i = 0; i < ::NumBones; i++) {
 		XMMATRIX a = Bones[i].keyframeWorlds[keyFrameIdx];
 		XMMATRIX b = Bones[i].keyframeWorlds[keyFrameIdx + 1];
@@ -139,7 +135,7 @@ void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& lightP
 	//次のフレームへ
 	FrameCount++;
 
-	//コンスタントバッファ0更新(ループしてるけど今回メッシュはひとつ)
+	//全てのコンスタントバッファ0更新(ループしてるけど今回メッシュはひとつ)
 	for (auto& mesh : Meshes) {
 		mesh.cb0->lightPos = lightPos;
 		mesh.cb0->viewProj = viewProj;
@@ -150,6 +146,7 @@ void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& lightP
 }
 void SKELETAL_MESH::UpdateWorlds(BONE& bone, const XMMATRIX& parentWorld)
 {
+	//回転の中心を原点に移動させる逆行列
 	XMMATRIX invBindWorld = XMMatrixInverse(nullptr, bone.bindWorld);
 	bone.world = invBindWorld * bone.currentFrameWorld * bone.bindWorld * parentWorld;
 
@@ -172,12 +169,12 @@ XMMATRIX SKELETAL_MESH::LerpMatrix(XMMATRIX& m1, XMMATRIX& m2, float t)
 	XMMATRIX m = XMMatrixRotationQuaternion(q);
 
 	//行列から平行移動成分を抽出
-	XMVECTOR t1 = m1.r[3];
-	XMVECTOR t2 = m2.r[3];
+	XMVECTOR tr1 = m1.r[3];
+	XMVECTOR tr2 = m2.r[3];
 	//平行移動成分を線形補間
-	XMVECTOR t_ = XMVectorLerp(t1, t2, t);
+	XMVECTOR tr = XMVectorLerp(tr1, tr2, t);
 	//mの回転成分を保持しつつ、補間された平行移動を適用
-	m.r[3] = t_;
+	m.r[3] = tr;
 
 	return m;
 }
