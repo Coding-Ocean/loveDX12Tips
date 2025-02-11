@@ -2,7 +2,7 @@
 #include<vector>
 #include"graphic.h"
 
-//メッシュパーツ
+//メッシュ構造体
 struct MESH 
 {
 	//頂点バッファ
@@ -20,7 +20,7 @@ struct MESH
 	//テクスチャバッファ
 	ComPtr<ID3D12Resource> textureBuffer = nullptr;
 	//ディスクリプタインデックス
-	UINT cbvTbvIdx;
+	UINT cbvTbvIdx = 0;
 
 	//階層行列データ
 	//　コンスタントバッファに渡す所謂ワールド行列。行列計算によって最終的に求める。

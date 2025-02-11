@@ -17,7 +17,7 @@ void HIERARCHY_MESH::create()
 {
 	HRESULT Hr = E_FAIL;
 
-	//パーツ配列をつくる
+	//メッシュ配列をつくる
 	for (int i = 0; i < NumMeshes; ++i) {
 
 		MESH mesh;
@@ -83,19 +83,20 @@ void HIERARCHY_MESH::create()
 			//ビューをつくる
 			createTextureBufferView(mesh.textureBuffer);
 		}
-	
-		//階層マトリックス
+		//マトリックス
 		{
 			//親のインデックス
 			mesh.parentIdx = ::ParentIdx[i];
 
-			//親から見た相対姿勢行列
+			//親からの相対姿勢行列
 			mesh.bindWorld = ::BindWorld[i];
+			//解説用(相対姿勢行列を無効にする)
 			//mesh.bindWorld = XMMatrixIdentity();
 
-			//アニメーションデータ。キーフレーム行列
+			//アニメーションキーフレーム行列
 			for (int j = 0; j < ::NumKeyframes; j++){
 				mesh.keyframeWorlds.push_back(KeyframeWorlds[j][i]);
+				//解説用(アニメーションキーフレーム行列を無効にする)
 				//mesh.keyframeWorlds.push_back(XMMatrixIdentity());
 			}
 		}
@@ -183,4 +184,9 @@ void HIERARCHY_MESH::draw()
 	for (auto& mesh : Meshes) {
 		drawMesh(mesh.vbv, mesh.ibv, mesh.cbvTbvIdx);
 	}
+	
+	//解説用
+	//drawMesh(Meshes[0].vbv, Meshes[0].ibv, Meshes[0].cbvTbvIdx);
+	//drawMesh(Meshes[1].vbv, Meshes[1].ibv, Meshes[1].cbvTbvIdx);
+	//drawMesh(Meshes[2].vbv, Meshes[2].ibv, Meshes[2].cbvTbvIdx);
 }
