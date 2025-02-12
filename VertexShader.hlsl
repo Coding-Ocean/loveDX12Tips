@@ -17,7 +17,7 @@ void main(
     o_pos = i_weights.x * mul(world, i_pos);
     normal = i_weights.x * mul(world, i_normal);
 	//É{Å[Éì1
-    world = BoneWorlds[(int) i_boneIdxs.y];
+    world = BoneWorlds[(int)i_boneIdxs.y];
     o_pos += i_weights.y * mul(world, i_pos);
     normal += i_weights.y * mul(world, i_normal);
     

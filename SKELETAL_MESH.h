@@ -2,7 +2,7 @@
 #include<vector>
 #include"graphic.h"
 
-//メッシュパーツ構造体
+//メッシュ構造体
 struct MESH 
 {
 	//頂点バッファ
@@ -30,7 +30,7 @@ struct BONE
 	XMMATRIX world;
 	//親からの相対姿勢行列
 	XMMATRIX bindWorld;
-	//アニメーションデータ。キーフレーム行列
+	//アニメーションキーフレーム行列
 	std::vector<XMMATRIX> keyframeWorlds;
 	XMMATRIX currentFrameWorld;
 	//この値を使って、子供インデックス配列をつくる
@@ -43,7 +43,7 @@ struct BONE
 class SKELETAL_MESH
 {
 private:
-	std::vector<MESH> Meshes;
+	MESH Mesh;
 	std::vector<BONE> Bones;
 	UINT FrameCount = 0;
 	UINT Interval;//キーフレームの間隔

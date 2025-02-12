@@ -2,7 +2,7 @@ cbuffer b0 : register(b0)
 {
     float4 LightPos;
     matrix ViewProj;
-    matrix BoneWorlds[2];
+    matrix BoneWorlds[16];
 }
 cbuffer b1 : register(b1)
 {

@@ -13,7 +13,7 @@ struct CONST_BUF0
 {
 	XMFLOAT4 lightPos;
 	XMMATRIX viewProj;
-	XMMATRIX boneWorlds[2];
+	XMMATRIX boneWorlds[16];
 };
 struct CONST_BUF1
 {

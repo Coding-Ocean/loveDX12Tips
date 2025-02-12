@@ -8,79 +8,75 @@ SKELETAL_MESH::SKELETAL_MESH()
 
 SKELETAL_MESH::~SKELETAL_MESH()
 {
-	for (auto& mesh : Meshes) {
-		unmapBuffer(mesh.constBuffer0);
-		unmapBuffer(mesh.constBuffer1);
-	}
+	unmapBuffer(Mesh.constBuffer0);
+	unmapBuffer(Mesh.constBuffer1);
 }
 
 void SKELETAL_MESH::create()
 {
 	HRESULT Hr;
 
-	//メッシュ配列をつくる(配列といっても今回はメッシュ１つ)
-	for (int i = 0; i < ::NumMeshes; ++i) {
-		MESH mesh;
+	//メッシュをつくる
+	{
 		//頂点バッファ
 		{
 			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(::Vertices[i]);
+			UINT sizeInBytes = sizeof(::Vertices);
 			UINT strideInBytes = sizeof(float) * ::NumVertexElements;
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, mesh.vertexBuffer);
+			Hr = createBuffer(sizeInBytes, Mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(::Vertices[i], sizeInBytes, mesh.vertexBuffer);
+			Hr = updateBuffer(::Vertices, sizeInBytes, Mesh.vertexBuffer);
 			assert(SUCCEEDED(Hr));
 			//ビューをつくる
-			createVertexBufferView(mesh.vertexBuffer, sizeInBytes, strideInBytes, mesh.vbv);
+			createVertexBufferView(Mesh.vertexBuffer, sizeInBytes, strideInBytes, Mesh.vbv);
 		}
 		//頂点インデックスバッファ
 		{
 			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(::Indices[i]);
+			UINT sizeInBytes = sizeof(::Indices);
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, mesh.indexBuffer);
+			Hr = createBuffer(sizeInBytes, Mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
 			//バッファにデータを入れる
-			Hr = updateBuffer(::Indices[i], sizeInBytes, mesh.indexBuffer);
+			Hr = updateBuffer(::Indices, sizeInBytes, Mesh.indexBuffer);
 			assert(SUCCEEDED(Hr));
 			//ビューをつくる
-			createIndexBufferView(mesh.indexBuffer, sizeInBytes, mesh.ibv);
+			createIndexBufferView(Mesh.indexBuffer, sizeInBytes, Mesh.ibv);
 		}
 		//コンスタントバッファ０
 		{
 			//バッファをつくる
-			Hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), mesh.constBuffer0);
+			Hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), Mesh.constBuffer0);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
-			Hr = mapBuffer(mesh.constBuffer0, (void**)&mesh.cb0);
+			Hr = mapBuffer(Mesh.constBuffer0, (void**)&Mesh.cb0);
 			assert(SUCCEEDED(Hr));
 			//ビューをつくり、インデックスを受け取っておく
-			mesh.cbvTbvIdx = createConstantBufferView(mesh.constBuffer0);
+			Mesh.cbvTbvIdx = createConstantBufferView(Mesh.constBuffer0);
 		}
 		//コンスタントバッファ１
 		{
 			//バッファをつくる
-			Hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), mesh.constBuffer1);
+			Hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), Mesh.constBuffer1);
 			assert(SUCCEEDED(Hr));
 			//マップしておく
-			Hr = mapBuffer(mesh.constBuffer1, (void**)&mesh.cb1);
+			Hr = mapBuffer(Mesh.constBuffer1, (void**)&Mesh.cb1);
 			assert(SUCCEEDED(Hr));
 			//データを入れる
-			mesh.cb1->ambient = { Ambient[i][0],Ambient[i][1],Ambient[i][2],Ambient[i][3] };
-			mesh.cb1->diffuse = { Diffuse[i][0],Diffuse[i][1],Diffuse[i][2],Diffuse[i][3] };
+			Mesh.cb1->ambient = { Ambient[0],Ambient[1],Ambient[2],Ambient[3] };
+			Mesh.cb1->diffuse = { Diffuse[0],Diffuse[1],Diffuse[2],Diffuse[3] };
 			//ビューをつくる
-			createConstantBufferView(mesh.constBuffer1);
+			createConstantBufferView(Mesh.constBuffer1);
 		}
 		//テクスチャバッファ
 		{
-			Hr = createTextureBuffer(TextureFilename, mesh.textureBuffer);
+			Hr = createTextureBuffer(TextureFilename, Mesh.textureBuffer);
 			assert(SUCCEEDED(Hr));
 			//ビューをつくる
-			createTextureBufferView(mesh.textureBuffer);
+			createTextureBufferView(Mesh.textureBuffer);
 		}
-		Meshes.push_back(mesh);
 	}
 
 	//ボーンマトリックス
@@ -119,7 +115,7 @@ void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& lightP
 {
 	//どのキーフレームの間にいるのか
 	int keyFrameIdx = FrameCount / Interval;
-	if (keyFrameIdx + 1 >= Bones[0].keyframeWorlds.size()){
+	if (keyFrameIdx + 1 >= Bones[0].keyframeWorlds.size()) {
 		keyFrameIdx = 0;
 		FrameCount = 0;
 	}
@@ -135,13 +131,11 @@ void SKELETAL_MESH::update(XMMATRIX& world, XMMATRIX& viewProj, XMFLOAT4& lightP
 	//次のフレームへ
 	FrameCount++;
 
-	//全てのコンスタントバッファ0更新(ループしてるけど今回メッシュはひとつ)
-	for (auto& mesh : Meshes) {
-		mesh.cb0->lightPos = lightPos;
-		mesh.cb0->viewProj = viewProj;
-		for (int i = 0; i < ::NumBones; ++i) {
-			mesh.cb0->boneWorlds[i] = Bones[i].world;
-		}
+	//コンスタントバッファ0更新
+	Mesh.cb0->lightPos = lightPos;
+	Mesh.cb0->viewProj = viewProj;
+	for (int i = 0; i < ::NumBones; ++i) {
+		Mesh.cb0->boneWorlds[i] = Bones[i].world;
 	}
 }
 void SKELETAL_MESH::UpdateWorlds(BONE& bone, const XMMATRIX& parentWorld)
@@ -181,7 +175,5 @@ XMMATRIX SKELETAL_MESH::LerpMatrix(XMMATRIX& m1, XMMATRIX& m2, float t)
 
 void SKELETAL_MESH::draw()
 {
-	for (auto& mesh : Meshes) {//ループしてるけど今回メッシュはひとつ
-		drawMesh(mesh.vbv, mesh.ibv, mesh.cbvTbvIdx);
-	}
+	drawMesh(Mesh.vbv, Mesh.ibv, Mesh.cbvTbvIdx);
 }

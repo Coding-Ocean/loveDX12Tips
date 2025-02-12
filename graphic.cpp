@@ -329,6 +329,7 @@ void CreatePipeline()
 	rasterDesc.FrontCounterClockwise = true;
 	rasterDesc.CullMode = D3D12_CULL_MODE_NONE;
 	rasterDesc.FillMode = D3D12_FILL_MODE_SOLID;
+//rasterDesc.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	rasterDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
 	rasterDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
 	rasterDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
