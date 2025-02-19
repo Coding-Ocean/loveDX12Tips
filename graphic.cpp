@@ -797,6 +797,7 @@ void backgroundRect()
 {
 	rectModeCorner();
 	rect(0, 0, width, height);
+	rectModeCenter();
 }
 void beginRender()
 {

@@ -130,6 +130,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="float2.cpp" />
     <ClCompile Include="gmain.cpp" />
     <ClCompile Include="graphic.cpp" />
     <ClCompile Include="input.cpp" />
@@ -142,6 +143,7 @@
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h" />
     <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="float2.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="graphic.h" />
     <ClInclude Include="input.h" />

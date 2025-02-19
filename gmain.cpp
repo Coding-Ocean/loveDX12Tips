@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 1
+#if 0
 #include"framework.h"
 void gmain()
 {
@@ -505,6 +505,88 @@ void gmain()
 
 		//present
 		cursor();
+		endMsaaRender();
+	}
+}
+#endif
+//円と線分の当たり判定
+#if 1
+#include"framework.h"
+#include"float2.h"
+void gmain()
+{
+	window("Math", 1600, 900, win, 300);
+	float ox = width / 2;
+	float oy = height / 2;
+	//線分の始点 s
+	float2 s(ox - 200, oy + 100);
+	//線分の終点 e
+	float2 e(ox + 200, oy - 100);
+	//円の中心点 p。ループ中でマウス位置をセットする
+	float2 p;
+	float radius = 50;
+	//マウスの初期位置
+	setMousePos(ox-50, oy-100);
+	
+	while (!quit())
+	{
+		getInputState();
+		if (isTrigger(KEY_ESC)) closeWindow();
+
+		//clear
+		beginMsaaRender();
+		////フルスクリーンの時、rectでウィンドウの枠線を引く
+		//noFill();//今回は塗りつぶさないが、もちろんfillで塗りつぶしてもよい。
+		//stroke(0.5f, 0.5f, 0.5f);
+		//strokeWeight(2);
+		//backgroundRect();
+
+		//------------------------------------
+		//円の中心点と線分までの最短距離を求める
+		p.set(mouseX, mouseY);
+		float2 b = p - s;
+		float2 a = e - s;//segment vector a
+		float t = dot(a, b) / dot(a, a);
+		if (t < 0)t = 0;//min 0
+		else if (t > 1)t = 1;//max 1
+		float distance = (b - t * a).mag();
+		//触れていたら色を変える
+		if (distance <= radius)
+			stroke(1, .5f, .5f);
+		else
+			stroke(1, 1, 1);
+		strokeWeight(3);
+		noFill();
+		circle(p.x, p.y, radius * 2-4);
+		line(s.x, s.y, e.x, e.y);
+
+		//距離の視覚化
+		static int sw = 1;
+		if (isTrigger(KEY_A))sw = 1 - sw;
+		if(sw){
+			//「円の中心点」から「線分上の最も近い点」の位置q
+			float2 q = s + t * a;
+			stroke(1, 1, .5f);
+			line(p.x, p.y, q.x, q.y);
+			//点s,e,pを文字で表す
+			fontColor(.5f, .5f, .5f);
+			fontRectModeCenter();
+			float2 ofst = (e - s).normalize()*25;
+			text("s", s.x - ofst.x, s.y - ofst.y);
+			text("e", e.x + ofst.x, e.y + ofst.y);
+			text("p", p.x, p.y);
+		}
+		//------------------------------------
+		
+		//info
+		fontRectModeCorner();
+		fontSize(50);
+		fontColor(1, 1, 1);
+		print("radius=%.1f", radius);
+		fontColor(1, 1, .5f);
+		print("distance=%.1f", distance);
+		
+		//present
 		endMsaaRender();
 	}
 }
