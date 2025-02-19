@@ -23,12 +23,12 @@
     <ClCompile Include="mathGraphic.cpp">
       <Filter>lib</Filter>
     </ClCompile>
+    <ClCompile Include="float2.cpp">
+      <Filter>lib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h">
-      <Filter>lib\utility</Filter>
-    </ClInclude>
-    <ClInclude Include="stb_image.h">
       <Filter>lib\utility</Filter>
     </ClInclude>
     <ClInclude Include="toWide.h">
@@ -53,6 +53,9 @@
       <Filter>lib</Filter>
     </ClInclude>
     <ClInclude Include="mathGraphic.h">
+      <Filter>lib</Filter>
+    </ClInclude>
+    <ClInclude Include="float2.h">
       <Filter>lib</Filter>
     </ClInclude>
   </ItemGroup>
