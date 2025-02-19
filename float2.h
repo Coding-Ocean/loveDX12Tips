@@ -26,5 +26,5 @@ struct float2 {
 float2 operator* (float f, const float2& v);// float2 = float * float2
 float2 normalize(const float2& a);
 float dot(const float2& a, const float2& b);
-float crossZ(const float2& a, const float2& b);
+float crossZ(const float2& a, const float2& b);//ŠOÏZ¬•ª‚Ì‚İŒvZ
 
