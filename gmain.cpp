@@ -683,7 +683,6 @@ void gmain()
 	}
 }
 #endif
-#endif
 //‰~‚ÆŽlŠpŒ`‚Ì“–‚½‚è”»’è
 #if 0
 #include"framework.h"
