@@ -150,7 +150,7 @@ void gmain()
 #include"framework.h"
 void gmain()
 {
-	window("Math", 640, 640, full);
+	window("Math", 1080, 1080, full);
 	//axis
 	//　原点の位置をスクリーン座標で指定する
 	float ox = width / 2;
@@ -210,12 +210,12 @@ void gmain()
 		bx = bnx * al;//vector aと同じ大きさにする
 		by = bny * al;
 		//circle
-		mathStrokeWeight(0.05f);
+		mathStrokeWeight(0.025f);
 		stroke(0.6f, 0.6f, 1.0f);
 		mathCircle(0, 0, al * 2);
 		//setup text font
 		fontRectModeCenter();
-		fontSize(25);
+		fontSize(40);
 		fontColor(1, 1, 1);
 		//arrow a
 		stroke(1.0f, 0.5f, 0.5f);
@@ -229,10 +229,11 @@ void gmain()
 		stroke(0.5f, 0.5f, 0.5f);
 		mathArc(ax, ay, bx, by, al / 6);
 		//axis
+		mathStrokeWeight(0.01f);
 		stroke(0.6f, 0.6f, 0.6f);
 		mathAxis();
 		//info
-		fontSize(20);
+		fontSize(40);
 		fontRectModeCorner();
 		print("numConstants:%d", numConstants());
 		print("deltaTime:%.3f", delta);
@@ -413,10 +414,11 @@ void gmain()
 		image(imgs[idx], width / 2, height / 2, 0, scale, scale);
 		//math functions
 		stroke(0.5f, 1.0f, 0.5f);
+		mathStrokeWeight(0.02f);
 		mathSetAxis(width-300, height/2+62, 100);
 		mathAxis();
+		mathStrokeWeight(0.04f);
 		float ax = mathMouseX, ay = mathMouseY;
-		strokeWeight(5);
 		mathArrow(0, 0, ax, ay);
 		mathText(ax, ay, "  (%.2f,%.2f)", ax, ay);
 
@@ -683,103 +685,7 @@ void gmain()
 	}
 }
 #endif
-//円と四角形の当たり判定
-#if 0
-#include"framework.h"
-#include"float2.h"
-
-bool circle_segment
-(
-	float2 p,//円の中心
-	float radius,
-	float2 s,//線分の始点
-	float2 e//線分の終点
-)
-{
-	float2 b = p - s;
-	float2 a = e - s;//segment vector a
-	float t = a.dot(b) / a.dot(a);
-	if (t < 0)t = 0;//min 0
-	else if (t > 1)t = 1;//max 1
-	float distance = (b - t * a).mag();
-	if (distance <= radius) {
-		return true;
-	}
-	return false;
-}
-
-bool circle_rect
-(
-	float2 p,//円の中心 
-	float radius, 
-	float2* vtx//四角形の頂点配列
-)
-{
-	int cnt = 0;
-	for (int i = 0; i < 4; ++i) {
-		int j = (i + 1) % 4;
-		if (circle_segment(p, radius, vtx[i], vtx[j])) {
-			//辺に触れている
-			return true;
-		}
-		if ((vtx[j] - vtx[i]).crossZ(p - vtx[i]) > 0) {
-			if (++cnt == 4) {
-				//全ての辺の内側にいる
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-void gmain()
-{
-	window("Math", 1270, 720, win, 300);
-	//スクリーンの中央座標
-	float cx = width / 2;//center x
-	float cy = height / 2;//center y
-	//マウスの初期位置
-	setMousePos(cx - 50, cy - 100);
-	//四角形の頂点
-	float2 vtx[4];
-	vtx[0].set(cx - 100, cy - 0);
-	vtx[1].set(cx + 100, cy - 50);
-	vtx[2].set(cx + 90, cy + 50);
-	vtx[3].set(cx - 90, cy + 50);
-	//円の中心点 p。ループ中でマウス位置をセットする
-	float2 p;
-	float radius = 30;
-	//メインループ
-	while (!quit())
-	{
-		getInputState();
-		if (isTrigger(KEY_ESC)) closeWindow();
-
-		//clear
-		beginMsaaRender();
-
-		//------------------------------------
-		p.set(mouseX, mouseY);
-		//触れていたら色を変える
-		if (circle_rect(p, radius, vtx))
-			stroke(1, 0.3f, 0.3f);
-		else
-			stroke(1, 1, 1);
-		strokeWeight(3);
-		noFill();
-		circle(p.x, p.y, radius * 2 - 3);
-		for (int i = 0; i < 4; ++i) {
-			int j = (i + 1) % 4;
-			line(vtx[i].x, vtx[i].y, vtx[j].x, vtx[j].y);
-		}
-		//------------------------------------
-
-		//present
-		endMsaaRender();
-	}
-}
-#endif
-//成す角
+//成す角 スクリーン座標
 #if 0
 #include"framework.h"
 #include"float2.h"
@@ -810,28 +716,123 @@ void gmain()
 		p.set(mouseX, mouseY);
 		float2 a = e - s;//vector a
 		float2 b = p - s;//vector b
-		a.normalize();
-		float bMagSinTheta = crossZ(a, b);
-		float bMagCosTheta = dot(a, b);
-		float cosTheta = bMagCosTheta / b.mag();
-		float theta = acos(cosTheta);
+		float aMag_bMag_sinTheta = crossZ(a, b);
+		float aMag_bMag_cosTheta = dot(a, b);
+		float theta = atan2(aMag_bMag_sinTheta,aMag_bMag_cosTheta);
 		strokeWeight(5);
-		stroke(239 / 255.f, 87 / 255.f, 108 / 255.f);
+		stroke(0.93f, 0.34f, 0.42f);
 		line(s.x, s.y, e.x, e.y);
-		stroke(0 / 255.f, 191 / 255.f, 160 / 255.f);
+		stroke(0, 0.74f, 0.62f);
 		line(s.x, s.y, p.x, p.y);
-		stroke(180 / 255.f, 180 / 255.f, 37 / 255.f);
+		stroke(0.7f, 0.7f, 0.14f);
 		arc(s.x, s.y, e.x, e.y, p.x, p.y, 30);
 		
 		//info
 		fontRectModeCorner();
 		fontSize(25);
 		fontColor(1, 1, 1);
-		print("theta=%.1f", theta * 180 / 3.1415926f);
-		print("bMagCosTheta=%.2f", bMagCosTheta);
-		print("bMagSinTheta=%.2f", bMagSinTheta);
+		print("Screen Coordinates!");
+		print("theta = %.1f", theta * 180 / 3.1415926f);
+		print("aMag = %.2f", a.mag());
+		print("bMag = %.2f", b.mag());
 
 		//present
+		cursor();
+		endMsaaRender();
+	}
+}
+#endif
+//成す角 デカルト座標
+#if 0
+#include"framework.h"
+void gmain() {
+	window("math", 1080, 1080, full);
+	//オブジェクトデータ
+	float2 o(0, 0);
+	float2 a(1, 0);
+	float2 b(0.866f, 0.5f);
+	//マウスで点をつかむためのデータ
+	float2 mouse;
+	float2* points[] = { &a,&b };
+	int numPoints = _countof(points);
+	float2* grabPoint = nullptr;
+	float grabRadiusSq = powf(0.04f, 2);
+	//メインループ
+	while (!quit())
+	{
+		getInputState();
+		if (isTrigger(KEY_ESC)) closeWindow();
+
+		//clear
+		beginMsaaRender();
+		//背景
+		strokeWeight(2);
+		stroke(0.7f, 0.7f, 0.7f);
+		fill(0, 0, 0);
+		backgroundRect();
+		//デカルト座標
+		mathSetAxis(width/2, height/2, 200);
+		mathAxis();
+		//マウスで点をつかんで移動する
+		{
+			mouse.set(mathMouseX, mathMouseY);
+			if (isPress(MOUSE_LBUTTON)) {
+				if (grabPoint == nullptr) {
+					//つかむ
+					for (int i = 0; i < numPoints; i++) {
+						if ((*points[i] - mouse).magSq() <= grabRadiusSq) {
+							grabPoint = points[i];
+						}
+					}
+				}
+				else {
+					//移動
+					*grabPoint = mouse;
+				}
+			}
+			else {
+				grabPoint = nullptr;
+			}
+		}
+		//内積・外積・なす角
+		float dp = a.x * b.x + a.y * b.y;//|a||b|cosθ
+		float cp = a.x * b.y - a.y * b.x;//|a||b|sinθ
+		float angleAB = atan2(cp, dp);
+		//オブジェクト表示
+		//底辺・内積
+		float2 an = normalize(a);
+		float2 d = an * dp;
+		mathLine(o.x, o.y, d.x, d.y);
+		//高さ・外積
+		float2 oa(-an.y, an.x);
+		float2 c = oa * cp;
+		mathLine(d.x, d.y, d.x + c.x, d.y + c.y);
+		//斜辺
+		mathLine(o.x, o.y, d.x + c.x, d.y + c.y);
+
+		strokeWeight(6);
+		//弧・なす角
+		stroke(0.7f, 0.7f, 0.14f);
+		mathArc(a.x,a.y,b.x,b.y,0.15f);
+		//ベクトル
+		stroke(0.93f, 0.34f, 0.42f);
+		mathArrow(o.x, o.y, a.x, a.y);
+		stroke(0, 0.74f, 0.62f);
+		mathArrow(o.x, o.y, b.x, b.y);
+		
+		fontRectModeCenter();
+		fontSize(30);
+		fontColor(1, 1, 1);
+		float2 ofsa = normalize(a) * 0.08f;
+		float2 ofsb = normalize(b) * 0.08f;
+		mathText("a", a.x+ofsa.x, a.y+ofsa.y);
+		mathText("b", b.x+ofsb.x, b.y+ofsb.y);
+		fontRectModeCorner();
+		fontColor(1, 1, 1);
+		print("マウスでベクトルの先端をつかんで動かせる");
+		print("なす角=%.1f",angleAB*180/3.1415926f);
+
+		imageColor(1, 1, 1, 0.5f);
 		cursor();
 		endMsaaRender();
 	}

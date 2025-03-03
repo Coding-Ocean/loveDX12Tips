@@ -17,12 +17,11 @@ void mathSetAxis(float ox, float oy, float scl)
 void mathAxis()
 {
 	//‚˜A‚™²
-	strokeWeight(2);
 	line(0, Oy, baseWidth(), Oy);
 	line(Ox, 0, Ox, baseHeight());
 
 	//Œ´“_‚©‚çnumŒÂ‚Ìƒƒ‚ƒŠ‚ğ•`‚­
-	float l = 0.05f * Scl;
+	float l = 0.03f * Scl;
 	int num, i;
 	num = int((baseWidth() - Ox) / Scl);
 	for (i = 1; i <= num; i++) {

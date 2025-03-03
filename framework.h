@@ -5,6 +5,7 @@
 #include"mathGraphic.h"
 #include"input.h"
 #include"timer.h"
+#include"float2.h"
 
 #define win true
 #define full false
