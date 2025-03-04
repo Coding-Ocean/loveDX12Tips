@@ -879,3 +879,61 @@ void gmain()
 	}
 }
 #endif
+//WASDキーを押した方向に回転しながら進む
+#if 0
+#include"framework.h"
+#include"float2.h"
+void gmain()
+{
+	window("Math", 1920, 1200, full, 300);
+	int inu = loadImage("assets\\inu.png");
+	float2 pos(width / 2, height / 2);
+	float rad = 1.57f;
+	float2 a, b;
+	//メインループ
+	while (!quit())
+	{
+		getInputState();
+		if (isTrigger(KEY_ESC)) closeWindow();
+
+		//clear
+		beginMsaaRender();
+		clearColor(0, 0.3f, 0);
+
+		b.x = 0; 
+		b.y = 0;
+		if (isPress(KEY_A)) { b.x = -1; }
+		if (isPress(KEY_D)) { b.x = 1; }
+		if (isPress(KEY_W)) { b.y = 1; }
+		if (isPress(KEY_S)) { b.y = -1; }
+		if (b.x != 0 || b.y != 0) {
+			//回転
+			a.x = cos(rad);
+			a.y = sin(rad);
+			float dp = dot(a, b);
+			float cp = crossZ(a, b);
+			float rotSpeed = atan2f(cp, dp) / 4.0f;
+			rad += rotSpeed;
+			if (rad > 3.1415926f * 2)rad -= 3.1415926f * 2;
+			if (rad < -3.1415926f * 2)rad += 3.1415926f * 2;
+			//移動
+			b.normalize();
+			b *= 10;
+			pos.x += b.x;
+			pos.y -= b.y;
+		}
+		rectModeCenter();
+		image(inu, pos.x, pos.y, rad, 0.5f, 0.5f);
+
+		//info
+		fontRectModeCorner();
+		fontSize(25);
+		fontColor(1, 1, 1);
+		print("WASDキーを押した方向に回転しながら進む");
+		print("deg = %.1f", rad * 180 / 3.1415926f);
+
+		//present
+		endMsaaRender();
+	}
+}
+#endif
