@@ -879,27 +879,35 @@ void gmain()
 	}
 }
 #endif
-//WASDキーを押した方向に回転しながら進む
+//キャラがWASDキーを押した方向に回転しながら進む
 #if 0
 #include"framework.h"
 #include"float2.h"
 void gmain()
 {
-	window("Math", 1920, 1200, full, 300);
-	int inu = loadImage("assets\\inu.png");
+	window("Math", 1920, 1080, full, 300);
+	//いぬのデータ
+	int inu = loadImage("assets\\inu.png");//右向き画像であるところが重要！
 	float2 pos(width / 2, height / 2);
-	float rad = 1.57f;
+	float rad = 0;
+	float scale = 0.5f;
 	float2 a, b;
+
+	initDeltaTime();
 	//メインループ
 	while (!quit())
 	{
+		setDeltaTime();
 		getInputState();
 		if (isTrigger(KEY_ESC)) closeWindow();
 
 		//clear
 		beginMsaaRender();
-		clearColor(0, 0.3f, 0);
-
+		//背景
+		fill(0.1f, 0.3f, 0.1f);
+		noStroke();
+		rect(width / 2, height / 2, width, height);
+		//犬を動かす
 		b.x = 0; 
 		b.y = 0;
 		if (isPress(KEY_A)) { b.x = -1; }
@@ -907,31 +915,29 @@ void gmain()
 		if (isPress(KEY_W)) { b.y = 1; }
 		if (isPress(KEY_S)) { b.y = -1; }
 		if (b.x != 0 || b.y != 0) {
-			//回転
+			//回転　デカルト座標で計算
 			a.x = cos(rad);
 			a.y = sin(rad);
 			float dp = dot(a, b);
 			float cp = crossZ(a, b);
-			float rotSpeed = atan2f(cp, dp) / 4.0f;
-			rad += rotSpeed;
-			if (rad > 3.1415926f * 2)rad -= 3.1415926f * 2;
+			float rotSpeed = atan2f(cp, dp) * 0.25f * 60;
+			rad += rotSpeed * delta;
+			if (rad >  3.1415926f * 2)rad -= 3.1415926f * 2;
 			if (rad < -3.1415926f * 2)rad += 3.1415926f * 2;
 			//移動
 			b.normalize();
-			b *= 10;
+			b *= 10 * 60 * delta;
 			pos.x += b.x;
-			pos.y -= b.y;
+			pos.y -= b.y;//ここでスクリーン座標に対応
 		}
-		rectModeCenter();
-		image(inu, pos.x, pos.y, rad, 0.5f, 0.5f);
-
+		image(inu, pos.x, pos.y, rad, scale, scale);
 		//info
 		fontRectModeCorner();
 		fontSize(25);
 		fontColor(1, 1, 1);
 		print("WASDキーを押した方向に回転しながら進む");
 		print("deg = %.1f", rad * 180 / 3.1415926f);
-
+		debugPrint();
 		//present
 		endMsaaRender();
 	}
