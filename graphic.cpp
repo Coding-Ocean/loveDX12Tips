@@ -1124,7 +1124,7 @@ void createPipelinesAndResourcesForDeferred()
 		}
 		//データを入れる
 		int count = 100;
-		int inc = 5;
+		int inc = 1;
 		//pass1で使用
 		CB2[0]->blurUVUnit = { 1.0f / ClientWidth, 0.0f, 0.0f, 0.0f };
 		CB2[0]->blurUVCount = count;
@@ -1134,7 +1134,7 @@ void createPipelinesAndResourcesForDeferred()
 		CB2[1]->blurUVCount = count;
 		CB2[1]->blurUVInc = inc;
 		//pass3で使用
-		CB2[0]->blurColor = { 0,1,1,1 };
+		CB2[0]->blurColor = { 0,1.0f,1.0f,1 };
 	}
 	//空のテクスチャバッファ
 	{

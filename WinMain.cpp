@@ -106,9 +106,11 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		//更新------------------------------------------------------------------
 		//回転用ラジアン
 		static float r = 0;
-		r += 0.01f;
+		r += 0.005f;
 		//ワールドマトリックス
-		XMMATRIX world = XMMatrixRotationY(sinf(r));
+		XMMATRIX world = XMMatrixTranslation(0,0,-0.5f)
+			* XMMatrixRotationX(0.7f)
+			* XMMatrixRotationY(r);
 		//ビューマトリックス
 		XMFLOAT3 eye = { 0, 0, -2 }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
 		XMMATRIX view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&focus), XMLoadFloat3(&up));
