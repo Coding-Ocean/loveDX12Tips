@@ -19,7 +19,7 @@ void main(
     float4 s_col = Specular * pow(max(0, dot(halfDir, i_normal.xyz)), Specular.w);
     s_col.w = 0;
 
-    //o_col0 = saturate(t_col * d_col + s_col);
-    o_col0 = saturate(t_col  + s_col);
+    o_col0 = saturate(t_col * d_col + s_col);
+    //o_col0 = saturate(d_col  + s_col);
     o_col1 = o_col0;
 }
