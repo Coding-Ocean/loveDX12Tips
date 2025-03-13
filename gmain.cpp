@@ -786,8 +786,10 @@ void gmain() {
 					}
 				}
 				else {
-					//移動
-					*grabPoint = mouse;
+					if (mouseVx != 0 || mouseVy != 0) {
+						//移動
+						*grabPoint = mouse;
+					}
 				}
 			}
 			else {
@@ -828,9 +830,11 @@ void gmain() {
 		mathText("a", a.x+ofsa.x, a.y+ofsa.y);
 		mathText("b", b.x+ofsb.x, b.y+ofsb.y);
 		fontRectModeCorner();
-		fontColor(1, 1, 1);
+		fontColor(0.8f, 0.8f, 0);
 		print("マウスでベクトルの先端をつかんで動かせる");
-		print("なす角=%.1f",angleAB*180/3.1415926f);
+		print("内積:a.x * b.x + a.y * b.y = |a||b|cosθ = %f", dp);
+		print("外積:a.x * b.y - a.y * b.x = |a||b|sinθ = %f", cp);
+		print("なす角:atan2(内積,外積) = %.1f",angleAB*180/3.1415926f);
 
 		imageColor(1, 1, 1, 0.5f);
 		cursor();
