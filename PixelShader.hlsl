@@ -1,10 +1,32 @@
 #include<Header.hlsli>
-float4 main(
-    float4 i_pos : SV_POSITION,
-    float4 i_diffuse : COLOR,
-    float2 i_uv : TEXCOORD
-    ) : SV_TARGET
+
+float3 palette(float t)
 {
-    //return i_diffuse;
-    return float4(Texture.Sample(Sampler, i_uv)) * i_diffuse;
+    float3 a = float3(0.5, 0.5, 0.5);
+    float3 b = float3(0.5, 0.5, 0.5);
+    float3 c = float3(1, 1, 1);
+    float3 d = float3(0.263, 0.416, 0.557);
+
+    return a + b * cos(6.28318 * (c * t + d));
+}
+
+float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
+{
+    float2 uv = (i_uv - 0.5) * 2;
+    float2 uv0 = uv;
+    float3 finalCol = float3(0, 0, 0);
+    for (int i = 0; i < 4; ++i)
+    {
+        uv *= 1.5;
+        uv = uv - floor(uv);
+        uv -= 0.5f;
+    
+        float d = length(uv) * exp(-length(uv0));
+        float3 col = palette(length(uv0) + Time * 0.2);
+        d = sin(d * 8 + Time*0.2);
+        d = abs(d);
+        d = pow(0.1 / d, 2);
+        finalCol += col * d;
+    }
+    return float4(finalCol, 1);
 }

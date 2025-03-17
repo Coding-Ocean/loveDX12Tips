@@ -8,17 +8,6 @@ using namespace Microsoft::WRL;
 #define WINDOW true
 #define NO_WINDOW false
 
-//コンスタントバッファ構造体。Header.hlsliと同じ並びにしておく
-struct CONST_BUF0 {
-	XMFLOAT4 lightPos;
-	XMMATRIX worldViewProj;
-	XMMATRIX world;
-};
-struct CONST_BUF1 {
-	XMFLOAT4 ambient;
-	XMFLOAT4 diffuse;
-};
-
 //システム系
 void window(LPCWSTR windowTitle, int clientWidth, int clientHeight, bool windowed = true, int clientPosX = -1, int clientPosY = -1);
 bool quit();
@@ -41,6 +30,7 @@ UINT createTextureBufferView(ComPtr<ID3D12Resource>& textureBuffer);
 //描画
 void setClearColor(float r, float g, float b);
 void beginRender();
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, UINT cbvTbvIdx);
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& indexBufferView, UINT cbvTbvIdx);
 void endRender();
 //Get系

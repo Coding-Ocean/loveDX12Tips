@@ -1,130 +1,68 @@
 #include"graphic.h"
-#include"model.h"
 
-//メッシュデータ
-//　頂点バッファ
-ComPtr<ID3D12Resource>   VertexBuffer = nullptr;
+//頂点バッファ
+ComPtr<ID3D12Resource>   VertexBuffer;
 D3D12_VERTEX_BUFFER_VIEW Vbv;
-//　頂点インデックスバッファ
-ComPtr<ID3D12Resource>  IndexBuffer = nullptr;
-D3D12_INDEX_BUFFER_VIEW	Ibv;
-//　コンスタントバッファ０
-ComPtr<ID3D12Resource> ConstBuffer0 = nullptr;
-CONST_BUF0* CB0 = nullptr;
-//　コンスタントバッファ１
-ComPtr<ID3D12Resource> ConstBuffer1 = nullptr;
-CONST_BUF1* CB1 = nullptr;
-//　テクスチャバッファ
-ComPtr<ID3D12Resource> TextureBuffer = nullptr;
-//　ディスクリプタインデックス
-UINT CbvTbvIdx;
+//コンスタントバッファ０
+ComPtr<ID3D12Resource> ConstBuffer0;
+//コンスタントバッファ０構造体。Header.hlsliと同じ並びにしておく
+struct CONST_BUF0 {
+	float time;
+}* CB0;
+UINT CbvIdx;
 
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Lambert Vertex", 1280, 720);
-
-	HRESULT Hr;
-
-	//全メッシュに必要なディスクリプタヒープをつくっておく。
-	Hr = createDescriptorHeap(3);
-	assert(SUCCEEDED(Hr));
+	window(L"Shader Toy", 2000, 1000);
 
 	//リソース初期化
 	{
 		//頂点バッファ
 		{
+			float vertices[] = {
+				//position            texcoord
+				-1.0f,  1.0f,  0.0f,  0.0f,  0.0f, //左上
+				-1.0f, -1.0f,  0.0f,  0.0f,  1.0f, //左下
+				 1.0f,  1.0f,  0.0f,  1.0f,  0.0f, //右上
+				 1.0f, -1.0f,  0.0f,  1.0f,  1.0f, //右下
+			};
+			unsigned numVertexElements = 5;
 			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(::Vertices);
-			UINT strideInBytes = sizeof(float) * NumVertexElements;
+			UINT sizeInBytes = sizeof(vertices);
+			UINT strideInBytes = sizeof(float) * numVertexElements;
 			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, VertexBuffer);
-			assert(SUCCEEDED(Hr));
+			createBuffer(sizeInBytes, VertexBuffer);
 			//バッファにデータを入れる
-			Hr = updateBuffer(::Vertices, sizeInBytes, VertexBuffer);
-			assert(SUCCEEDED(Hr));
+			updateBuffer(vertices, sizeInBytes, VertexBuffer);
 			//バッファビューをつくる
 			createVertexBufferView(VertexBuffer, sizeInBytes, strideInBytes, Vbv);
-		}
-		//頂点インデックスバッファ
-		{
-			//データサイズを求めておく
-			UINT sizeInBytes = sizeof(::Indices);
-			//バッファをつくる
-			Hr = createBuffer(sizeInBytes, IndexBuffer);
-			assert(SUCCEEDED(Hr));
-			//バッファにデータを入れる
-			Hr = updateBuffer(::Indices, sizeInBytes, IndexBuffer);
-			assert(SUCCEEDED(Hr));
-			//インデックスバッファビューをつくる
-			createIndexBufferView(IndexBuffer, sizeInBytes, Ibv);
 		}
 		//コンスタントバッファ０
 		{
 			//バッファをつくる
-			Hr = createBuffer(alignedSize(sizeof(CONST_BUF0)), ConstBuffer0);
-			assert(SUCCEEDED(Hr));
+			createBuffer(alignedSize(sizeof(CONST_BUF0)), ConstBuffer0);
 			//マップしておく
-			Hr = mapBuffer(ConstBuffer0, (void**)&CB0);
-			assert(SUCCEEDED(Hr));
+			mapBuffer(ConstBuffer0, (void**)&CB0);
+			//１つのディスクリプタのヒープをつくる
+			createDescriptorHeap(1);
 			//ビューをつくってインデックスをもらっておく
-			CbvTbvIdx = createConstantBufferView(ConstBuffer0);
-		}
-		//コンスタントバッファ１
-		{
-			//バッファをつくる
-			Hr = createBuffer(alignedSize(sizeof(CONST_BUF1)), ConstBuffer1);
-			assert(SUCCEEDED(Hr));
-			//マップしておく
-			Hr = mapBuffer(ConstBuffer1, (void**)&CB1);
-			assert(SUCCEEDED(Hr));
-			//データを入れる
-			CB1->ambient = { ::Ambient[0],::Ambient[1],::Ambient[2],::Ambient[3] };
-			CB1->diffuse = { ::Diffuse[0],::Diffuse[1],::Diffuse[2],::Diffuse[3] };
-			//ビューをつくる
-			createConstantBufferView(ConstBuffer1);
-		}
-		//テクスチャバッファ
-		{
-			//画像ファイルを読み込んで、バッファをつくって、データを書き込む
-			Hr = createTextureBuffer(::TextureFilename, TextureBuffer);
-			assert(SUCCEEDED(Hr));
-			//ビューをつくる
-			createTextureBufferView(TextureBuffer);
+			CbvIdx = createConstantBufferView(ConstBuffer0);
 		}
 	}
-	
-	//メインループ
+
+	timeBeginPeriod(1);
+	DWORD startTime = timeGetTime();
 	while (!quit())
 	{
-		//更新------------------------------------------------------------------
-		//ワールドマトリックス
-		XMMATRIX world = XMMatrixIdentity();
-		//ビューマトリックス
-		XMFLOAT3 eye = { 0, 0, -2 }, focus = { 0, 0, 0 }, up = { 0, 1, 0 };
-		XMMATRIX view = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&focus), XMLoadFloat3(&up));
-		//プロジェクションマトリックス
-		XMMATRIX proj = XMMatrixPerspectiveFovLH(XM_PIDIV4, aspect(), 1.0f, 10.0f);
+		CB0->time = (timeGetTime() - startTime) / 1000.0f;
 
-		//ライト位置の回転用ラジアン
-		static float r = -0.5f;
-		r += 0.01f;
-		if (r > 3.64f)r = -0.5f;
-		CB0->lightPos = { cosf(r),0,-sinf(r),0 };
-		CB0->worldViewProj = world * view * proj;
-		CB0->world = world;
-
-		//描画------------------------------------------------------------------
 		beginRender();
-		drawMesh(Vbv, Ibv, CbvTbvIdx);
+		drawMesh(Vbv, CbvIdx);
 		endRender();
 	}
-	
-	//後始末
-	{
-		waitGPU();
-		closeEventHandle();
-		unmapBuffer(ConstBuffer1);
-		unmapBuffer(ConstBuffer0);
-	}
+	timeEndPeriod(1);
+	waitGPU();
+	closeEventHandle();
+	unmapBuffer(ConstBuffer0);
 }

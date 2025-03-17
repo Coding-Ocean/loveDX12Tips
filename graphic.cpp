@@ -1,12 +1,11 @@
 #pragma comment(lib,"dxgi.lib")
 #pragma comment(lib,"d3d12.lib")
+#pragma comment(lib,"winmm.lib")
 
 #include<Windows.h>
 #include<dxgi1_6.h>
 #include<cassert>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include"stb_image.h"
 #include"BIN_FILE12.h"
 #include"graphic.h"
 
@@ -253,25 +252,13 @@ void CreatePipeline()
 	//ルートシグネチャ
 	{
 		//ディスクリプタレンジ。ディスクリプタヒープとシェーダを紐づける役割をもつ。
-		D3D12_DESCRIPTOR_RANGE  range[3] = {};
+		D3D12_DESCRIPTOR_RANGE  range[1] = {};
 		UINT b0 = 0;
 		range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 		range[0].BaseShaderRegister = b0;
 		range[0].NumDescriptors = 1;
 		range[0].RegisterSpace = 0;
 		range[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-		UINT b1 = 1;
-		range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-		range[1].BaseShaderRegister = b1;
-		range[1].NumDescriptors = 1;
-		range[1].RegisterSpace = 0;
-		range[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-		UINT t0 = 0;
-		range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-		range[2].BaseShaderRegister = t0;
-		range[2].NumDescriptors = 1;
-		range[2].RegisterSpace = 0;
-		range[2].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 		//ルートパラメタをディスクリプタテーブルとして使用
 		D3D12_ROOT_PARAMETER rootParam[1] = {};
@@ -297,8 +284,8 @@ void CreatePipeline()
 		desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 		desc.pParameters = rootParam;
 		desc.NumParameters = _countof(rootParam);
-		desc.pStaticSamplers = samplerDesc;//サンプラーの先頭アドレス
-		desc.NumStaticSamplers = _countof(samplerDesc);//サンプラー数
+		//desc.pStaticSamplers = samplerDesc;//サンプラーの先頭アドレス
+		//desc.NumStaticSamplers = _countof(samplerDesc);//サンプラー数
 
 		//ルートシグネチャをシリアライズ⇒blob(塊)をつくる。
 		ComPtr<ID3DBlob> blob;
@@ -322,8 +309,7 @@ void CreatePipeline()
 	UINT slot0 = 0;
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, slot0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, slot0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    slot0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    slot0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 
 	D3D12_RASTERIZER_DESC rasterDesc = {};
@@ -528,7 +514,7 @@ HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& textur
 	//ファイルを読み込み、生データを取り出す
 	unsigned char* pixels = nullptr;
 	int width = 0, height = 0, bytePerPixel = 4;
-	pixels = stbi_load(filename, &width, &height, nullptr, bytePerPixel);
+	//pixels = stbi_load(filename, &width, &height, nullptr, bytePerPixel);
 	if (pixels == nullptr)
 	{
 		MessageBoxA(0, filename, "ファイルがないっす", 0);
@@ -657,7 +643,7 @@ HRESULT createTextureBuffer(const char* filename, ComPtr<ID3D12Resource>& textur
 	assert(SUCCEEDED(Hr));
 
 	//開放
-	stbi_image_free(pixels);
+	//stbi_image_free(pixels);
 
 	return S_OK;
 }
@@ -739,6 +725,15 @@ void beginRender()
 	CommandList->SetGraphicsRootSignature(RootSignature.Get());
 
 	CommandList->SetDescriptorHeaps(1, CbvTbvHeap.GetAddressOf());
+}
+void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, UINT cbvTbvIdx)
+{
+	CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	CommandList->IASetVertexBuffers(0, 1, &vbv);
+	auto hCbvTbvHeap = CbvTbvHeap->GetGPUDescriptorHandleForHeapStart();
+	hCbvTbvHeap.ptr += CbvTbvIncSize * cbvTbvIdx;
+	CommandList->SetGraphicsRootDescriptorTable(0, hCbvTbvHeap);
+	CommandList->DrawInstanced(4, 1, 0, 0);
 }
 void drawMesh(D3D12_VERTEX_BUFFER_VIEW& vbv, D3D12_INDEX_BUFFER_VIEW& ibv, UINT cbvTbvIdx)
 {
