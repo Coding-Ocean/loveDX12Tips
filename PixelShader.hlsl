@@ -12,7 +12,7 @@ float3 palette(float t)
 
 float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
 {
-    float2 uv = (i_uv - 0.5) * 2;
+    float2 uv = (i_uv - 0.5)*3.5;
     float2 uv0 = uv;
     float3 finalCol = float3(0, 0, 0);
     for (int i = 0; i < 4; ++i)
@@ -25,7 +25,7 @@ float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
         float3 col = palette(length(uv0) + Time * 0.2);
         d = sin(d * 8 + Time*0.2);
         d = abs(d);
-        d = pow(0.1 / d, 2);
+        d = pow(0.04 / d, 2);
         finalCol += col * d;
     }
     return float4(finalCol, 1);

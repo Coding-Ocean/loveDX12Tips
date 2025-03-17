@@ -5,27 +5,27 @@ ComPtr<ID3D12Resource>   VertexBuffer;
 D3D12_VERTEX_BUFFER_VIEW Vbv;
 //コンスタントバッファ０
 ComPtr<ID3D12Resource> ConstBuffer0;
+UINT CbvIdx;
 //コンスタントバッファ０構造体。Header.hlsliと同じ並びにしておく
 struct CONST_BUF0 {
 	float time;
 }* CB0;
-UINT CbvIdx;
 
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"Shader Toy", 2000, 1000);
+	window(L"Shader Toy", 1920, 1080, false);
 
 	//リソース初期化
 	{
 		//頂点バッファ
 		{
 			float vertices[] = {
-				//position            texcoord
-				-1.0f,  1.0f,  0.0f,  0.0f,  0.0f, //左上
-				-1.0f, -1.0f,  0.0f,  0.0f,  1.0f, //左下
-				 1.0f,  1.0f,  0.0f,  1.0f,  0.0f, //右上
-				 1.0f, -1.0f,  0.0f,  1.0f,  1.0f, //右下
+				//position                       texcoord
+				-1.0f,  1.0f * aspect(),  0.0f,  0.0f,  0.0f, //左上
+				-1.0f, -1.0f * aspect(),  0.0f,  0.0f,  1.0f, //左下
+				 1.0f,  1.0f * aspect(),  0.0f,  1.0f,  0.0f, //右上
+				 1.0f, -1.0f * aspect(),  0.0f,  1.0f,  1.0f, //右下
 			};
 			unsigned numVertexElements = 5;
 			//データサイズを求めておく
@@ -53,16 +53,18 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 
 	timeBeginPeriod(1);
 	DWORD startTime = timeGetTime();
+	ShowCursor(false);
 	while (!quit())
 	{
 		CB0->time = (timeGetTime() - startTime) / 1000.0f;
-
 		beginRender();
 		drawMesh(Vbv, CbvIdx);
 		endRender();
 	}
-	timeEndPeriod(1);
+
 	waitGPU();
 	closeEventHandle();
 	unmapBuffer(ConstBuffer0);
+	ShowCursor(true);
+	timeEndPeriod(1);
 }

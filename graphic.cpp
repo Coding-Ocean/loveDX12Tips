@@ -5,8 +5,8 @@
 #include<Windows.h>
 #include<dxgi1_6.h>
 #include<cassert>
+#include<fstream>
 
-#include"BIN_FILE12.h"
 #include"graphic.h"
 
 //グローバル変数-----------------------------------------------------------------
@@ -58,6 +58,11 @@ D3D12_RESOURCE_BARRIER Barrier = {};
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
 	switch (msg) {
+	case WM_KEYDOWN:
+		if (wp == VK_ESCAPE){
+			DestroyWindow(hwnd);
+		}
+		return 0;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
@@ -298,6 +303,38 @@ void CreatePipeline()
 		assert(SUCCEEDED(Hr));
 	}
 
+	//コンパイル済みシェーダを読み込むファイルバッファ
+	class BIN_FILE12 {
+	public:
+		BIN_FILE12(const char* fileName) :Succeeded(false)
+		{
+			std::ifstream ifs(fileName, std::ios::binary);
+			if (ifs.fail()) {
+				return;
+			}
+			Succeeded = true;
+			std::istreambuf_iterator<char> first(ifs);
+			std::istreambuf_iterator<char> last;
+			Buffer.assign(first, last);
+			ifs.close();
+		}
+		bool succeeded() const
+		{
+			return Succeeded;
+		}
+		unsigned char* code() const
+		{
+			char* p = const_cast<char*>(Buffer.data());
+			return reinterpret_cast<unsigned char*>(p);
+		}
+		size_t size() const
+		{
+			return Buffer.size();
+		}
+	private:
+		std::string Buffer;
+		bool Succeeded;
+	};
 	//シェーダ読み込み
 	BIN_FILE12 vs("assets\\VertexShader.cso");
 	assert(vs.succeeded());
