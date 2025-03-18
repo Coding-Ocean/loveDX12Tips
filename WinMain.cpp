@@ -98,26 +98,24 @@ UINT CbvIdx;
 //コンスタントバッファ０構造体。Header.hlsliと同じ並びにしておく
 struct CONST_BUF0 {
 	float time;
-	float rayOrigin[3];
 }* CB0;
 
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"RayTracing", 1920/2, 1080/2, WINDOW);
-	//window(L"Shader Toy", 1080, 1080, WINDOW);
+	window(L"RayTracing", 1920/2, 1080/2, NO_WINDOW);
 
 	//リソース初期化
 	{
 		//頂点バッファ
 		{
-			//texcoordは、xを-aspect ~ aspect,　yを-1~1とする
+			//texcoordは、xを-aspect~aspect,　yを1~-1とする
 			float vertices[] = {
 				//position            texcoord
-				-1.0f,  1.0f,  0.0f,  -aspect(),  -1.0f, //左上
-				-1.0f, -1.0f,  0.0f,  -aspect(),  1.0f, //左下
-				 1.0f,  1.0f,  0.0f,  aspect(),  -1.0f, //右上
-				 1.0f, -1.0f,  0.0f,  aspect(),  1.0f, //右下
+				-1.0f,  1.0f,  0.0f,  -aspect(),   1.0f, //左上
+				-1.0f, -1.0f,  0.0f,  -aspect(),  -1.0f, //左下
+				 1.0f,  1.0f,  0.0f,   aspect(),   1.0f, //右上
+				 1.0f, -1.0f,  0.0f,   aspect(),  -1.0f, //右下
 			};
 			unsigned numVertexElements = 5;
 			//データサイズを求めておく
@@ -143,23 +141,13 @@ INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 		}
 	}
 
-	//auto aspect_ratio = aspect();
-	//auto viewport_height = 2.0;
-	//auto viewport_width = aspect_ratio * viewport_height;
-	//auto focal_length = 1.0;
-	//auto origin = point3(0, 0, 0);
-	//auto horizontal = vec3(viewport_width, 0, 0);
-	//auto vertical = vec3(0, viewport_height, 0);
-	//auto lower_left_corner =
-	//	origin - horizontal / 2 - vertical / 2 - vec3(0, 0, focal_length);
-
 	timeBeginPeriod(1);
 	DWORD startTime = timeGetTime();
 	ShowCursor(false);
+
 	while (!quit())
 	{
 		CB0->time = (timeGetTime() - startTime) / 1000.0f;
-		CB0->rayOrigin[0] = 0; CB0->rayOrigin[1] = 0; CB0->rayOrigin[2] = 0;
 		beginRender();
 		drawMesh(Vbv, CbvIdx);
 		endRender();
