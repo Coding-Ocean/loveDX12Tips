@@ -1,58 +1,81 @@
 #include<Header.hlsli>
 
-float hit_sphere(const float3 center, float radius, float3 rayOrigin, float3 rayDirection)
+#define MAX_STEPS 100
+#define MAX_DIST 200.0
+#define SURF_DIST 0.01
+
+float GetDist(float3 p)
 {
-    float3 oc = rayOrigin - center;
-    float a = dot(rayDirection, rayDirection);
-    float b = dot(oc, rayDirection);
-    float c = dot(oc, oc) - radius * radius;
-    float discriminant = b * b - a * c;
-    if (discriminant < 0)
-    {
-        return -1.0;
-    }
-    else
-    {
-        return (-b - sqrt(discriminant)) / a;
-    }
+    //sphere
+    float4 s = float4(0, 1, 5, 1);//x, y, z, radius
+    float sphereDist = length(p - s.xyz) - s.w;
+    
+    //plane
+    float planeDist = p.y;
+    
+    float dist = min(sphereDist, planeDist);
+    return dist;
 }
 
-float4 ray_color(float3 rayOrigin, float3 rayDirection)
+float RayMarch(float3 ro, float3 rd)
 {
-    float3 light = normalize(float3(sin(Time), 0.5f, cos(Time)));
-
-    //sphere
-    float3 center = float3(0, 0, -1);
-    float radius = 0.5;
-    float t = hit_sphere(center, radius, rayOrigin, rayDirection);
-    if (t > 0.0)
+    float dO = 0.;
+    
+    for (int i = 0; i < MAX_STEPS; i++)
     {
-        float3 N = normalize(rayOrigin + rayDirection * t - center);
-        float3 bright = dot(light, N);
-        return float4(bright, 1);
-    }
-
-    //ground sphere
-    center = float3(0, -100.2, -1);
-    radius = 100;
-    t = hit_sphere(center, radius, rayOrigin, rayDirection);
-    if (t > 0.0)
-    {
-        float3 N = normalize(rayOrigin + rayDirection * t - center);
-        float3 bright = dot(light, N);
-        return float4(bright, 1);
+        float3 p = ro + rd * dO;
+        float dS = GetDist(p);
+        dO += dS;
+        if (dO > MAX_DIST || dS < SURF_DIST)
+            break;
     }
     
-    //background
-    float3 unit_direction = normalize(rayDirection);
-    t = 0.5 * (unit_direction.y + 1.0);
-    float3 color = (1.0 - t) * float3(1.0, 1.0, 1.0) + t * float3(0.5, 0.7, 1.0);
-    return float4(color, 1);
+    return dO;
+}
+
+float3 GetNormal(float3 p)
+{
+    float d = GetDist(p);
+    float2 e = float2(0.01, 0);
+    
+    float3 n = d - float3(
+        GetDist(p - e.xyy),
+        GetDist(p - e.yxy),
+        GetDist(p - e.yyx)
+    );
+    
+    return normalize(n);
+}
+
+float Lighting(float3 p)
+{
+    float3 lightPos = float3(0, 6, 3);
+    lightPos.xz += float2(sin(Time), cos(Time)) * 2;
+    
+    float3 l = normalize(lightPos - p);
+    float3 n = GetNormal(p);
+    
+    float diffuse = clamp(dot(n, l), 0., 1.);
+    float d = RayMarch(p + n * SURF_DIST * 2., l);
+    if (d < length(lightPos - p))
+        diffuse *= .1;//‰e‚È‚Ì‚ÅˆÃ‚­‚·‚é
+    
+    return diffuse;
 }
 
 float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
 {
-    float3 rayOrigin = float3(0, 0, 0);
-    float3 rayDirection = float3(i_uv, -1) - rayOrigin;
-    return ray_color(rayOrigin, rayDirection);
+    float3 ro = float3(0, 1, 0);//ray origin
+    float3 rd = normalize(float3(i_uv, 1));//ray direction
+
+    float d = RayMarch(ro, rd);
+    
+    float3 col = 0;
+    //col = 1 - d / 10; //‚„‚Ì’lŽ‹Šo‰»
+    //return float4(col, 1);
+    
+    float3 p = ro + rd * d;
+    float diffuse = Lighting(p);
+    col = pow(diffuse, 0.4545); //gamma correction
+    return float4(col, 1);
 }
