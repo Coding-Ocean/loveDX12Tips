@@ -25,4 +25,7 @@
       <Filter>hlsl</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="sdf.txt" />
+  </ItemGroup>
 </Project>

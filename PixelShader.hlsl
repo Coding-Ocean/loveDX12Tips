@@ -3,6 +3,10 @@
 #define MAX_STEPS 80
 #define MAX_DIST 100.0
 #define SURF_DIST 0.001
+float2x2 rot2D(float t)
+{
+    return float2x2(cos(t), -sin(t), sin(t), cos(t));
+}
 float smin(float a, float b, float k)
 {
     float h = max(k - abs(a - b), 0.) / k;
@@ -11,18 +15,23 @@ float smin(float a, float b, float k)
 float GetDist(float3 p)
 {
     //sphere
-    float3 spherePos = float3(sin(Time)*2.2, 1, 5);//x, y, z, radius
+    float3 spherePos = float3(cos(Time*0.3)*1.2, 1, 0);
     float sphere = length(p - spherePos) - 1.;
+    //float sphere2 = length(p - float3(-cos(Time*0.3)*1.2, 1, 0)) - 1.;
     
     //box
-    float3 boxPos = float3(0, 1, 5);
-    float3 q = abs(p-boxPos) - .7;
+    float3 p_ = p;
+    p_.y -= 1;
+    p_.xz = mul(p_.xz, rot2D(Time*2));
+    p_.xy = mul(p_.xy, rot2D(Time*2));
+    float3 q = abs(p_) - .5;
     float box = length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
     
     //plane
-    float plane = p.y;
+    float plane = p.y+1.;
     
-    return min(plane, smin(box, sphere, 1.));
+    //return min(plane, smin(sphere, sphere2, 1.));
+    return min(plane, smin(sphere, box, 1.));
 }
 float RayMarch(float3 ro, float3 rd)
 {
@@ -48,15 +57,14 @@ float3 GetNormal(float3 p)
     float3 n = d - float3(
         GetDist(p - e.xyy),
         GetDist(p - e.yxy),
-        GetDist(p - e.yyx)
-    );
+        GetDist(p - e.yyx));
     
     return normalize(n);
 }
 
 float Lighting(float3 p)
 {
-    float3 lightPos = float3(0, 3, 2);
+    float3 lightPos = float3(0, 3, -2);
     //lightPos.xz += float2(sin(Time), cos(Time)) * 2;
     
     float3 l = normalize(lightPos - p);
@@ -72,7 +80,7 @@ float Lighting(float3 p)
 
 float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
 {
-    float3 ro = float3(0, 1, 0);//ray origin
+    float3 ro = float3(0, 1, -5);//ray origin
     float3 rd = normalize(float3(i_uv, 1.));//ray direction
     float3 col = 0;//final color
 
