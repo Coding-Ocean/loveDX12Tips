@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 0
+#if 1
 #include"framework.h"
 void gmain()
 {
@@ -969,12 +969,12 @@ void gmain()
 }
 #endif
 //rayMarching
-#if 1
+#if 0
 #include"framework.h"
 float getDist(float2 p) {
 	float sphere = p.mag() - 1;
 	float plane = p.y + 1;
-	return sphere;
+	//return sphere;
 	//return plane;
 	return min(plane, sphere);
 }
