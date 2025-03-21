@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 1
+#if 0
 #include"framework.h"
 void gmain()
 {
@@ -968,3 +968,114 @@ void gmain()
 	}
 }
 #endif
+//rayMarching
+#if 1
+#include"framework.h"
+float getDist(float2 p) {
+	float sphere = p.mag() - 1;
+	float plane = p.y + 1;
+	return sphere;
+	//return plane;
+	return min(plane, sphere);
+}
+void gmain() {
+	window("math", 1920, 1080, full, 4000);
+	//オブジェクトデータ
+	float2 ro(-5, 0);//z,y
+	float2 uv(-3, 1);//z,y
+	//マウスで点をつかむためのデータ
+	float2 mouse;
+	float2* points[] = { &uv };
+	int numPoints = _countof(points);
+	float2* grabPoint = nullptr;
+	float grabRadiusSq = powf(0.1f, 2);
+	//拡大縮小
+	float scale = 100;
+	//メインループ
+	while (!quit())
+	{
+		getInputState();
+		if (isTrigger(KEY_ESC)) closeWindow();
+
+		//clear
+		beginMsaaRender();
+		//背景
+		strokeWeight(2);
+		stroke(0.7f, 0.7f, 0.7f);
+		fill(0, 0, 0);
+		backgroundRect();
+		//デカルト座標
+		scale += getMouseWheel()*10;
+		mathSetAxis(width / 2, height / 2, scale);
+		mathAxis();
+		//マウスで点をつかんで移動する
+		{
+			mouse.set(uv.x, mathMouseY);
+			if (isPress(MOUSE_LBUTTON)) {
+				if (grabPoint == nullptr) {
+					//つかむ
+					for (int i = 0; i < numPoints; i++) {
+						if ((*points[i] - mouse).magSq() <= grabRadiusSq) {
+							grabPoint = points[i];
+						}
+					}
+				}
+				else {
+					if (mouseVx != 0 || mouseVy != 0) {
+						//移動
+						*grabPoint = mouse;
+					}
+				}
+			}
+			else {
+				grabPoint = nullptr;
+			}
+		}
+		//uv上の１点
+		if (uv.y > 1)uv.y = 1;
+		if (uv.y < -1)uv.y = -1;
+		strokeWeight(1);
+		stroke(1, 1, 0);
+		fill(1, 1, 0);
+		mathCircle(uv.x, uv.y, 0.1f);
+		mathLine(-3, 1, -3, -1);
+		//球
+		noFill();
+		strokeWeight(2);
+		stroke(0.5f, 0.5f, 0.5f);
+		mathCircle(0, 0, 2.f);
+		//床
+		mathLine(-10, -1, 25, -1);
+		//レイマーチング
+		float2 rd = normalize(uv - ro);
+		float t = 0;
+		for (int i = 0; i < 50; ++i) {
+			float2 p = ro + rd * t;
+			float r = getDist(p);
+			t += r;
+			if (r < 0.001f||p.x>15)break;
+			//レイベクトル
+			stroke(0.93f, 0.34f, 0.42f);
+			strokeWeight(3);
+			mathArrow(ro.x, ro.y, p.x, p.y, 0.05f);
+			//レイ円
+			stroke(16 / 255.f, 120 / 255.f, 151 / 255.f);
+			strokeWeight(2);
+			mathCircle(p.x, p.y, r*2);
+		}
+		//text infomation
+		fontRectModeCenter();
+		fontSize(30);
+		fontColor(1, 1, 1);
+		fontRectModeCorner();
+		fontColor(0.8f, 0.8f, 0);
+		print("t=%.2f",t);
+		debugPrint();
+		//cusor
+		imageColor(1, 1, 1, 0.5f);
+		cursor();
+		endMsaaRender();
+	}
+}
+#endif
+
