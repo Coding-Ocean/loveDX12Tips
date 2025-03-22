@@ -63,16 +63,15 @@ float3 GetNormal(float3 p)
 }
 float Lighting(float3 p)
 {
-    float3 lightPos = float3(0, 3, -2);
-    //lightPos.xz += float2(sin(Time), cos(Time)) * 2;
-    
+    float3 lightPos = float3(0, 5, -3);
     float3 l = normalize(lightPos - p);
     float3 n = GetNormal(p);
-    
     float bright = clamp(dot(n, l), 0., 1.);
-    float d = RayMarch(p + n * SURF_DIST * 2., l);
+    
+    //影
+    float d = RayMarch(p + n * 0.01, l);
     if (d < length(lightPos - p))
-        bright *= .5;//影なので暗くする
+        bright *= .7;//影なので暗くする
     
     return bright;
 }
@@ -84,13 +83,13 @@ float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
 
     float t = RayMarch(ro, rd);//tはオブジェクト表面までの距離
     
-    //col = 1 - t / 10; //tの値視覚化
+    //col = 1 - t / 20; //tの値視覚化
     //return float4(col, 1);
     
     float3 p = ro + rd * t;
     float bright = Lighting(p);
-    col = bright;
-    return float4(col, 1);
+    //col = bright;
+    //return float4(col, 1);
     
     col = pow(bright, .4545); //gamma correction
     return float4(col, 1);
