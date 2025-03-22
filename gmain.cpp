@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 1
+#if 0
 #include"framework.h"
 void gmain()
 {
@@ -969,10 +969,11 @@ void gmain()
 }
 #endif
 //rayMarching
-#if 0
+#if 1
 #include"framework.h"
+float2 spherePos(0, 0); float sphereRadius = 1;
 float getDist(float2 p) {
-	float sphere = p.mag() - 1;
+	float sphere = (p-spherePos).mag() - sphereRadius;
 	float plane = p.y + 1;
 	//return sphere;
 	//return plane;
@@ -991,6 +992,7 @@ void gmain() {
 	float grabRadiusSq = powf(0.1f, 2);
 	//拡大縮小
 	float scale = 100;
+	int step = 50;
 	//メインループ
 	while (!quit())
 	{
@@ -1032,6 +1034,8 @@ void gmain() {
 			}
 		}
 		//uv上の１点
+		//uv.y -= 0.005f;
+		//if (uv.y < -1)uv.y = 1;
 		if (uv.y > 1)uv.y = 1;
 		if (uv.y < -1)uv.y = -1;
 		strokeWeight(1);
@@ -1043,24 +1047,27 @@ void gmain() {
 		noFill();
 		strokeWeight(2);
 		stroke(0.5f, 0.5f, 0.5f);
-		mathCircle(0, 0, 2.f);
+		mathCircle(spherePos.x, spherePos.y, 2.f);
 		//床
 		mathLine(-10, -1, 25, -1);
 		//レイマーチング
 		float2 rd = normalize(uv - ro);
 		float t = 0;
-		for (int i = 0; i < 50; ++i) {
+		if (isTrigger(KEY_D))step++;
+		if (isTrigger(KEY_A))step--;
+		if (step > 50)step = 0;
+		for (int i = 0; i < step; ++i) {
 			float2 p = ro + rd * t;
 			float r = getDist(p);
 			t += r;
 			if (r < 0.001f||p.x>15)break;
 			//レイベクトル
 			stroke(0.93f, 0.34f, 0.42f);
-			strokeWeight(3);
+			strokeWeight(4);
 			mathArrow(ro.x, ro.y, p.x, p.y, 0.05f);
 			//レイ円
 			stroke(16 / 255.f, 120 / 255.f, 151 / 255.f);
-			strokeWeight(2);
+			strokeWeight(3);
 			mathCircle(p.x, p.y, r*2);
 		}
 		//text infomation
