@@ -970,13 +970,20 @@ void gmain()
 #endif
 //rayMarching
 #if 1
+#define SPHERE
+//#define FLOOR
+//#define BOTH
 #include"framework.h"
 float2 spherePos(0, 0); float sphereRadius = 1;
 float getDist(float2 p) {
 	float sphere = (p-spherePos).mag() - sphereRadius;
 	float plane = p.y + 1;
-	//return sphere;
-	//return plane;
+#ifdef SPHERE
+	return sphere;
+#endif
+#ifdef FLOOR
+	return plane;
+#endif
 	return min(plane, sphere);
 }
 void gmain() {
@@ -992,6 +999,7 @@ void gmain() {
 	float grabRadiusSq = powf(0.1f, 2);
 	//拡大縮小
 	float scale = 100;
+	//ステップ実行
 	int step = 50;
 	//メインループ
 	while (!quit())
@@ -1034,8 +1042,6 @@ void gmain() {
 			}
 		}
 		//uv上の１点
-		//uv.y -= 0.005f;
-		//if (uv.y < -1)uv.y = 1;
 		if (uv.y > 1)uv.y = 1;
 		if (uv.y < -1)uv.y = -1;
 		strokeWeight(1);
@@ -1043,13 +1049,20 @@ void gmain() {
 		fill(1, 1, 0);
 		mathCircle(uv.x, uv.y, 0.1f);
 		mathLine(-3, 1, -3, -1);
-		//球
+		//ray origin
+		mathCircle(ro.x, ro.y, 0.1f);
+
 		noFill();
 		strokeWeight(2);
 		stroke(0.5f, 0.5f, 0.5f);
+#if defined(SPHERE) || defined(BOTH)
+		//球
 		mathCircle(spherePos.x, spherePos.y, 2.f);
+#endif
+#if defined(FLOOR) || defined(BOTH)
 		//床
 		mathLine(-10, -1, 25, -1);
+#endif
 		//レイマーチング
 		float2 rd = normalize(uv - ro);
 		float t = 0;
@@ -1060,11 +1073,11 @@ void gmain() {
 			float2 p = ro + rd * t;
 			float r = getDist(p);
 			t += r;
-			if (r < 0.001f||p.x>15)break;
+			if (r < 0.001f||t>50)break;
 			//レイベクトル
 			stroke(0.93f, 0.34f, 0.42f);
 			strokeWeight(4);
-			mathArrow(ro.x, ro.y, p.x, p.y, 0.05f);
+			mathArrow(ro.x, ro.y, p.x, p.y, 0.1f);
 			//レイ円
 			stroke(16 / 255.f, 120 / 255.f, 151 / 255.f);
 			strokeWeight(3);
