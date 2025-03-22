@@ -987,7 +987,7 @@ float getDist(float2 p) {
 	return min(plane, sphere);
 }
 void gmain() {
-	window("math", 1920, 1080, full, 4000);
+	window("math", 1920, 1080, full, 6000);
 	//オブジェクトデータ
 	float2 ro(-5, 0);//z,y
 	float2 uv(-3, 1);//z,y
@@ -1073,7 +1073,7 @@ void gmain() {
 			float2 p = ro + rd * t;
 			float r = getDist(p);
 			t += r;
-			if (r < 0.001f||t>50)break;
+			if (r < 0.001f||t>40)break;
 			//レイベクトル
 			stroke(0.93f, 0.34f, 0.42f);
 			strokeWeight(4);
