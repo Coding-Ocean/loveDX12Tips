@@ -16,7 +16,7 @@ struct CONST_BUF0* CB0;
 //Entry point
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
-	window(L"RayTracing", 1920, 1080, NO_WINDOW);
+	window(L"RayMarching", 1920, 1080, NO_WINDOW);
 
 	//ÉäÉ\Å[ÉXèâä˙âª
 	{
