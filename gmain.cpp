@@ -974,6 +974,7 @@ void gmain()
 //#define FLOOR
 //#define BOTH
 #include"framework.h"
+
 float2 spherePos(0, 0); float sphereRadius = 1;
 float getDist(float2 p) {
 	float sphere = (p-spherePos).mag() - sphereRadius;
@@ -986,6 +987,7 @@ float getDist(float2 p) {
 #endif
 	return min(plane, sphere);
 }
+
 void gmain() {
 	window("math", 1920, 1080, full, 6000);
 	//オブジェクトデータ
@@ -1041,9 +1043,11 @@ void gmain() {
 				grabPoint = nullptr;
 			}
 		}
-		//uv上の１点
+		if (isPress(KEY_W))uv.y += 0.0001f;
+		if (isPress(KEY_S))uv.y -= 0.0001f;
 		if (uv.y > 1)uv.y = 1;
 		if (uv.y < -1)uv.y = -1;
+		//uv上の１点
 		strokeWeight(1);
 		stroke(1, 1, 0);
 		fill(1, 1, 0);
@@ -1065,15 +1069,16 @@ void gmain() {
 #endif
 		//レイマーチング
 		float2 rd = normalize(uv - ro);
+		float2 p;
 		float t = 0;
+		float t0 = 0;
 		if (isTrigger(KEY_D))step++;
 		if (isTrigger(KEY_A))step--;
 		if (step > 50)step = 0;
 		for (int i = 0; i < step; ++i) {
-			float2 p = ro + rd * t;
-			float r = getDist(p);
-			t += r;
-			if (r < 0.001f||t>40)break;
+			p = ro + rd * t;
+			t0 = getDist(p);
+			t += t0;
 			//レイベクトル
 			stroke(0.93f, 0.34f, 0.42f);
 			strokeWeight(4);
@@ -1081,16 +1086,39 @@ void gmain() {
 			//レイ円
 			stroke(16 / 255.f, 120 / 255.f, 151 / 255.f);
 			strokeWeight(3);
-			mathCircle(p.x, p.y, r*2);
+			mathCircle(p.x, p.y, t0*2);
+			if (t0 < 0.001f||t>40)break;
 		}
+		//法線ベクトル
+		float tx = 0;
+		float ty = 0;
+		//if (t0 < 0.001f) 
+		{
+			float2 shiftX(0.01f, 0);
+			float2 shiftY(0, 0.01f);
+			//float t0 = getDist(p);//レイの先端から表面までの距離
+			tx = getDist(p - shiftX);//x方向にずらした位置から表面までの距離
+			ty = getDist(p - shiftY);//y方向にずらした位置から行面までの距離
+			float2 n(t0 - tx, t0 - ty);
+			n.normalize();
+			strokeWeight(2);
+			stroke(0 / 255.f, 191 / 255.f, 160 / 255.f);
+			mathArrow(p.x, p.y, p.x + n.x, p.y + n.y);
+		}
+
 		//text infomation
 		fontRectModeCenter();
 		fontSize(30);
 		fontColor(1, 1, 1);
 		fontRectModeCorner();
 		fontColor(0.8f, 0.8f, 0);
-		print("t=%.2f",t);
-		debugPrint();
+		print("t=%.2f", t);
+		print("t0=%f", t0);
+		print("tx=%f", tx);
+		print("ty=%f", ty);
+		print("t0-tx=%f", (t0-tx));
+		print("t0-ty=%f",(t0-ty));
+		//debugPrint();
 		//cusor
 		imageColor(1, 1, 1, 0.5f);
 		cursor();
