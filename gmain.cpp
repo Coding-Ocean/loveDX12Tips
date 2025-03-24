@@ -972,17 +972,16 @@ void gmain()
 #if 1
 #define SPHERE
 //#define FLOOR
-//#define BOTH
 #include"framework.h"
 
 float2 spherePos(0, 0); float sphereRadius = 1;
 float getDist(float2 p) {
 	float sphere = (p-spherePos).mag() - sphereRadius;
 	float plane = p.y + 1;
-#ifdef SPHERE
+#if defined(SPHERE) && !defined(FLOOR)
 	return sphere;
 #endif
-#ifdef FLOOR
+#if defined(FLOOR) && !defined(SPHERE)
 	return plane;
 #endif
 	return min(plane, sphere);
@@ -1002,7 +1001,7 @@ void gmain() {
 	//拡大縮小
 	float scale = 100;
 	//ステップ実行
-	int step = 50;
+	int step = 80;
 	//メインループ
 	while (!quit())
 	{
@@ -1012,12 +1011,13 @@ void gmain() {
 		//clear
 		beginMsaaRender();
 		//背景
-		strokeWeight(2);
-		stroke(0.7f, 0.7f, 0.7f);
+		noStroke();
 		fill(0, 0, 0);
 		backgroundRect();
 		//デカルト座標
 		scale += getMouseWheel()*10;
+		stroke(0.7f, 0.7f, 0.7f);
+		strokeWeight(1);
 		mathSetAxis(width / 2, height / 2, scale);
 		mathAxis();
 		//マウスで点をつかんで移動する
@@ -1059,11 +1059,11 @@ void gmain() {
 		noFill();
 		strokeWeight(2);
 		stroke(0.5f, 0.5f, 0.5f);
-#if defined(SPHERE) || defined(BOTH)
+#if defined(SPHERE)
 		//球
 		mathCircle(spherePos.x, spherePos.y, 2.f);
 #endif
-#if defined(FLOOR) || defined(BOTH)
+#if defined(FLOOR)
 		//床
 		mathLine(-10, -1, 25, -1);
 #endif
@@ -1074,7 +1074,8 @@ void gmain() {
 		float t0 = 0;
 		if (isTrigger(KEY_D))step++;
 		if (isTrigger(KEY_A))step--;
-		if (step > 50)step = 0;
+		if (step > 80)step = 0;
+		if (step < 0)step = 80;
 		for (int i = 0; i < step; ++i) {
 			p = ro + rd * t;
 			t0 = getDist(p);
@@ -1092,7 +1093,7 @@ void gmain() {
 		//法線ベクトル
 		float tx = 0;
 		float ty = 0;
-		//if (t0 < 0.001f) 
+		if (t!=0&&t0 < 0.001f) 
 		{
 			float2 shiftX(0.01f, 0);
 			float2 shiftY(0, 0.01f);
@@ -1113,11 +1114,11 @@ void gmain() {
 		fontRectModeCorner();
 		fontColor(0.8f, 0.8f, 0);
 		print("t=%.2f", t);
-		print("t0=%f", t0);
-		print("tx=%f", tx);
-		print("ty=%f", ty);
-		print("t0-tx=%f", (t0-tx));
-		print("t0-ty=%f",(t0-ty));
+		//print("t0=%f", t0);
+		//print("tx=%f", tx);
+		//print("ty=%f", ty);
+		//print("t0-tx=%f", (t0-tx));
+		//print("t0-ty=%f",(t0-ty));
 		//debugPrint();
 		//cusor
 		imageColor(1, 1, 1, 0.5f);
