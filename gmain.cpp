@@ -970,14 +970,16 @@ void gmain()
 #endif
 //rayMarching
 #if 1
+
 #define SPHERE
-//#define FLOOR
+#define FLOOR
 #include"framework.h"
 
 float2 spherePos(0, 0); float sphereRadius = 1;
+float planePosY = -1;
 float getDist(float2 p) {
 	float sphere = (p-spherePos).mag() - sphereRadius;
-	float plane = p.y + 1;
+	float plane = p.y - planePosY;
 #if defined(SPHERE) && !defined(FLOOR)
 	return sphere;
 #endif
@@ -1001,7 +1003,8 @@ void gmain() {
 	//拡大縮小
 	float scale = 100;
 	//ステップ実行
-	int step = 80;
+	int maxStep = 40;
+	int step = maxStep;
 	//メインループ
 	while (!quit())
 	{
@@ -1057,8 +1060,8 @@ void gmain() {
 		mathCircle(ro.x, ro.y, 0.1f);
 
 		noFill();
-		strokeWeight(2);
-		stroke(0.5f, 0.5f, 0.5f);
+		strokeWeight(3);
+		stroke(0.7f, 0.7f, 0.7f);
 #if defined(SPHERE)
 		//球
 		mathCircle(spherePos.x, spherePos.y, 2.f);
@@ -1074,8 +1077,8 @@ void gmain() {
 		float t0 = 0;
 		if (isTrigger(KEY_D))step++;
 		if (isTrigger(KEY_A))step--;
-		if (step > 80)step = 0;
-		if (step < 0)step = 80;
+		if (step > maxStep)step = 0;
+		if (step < 0)step = maxStep;
 		for (int i = 0; i < step; ++i) {
 			p = ro + rd * t;
 			t0 = getDist(p);
@@ -1088,12 +1091,12 @@ void gmain() {
 			stroke(16 / 255.f, 120 / 255.f, 151 / 255.f);
 			strokeWeight(3);
 			mathCircle(p.x, p.y, t0*2);
-			if (t0 < 0.001f||t>40)break;
+			if (t0 < 0.01f||t>20||p.x>9||p.y>6||p.y<-6)break;
 		}
 		//法線ベクトル
 		float tx = 0;
 		float ty = 0;
-		if (t!=0&&t0 < 0.001f) 
+		if (t != 0 && t0 < 0.01f)
 		{
 			float2 shiftX(0.01f, 0);
 			float2 shiftY(0, 0.01f);
@@ -1119,7 +1122,7 @@ void gmain() {
 		//print("ty=%f", ty);
 		//print("t0-tx=%f", (t0-tx));
 		//print("t0-ty=%f",(t0-ty));
-		//debugPrint();
+		debugPrint();
 		//cusor
 		imageColor(1, 1, 1, 0.5f);
 		cursor();
