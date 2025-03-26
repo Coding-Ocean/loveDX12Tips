@@ -1,112 +1,192 @@
-#include<Header.hlsli>
+#include "header.hlsli"
 
-#define MAX_STEPS 80
-#define MAX_DIST 90.0
-#define SURF_DIST 0.001
+#define AA 1
 
-float2x2 rot2D(float t)
+//------------------------------------------------------------------
+// ellipsoid SDF approximation
+//------------------------------------------------------------------
+
+// https://iquilezles.org/articles/ellipsoids/
+float sdEllipsoid(in float3 p, in float3 r)
 {
-    return float2x2(cos(t), -sin(t), sin(t), cos(t));
+    float k0 = length(p / r);
+    float k1 = length(p / (r * r));
+    return k0 * (k0 - 1.0) / k1;
 }
-float smin(float a, float b, float k)
+
+//------------------------------------------------------------------
+
+float2 map(in float3 p)
 {
-    float h = max(k - abs(a - b), 0.) / k;
-    return min(a, b) - h * h * h * k * (1. / 6.);
+    // ellipsoid
+    float d1 = sdEllipsoid(p, float3(0.2, 0.3, 0.05));
+
+    // plane
+    float d2 = p.y + 0.3;
+    
+    return (d1 < d2) ? float2(d1, 1.0) : float2(d2, 2.0);
 }
-//get distance from ray position to nearest surface
-float GetDistFrom(float3 rp)
+
+// https://iquilezles.org/articles/nvscene2008/
+float2 castRay(in float3 ro, in float3 rd)
 {
-    //sphere
-    float3 sp = float3(cos(Time * 0.3) * 2.5, 1, 0);//sphere position
-    float sphere = length(rp - sp) - 1.;
-    //sp.x *= -1;
-    //float sphere2 = length(rp - sp) - 1.;
-    
-    //box
-    float3 rp_ = rp;//copy
-    rp_.y -= 1;
-    rp_.xz = mul(rp_.xz, rot2D(Time*2));
-    rp_.xy = mul(rp_.xy, rot2D(Time*2));
-    float3 q = abs(rp_) - .6;
-    float box = length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
-    
-    //plane
-    float plane = rp.y + 1.;
-    
-    //return min(plane, smin(sphere, sphere2, 1.));
-    //return min(plane, box);
-    return min(plane, smin(sphere, box, 1.));
-}
-float RayMarch(float3 ro, float3 rd)
-{
-    float t = 0.; //distance traveled
-    for (int i = 0; i < MAX_STEPS; i++)
+    float m = 0.0;
+    float t = 0.0;
+    const float tmax = 20.0;
+    for (int i = 0; i < 256 && t < tmax; i++)
     {
-        float3 rp = ro + rd * t;//ray position
-        float d = GetDistFrom(rp);//get distance from ray position to nearest surface
-        t += d;
-        if (t > MAX_DIST || d < SURF_DIST)
+        float2 h = map(ro + rd * t);
+        if (h.x < 0.001)
+            break;
+        m = h.y;
+        t += h.x;
+    }
+
+    return (t < tmax) ? float2(t, m) : float2(0.0,0.0);
+}
+
+// https://iquilezles.org/articles/nvscene2008/
+float calcAO(in float3 pos, in float3 nor)
+{
+    float occ = 0.0;
+    float sca = 1.0;
+    for (int i = 0; i < 5; i++)
+    {
+        float hr = 0.01 + 0.12 * float(i) / 4.0;
+        float3 aopos = nor * hr + pos;
+        float dd = map(aopos).x;
+        occ += (hr - dd) * sca;
+        sca *= 0.95;
+    }
+    return clamp(1.0 - 2.0 * occ, 0.0, 1.0);
+}
+
+// https://iquilezles.org/articles/rmshadows/
+float calcSoftshadow(in float3 ro, in float3 rd)
+{
+    float res = 1.0;
+    float t = 0.01;
+    for (int i = 0; i < 256; i++)
+    {
+        float h = map(ro + rd * t).x;
+        res = min(res, smoothstep(0.0, 1.0, 8.0 * h / t));
+        t += clamp(h, 0.005, 0.02);
+        if (res < 0.001 || t > 5.0)
             break;
     }
-    return t;
+    return clamp(res, 0.0, 1.0);
 }
-float3 GetNormal(float3 rp)
+
+// https://iquilezles.org/articles/normalsSDF/
+float3 calcNormal(in float3 pos)
 {
-    float d = GetDistFrom(rp);
-    float2 sft = float2(0.001, 0); //shift value
-    float3 n = d - float3(
-        GetDistFrom(rp - sft.xyy), //rp-float3(0.01,0,0)
-        GetDistFrom(rp - sft.yxy), //rp-float3(0,0.01,0)
-        GetDistFrom(rp - sft.yyx) //rp-float3(0,0,0.01)
-    );
-    return normalize(n);
-    
-    //float2 sft = float2(0.001, 0);//shift value
-    //float3 n = float3(
-    //GetDistFrom(rp + sft.xyy) - GetDistFrom(rp - sft.xyy),
-    //GetDistFrom(rp + sft.yxy) - GetDistFrom(rp - sft.yxy),
-    //GetDistFrom(rp + sft.yyx) - GetDistFrom(rp - sft.yyx)
-    //);
-    //return normalize(n);
+    float2 e = float2(1.0, -1.0) * 0.5773 * 0.0005;
+    return normalize(e.xyy * map(pos + e.xyy).x +
+					  e.yyx * map(pos + e.yyx).x +
+					  e.yxy * map(pos + e.yxy).x +
+					  e.xxx * map(pos + e.xxx).x);
 }
-float Lighting(float3 rp)
+ 
+// https://iquilezles.org/articles/checkerfiltering
+float checkersGradBox(in float2 p)
 {
-    float3 lp = float3(0, 5, -3);//light position
-    float3 lv = lp - rp;//light vector
-    float len = length(lv);
-    lv /= len; //normalize
-    float3 nv = GetNormal(rp);
-    float brightness = clamp(dot(nv, lv), 0., 1.);
-    
-    //影
-    float t = RayMarch(rp + nv * SURF_DIST*2, lv);//現在のレイ位置からライト方向にレイを飛ばす
-    if (t < len)
-        brightness *= .7; //影なので暗くする
-    
-    return brightness;
+    // filter kernel
+    float2 w = fwidth(p) + 0.001;
+    // analytical integral (box filter)
+    float2 i = 2.0 * (abs(frac((p - 0.5 * w) * 0.5) - 0.5) - abs(frac((p + 0.5 * w) * 0.5) - 0.5)) / w;
+    // xor pattern
+    return 0.5 - 0.5 * i.x * i.y;
 }
+
+float3 render(in float3 ro, in float3 rd)
+{
+    float3 col = float3(0.0,0.0,0.0);
+    
+    float2 res = castRay(ro, rd);
+
+    if (res.y > 0.5)
+    {
+        float t = res.x;
+        float3 pos = ro + t * rd;
+        float3 nor;//normal
+        float occ;
+
+        // material        
+        if (res.y > 1.5)
+        {
+            nor = float3(0.0, 1.0, 0.0);
+            col = 0.05 * float3(1.0,1.0,1.0);
+            col *= 0.7 + 0.3 * checkersGradBox(pos.xz * 2.0);
+            occ = 1.0;
+        }
+        else
+        {
+            nor = calcNormal(pos);
+            occ = 0.5 + 0.5 * nor.y;
+            col = float3(0.2,0.2,0.2);
+        }
+
+        // lighting
+        occ *= calcAO(pos, nor);
+
+        float3 lig = normalize(float3(-0.5, 1.9, 0.8));
+        float3 hal = normalize(lig - rd);
+        float amb = clamp(0.5 + 0.5 * nor.y, 0.0, 1.0);
+        float dif = clamp(dot(nor, lig), 0.0, 1.0);
+        float bac = clamp(dot(nor, normalize(float3(-lig.x, 0.0, -lig.z))), 0.0, 1.0) * clamp(1.0 - pos.y, 0.0, 1.0);
+
+        float sha = calcSoftshadow(pos, lig);
+        sha = sha * sha;
+
+        float spe = pow(clamp(dot(nor, hal), 0.0, 1.0), 32.0) *
+                    dif * sha *
+                    (0.04 + 0.96 * pow(clamp(1.0 + dot(hal, rd), 0.0, 1.0), 5.0));
+        col *= 5.0;
+        col *= float3(0.2, 0.3, 0.4) * amb * occ + 1.6 * float3(1.0, 0.9, 0.75) * dif * sha;
+        col += float3(2.8, 2.2, 1.8) * spe * 3.0;
+    }
+    
+    return col;
+}
+
 float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
 {
-    float3 ro = float3(0, 1, -5);//ray origin
-    float3 rd = normalize(float3(i_uv, 1.));//ray direction
-    
-    //回転
-    //ro.yz = mul(ro.yz, rot2D(-Time*0.1));
-    //rd.yz = mul(rd.yz, rot2D(-Time*0.1));
-    //ro.xz = mul(ro.xz, rot2D(Time*0.1));
-    //rd.xz = mul(rd.xz, rot2D(Time*0.1));    
-    
-    float3 col = 0;//final color
+    // camera	
+    float3 ro = float3(1.0 * cos(0.2 * Time), 0.12, 1.0 * sin(0.2 * Time));
+    float3 ta = float3(0.0, 0.0, 0.0);
+    // camera-to-world transformation
+    float3 cw = normalize(ta - ro);
+    float3 cu = normalize(cross(cw, float3(0.0, 1.0, 0.0)));
+    float3 cv = (cross(cu, cw));
 
-    float t = RayMarch(ro, rd);//distance traveled
+    // render
+    float3 tot = float3(0.0,0.0,0.0);
+#if AA>1
+    for (int m = 0; m < AA; m++)
+        for (int n = 0; n < AA; n++)
+        {
+            // pixel coordinates
+            float2 o = float2(float(m), float(n)) / float(AA) - 0.5;
+            float2 fc = i_uv + o / 1080;//
+#else    
+            float2 fc = i_uv;
+#endif
+            float2 p = fc; //(2.0 * fc - iResolution.xy) / iResolution.y;
+
+            // ray direction
+            float3 rd = normalize(p.x * cu + p.y * cv + 2.0 * cw);
+
+            // render	
+            float3 col = render(ro, rd);
+
+		    // gamma (yes, before accumulation)
+            col = pow(col, float3(0.4545,.4545,.4545));
+
+            tot += col;
+#if AA>1
+        }
+    tot /= float(AA * AA);
+#endif
     
-    //col = 1 - t / 15; //tの値視覚化
-    //return float4(col, 1);
-    
-    float3 rp = ro + rd * t;//ray position
-    col = Lighting(rp);
-    return float4(col, 1);
-    
-    col = pow(col.x, .4545); //gamma correction
-    return float4(col, 1);
+    return float4(tot, 1.0);
 }
