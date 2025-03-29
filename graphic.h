@@ -38,3 +38,6 @@ ComPtr<ID3D12Device>& device();
 ComPtr<ID3D12GraphicsCommandList>& commandList();
 UINT cbvTbvIncSize();
 float aspect();
+float width();
+float height();
+void createPipeline(const char* pixelShader);

@@ -14,6 +14,9 @@
     <FxCompile Include="VertexShader.hlsl">
       <Filter>hlsl</Filter>
     </FxCompile>
+    <FxCompile Include="PixelShader2.hlsl">
+      <Filter>hlsl</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="hlsl">

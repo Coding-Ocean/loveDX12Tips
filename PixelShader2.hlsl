@@ -55,9 +55,9 @@ float3 GetNormal(float3 rp)
     float d = GetDistFrom(rp);
     float2 sft = float2(0.001, 0); //shift value
     float3 n = d - float3(
-        GetDistFrom(rp - sft.xyy), //rp-float3(0.01,0,0)
-        GetDistFrom(rp - sft.yxy), //rp-float3(0,0.01,0)
-        GetDistFrom(rp - sft.yyx) //rp-float3(0,0,0.01)
+        GetDistFrom(rp - sft.xyy), //rp-float3(0.001,0,0)
+        GetDistFrom(rp - sft.yxy), //rp-float3(0,0.001,0)
+        GetDistFrom(rp - sft.yyx) //rp-float3(0,0,0.001)
     );
     return normalize(n);
     
@@ -79,98 +79,17 @@ float Lighting(float3 rp)
     float brightness = clamp(dot(nv, lv), 0., 1.);
     
     //影
-    float t = RayMarch(rp + nv * SURF_DIST*2, lv);//現在のレイ位置からライト方向にレイを飛ばす
+    float t = RayMarch(rp + nv * SURF_DIST * 2, lv);//現在のレイ位置からライト方向にレイを飛ばす
     if (t < len)
         brightness *= .7; //影なので暗くする
     
     return brightness;
 }
-#define vec2 float2
-float sdBox(in vec2 p, in vec2 b)
-{
-    //vec2 d = float2(abs(p.x) - b.x, abs(p.y) - b.y);
-    vec2 d = abs(p) - b;
-    return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
-}
-float sdMoon(float2 p, float d, float ra, float rb)
-{
-    p.y = abs(p.y);
-    float a = (ra * ra - rb * rb + d * d) / (2.0 * d);
-    float b = sqrt(max(ra * ra - a * a, 0.0));
-    if (d * (p.x * b - p.y * a) > d * d * max(b - p.y, 0.0))
-        return length(p - float2(a, b));
-    return max((length(p) - ra),
-               -(length(p - float2(d, 0)) - rb));
-}
-float sdPentagram(in vec2 p, in float r)
-{
-    const float k1x = 0.809016994;
-    const float k2x = 0.309016994;
-    const float k1y = 0.587785252;
-    const float k2y = 0.951056516;
-    const float k1z = 0.726542528;
-    const vec2 v1 = vec2(k1x, -k1y);
-    const vec2 v2 = vec2(-k1x, -k1y);
-    const vec2 v3 = vec2(k2x, -k2y);
-    
-    p.x = abs(p.x);
-    p -= 2.0 * max(dot(v1, p), 0.0) * v1;
-    p -= 2.0 * max(dot(v2, p), 0.0) * v2;
-    p.x = abs(p.x);
-    p.y -= r;
-    return length(p - v3 * clamp(dot(p, v3), 0.0, k1z * r))
-           * sign(p.y * v3.x - p.x * v3.y);
-}
 float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
 {
-    float2 p = (i_uv * 2 - Resolution)/Resolution.y; //uv座標を-1~1に変換
-    //return float4(uv, 0.5, 1);
-    
-    //線分abと点pの距離
-    float2 a = -0.2 * float2(sin(Time*0.5), cos(Time));
-    float2 b = 0.2 * float2(cos(Time*0.5), sin(Time));
-    float2 ab = b - a;
-    float2 ap = p - a;
-    float t = dot(ap, ab) / dot(ab, ab);
-    t = clamp(t, 0, 1);
-    float seg = length(ap-ab*t)-0.01;
-    
-    //pとｃの距離
-    float2 c = float2(-0.2 * sin(Time), 0.2 * sin(Time));
-    float circle = length(p - c)-0.05;
-    float2 p_ = p;
-    p_.x -= 0.6;
-    p_ = mul(p_, rot2D(Time * 0.1));
-    float moon = sdMoon(p_, 0.2, 0.3, 0.4);
-    p_ = p;
-    p_.x += 0.6;
-    p_ = mul(p_, rot2D(Time * -0.1));
-    float box = sdBox(p_, vec2(0.2, 0.2));
-    p_ = p;
-    float pentagram = sdPentagram(p_, 0.3);
-    float d;
-    float3 color;
-    //if (seg < pentagram)
-    //{
-    //    d = seg;
-    //    color = float3(0, 1, 2);
-    //}
-    //else
-    d = min(pentagram, min(box, moon));
-    if(d>0)
-    {
-        color = float3(2, 1, 0);
-    }
-    else
-    {
-        color = float3(0, 1, 2);
-    }
-    //d = smin(seg, pentagram, 0.2);
-    color *= exp(-9 * abs(d));
-    color *= smoothstep(0.4, 0.5, cos(d * 200));
-    return float4(color, 1);
+    float2 p = (i_uv * 2 - Resolution.xy)/Resolution.y;
 
-    float3 ro = float3(0, 0, -5);//ray origin
+    float3 ro = float3(0, 1, -5);//ray origin
     float3 rd = normalize(float3(p, 1.));//ray direction
     
     //回転
@@ -181,7 +100,7 @@ float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
     
     float3 col = 0;//final color
 
-    t = RayMarch(ro, rd);//distance traveled
+    float t = RayMarch(ro, rd);//distance traveled
     
     //col = 1 - t / 15; //tの値視覚化
     //return float4(col, 1);
