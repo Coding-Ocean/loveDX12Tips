@@ -1,11 +1,9 @@
 #include "header.hlsli"
 
-#define AA 1
+#define AA 2
 
 //------------------------------------------------------------------
 // ellipsoid SDF approximation
-//------------------------------------------------------------------
-
 // https://iquilezles.org/articles/ellipsoids/
 float sdEllipsoid(in float3 p, in float3 r)
 {
@@ -13,13 +11,16 @@ float sdEllipsoid(in float3 p, in float3 r)
     float k1 = length(p / (r * r));
     return k0 * (k0 - 1.0) / k1;
 }
-
-//------------------------------------------------------------------
+float sdSphere(in float3 p, in float r)
+{
+    return length(p) - r;
+}//------------------------------------------------------------------
 
 float2 map(in float3 p)
 {
     // ellipsoid
-    float d1 = sdEllipsoid(p, float3(0.2, 0.3, 0.05));
+    float d1 = sdEllipsoid(p, float3(0.1, 0.3, 0.2));//z,y,x
+    //d1 = sdSphere(p-float3(0,0,1), 0.2);//float3(pz,py,px)
 
     // plane
     float d2 = p.y + 0.3;
@@ -45,6 +46,7 @@ float2 castRay(in float3 ro, in float3 rd)
     return (t < tmax) ? float2(t, m) : float2(0.0,0.0);
 }
 
+//ambient occlusion
 // https://iquilezles.org/articles/nvscene2008/
 float calcAO(in float3 pos, in float3 nor)
 {
@@ -70,7 +72,7 @@ float calcSoftshadow(in float3 ro, in float3 rd)
     {
         float h = map(ro + rd * t).x;
         res = min(res, smoothstep(0.0, 1.0, 8.0 * h / t));
-        t += clamp(h, 0.005, 0.02);
+        t += clamp(h, 0.006, 0.02);
         if (res < 0.001 || t > 5.0)
             break;
     }
@@ -81,7 +83,7 @@ float calcSoftshadow(in float3 ro, in float3 rd)
 float3 calcNormal(in float3 pos)
 {
     float2 e = float2(1.0, -1.0) * 0.5773 * 0.0005;
-    return normalize(e.xyy * map(pos + e.xyy).x +
+    return normalize( e.xyy * map(pos + e.xyy).x +
 					  e.yyx * map(pos + e.yyx).x +
 					  e.yxy * map(pos + e.yxy).x +
 					  e.xxx * map(pos + e.xxx).x);
@@ -100,7 +102,7 @@ float checkersGradBox(in float2 p)
 
 float3 render(in float3 ro, in float3 rd)
 {
-    float3 col = float3(0.0,0.0,0.0);
+    float3 col = float3(0.0, 0.0, 0.0);
     
     float2 res = castRay(ro, rd);
 
@@ -109,27 +111,27 @@ float3 render(in float3 ro, in float3 rd)
         float t = res.x;
         float3 pos = ro + t * rd;
         float3 nor;//normal
-        float occ;
+        float occ;//occlusion
 
         // material        
         if (res.y > 1.5)
         {
             nor = float3(0.0, 1.0, 0.0);
-            col = 0.05 * float3(1.0,1.0,1.0);
-            col *= 0.7 + 0.3 * checkersGradBox(pos.xz * 2.0);
             occ = 1.0;
+            col = 0.05 * float3(1.0, 1.0, 1.0);
+            col *= 0.7 + 0.3 * checkersGradBox(pos.xz * 1.0);
         }
         else
         {
             nor = calcNormal(pos);
             occ = 0.5 + 0.5 * nor.y;
-            col = float3(0.2,0.2,0.2);
+            col = float3(0.1,0.1,0.1);
         }
 
         // lighting
         occ *= calcAO(pos, nor);
 
-        float3 lig = normalize(float3(-0.5, 1.9, 0.8));
+        float3 lig = normalize(float3(-1, 0.5, 0.));//z,y,x
         float3 hal = normalize(lig - rd);
         float amb = clamp(0.5 + 0.5 * nor.y, 0.0, 1.0);
         float dif = clamp(dot(nor, lig), 0.0, 1.0);
@@ -138,7 +140,7 @@ float3 render(in float3 ro, in float3 rd)
         float sha = calcSoftshadow(pos, lig);
         sha = sha * sha;
 
-        float spe = pow(clamp(dot(nor, hal), 0.0, 1.0), 32.0) *
+        float spe = pow(clamp(dot(nor, hal), 0.0, 1.0), 36.0) *
                     dif * sha *
                     (0.04 + 0.96 * pow(clamp(1.0 + dot(hal, rd), 0.0, 1.0), 5.0));
         col *= 5.0;
@@ -152,7 +154,7 @@ float3 render(in float3 ro, in float3 rd)
 float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
 {
     // camera	
-    float3 ro = float3(1.0 * cos(0.2 * Time), 0.12, 1.0 * sin(0.2 * Time));
+    float3 ro = float3(-2.0 * cos(0.1 * iTime), 0.2, 2.0 * sin(0.1 * iTime));
     float3 ta = float3(0.0, 0.0, 0.0);
     // camera-to-world transformation
     float3 cw = normalize(ta - ro);
@@ -160,18 +162,18 @@ float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
     float3 cv = (cross(cu, cw));
 
     // render
-    float3 tot = float3(0.0,0.0,0.0);
+    float3 tot = float3(0.0, 0.0, 0.0); //final color
 #if AA>1
     for (int m = 0; m < AA; m++)
         for (int n = 0; n < AA; n++)
         {
             // pixel coordinates
             float2 o = float2(float(m), float(n)) / float(AA) - 0.5;
-            float2 fc = i_uv + o / 1080;//
+            float2 fc = i_uv + o;
 #else    
             float2 fc = i_uv;
 #endif
-            float2 p = fc; //(2.0 * fc - iResolution.xy) / iResolution.y;
+            float2 p = (2.0 * fc - iResolution.xy) / iResolution.y;
 
             // ray direction
             float3 rd = normalize(p.x * cu + p.y * cv + 2.0 * cw);

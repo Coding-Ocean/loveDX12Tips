@@ -829,3 +829,11 @@ float aspect()
 {
 	return Aspect;
 }
+float width()
+{
+	return ClientWidth;
+}
+float height()
+{
+	return ClientHeight;
+}
