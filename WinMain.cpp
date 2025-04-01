@@ -19,7 +19,7 @@ struct CONST_BUF0* CB0;
 INT WINAPI wWinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ INT)
 {
 	window(L"RayMarching", 1920, 1080, NO_WINDOW);
-	createPipeline("PixelShader2");
+	createPipeline("PixelShader");
 
 	//ÉäÉ\Å[ÉXèâä˙âª
 	{
