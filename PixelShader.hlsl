@@ -18,14 +18,15 @@ float sdSphere(in float3 p, in float r)
 
 float2 map(in float3 p)
 {
+    // sphere
+    float2 d0 = float2(sdSphere(p - float3(0, 0, -0.5), 0.3), 0.75);
     // ellipsoid
-    float d1 = sdEllipsoid(p, float3(0.1, 0.3, 0.2));//z,y,x
-    //d1 = sdSphere(p-float3(0,0,1), 0.2);//float3(pz,py,px)
-
+    float2 d1 = float2(sdEllipsoid(p - float3(0, 0, 0), float3(0.2, 0.3, 0.1)), 1.0);
     // plane
-    float d2 = p.y + 0.3;
+    float2 d2 = float2(p.y + 0.3, 2.0);
     
-    return (d1 < d2) ? float2(d1, 1.0) : float2(d2, 2.0);
+    float2 d = (d0.x < d1.x) ? d0 : d1;
+    return (d.x < d2.x) ? d : d2;
 }
 
 // https://iquilezles.org/articles/nvscene2008/
@@ -106,47 +107,54 @@ float3 render(in float3 ro, in float3 rd)
     
     float2 res = castRay(ro, rd);
 
-    if (res.y > 0.5)
+    // floor
+    if (res.y < 0.5)
+        return col;
+    
+    // material        
+    float t = res.x;
+    float3 pos = ro + t * rd;
+    float3 nor; //normal
+    float occ; //occlusion
+
+    if (res.y > 1.5)
     {
-        float t = res.x;
-        float3 pos = ro + t * rd;
-        float3 nor;//normal
-        float occ;//occlusion
+        nor = float3(0.0, 1.0, 0.0);
+        occ = 1.0;
+        col = 0.05 * float3(1.0, 1.0, 1.0);
+        col *= 0.7 + 0.3 * checkersGradBox(pos.xz * 1.0);
+    }
+    else if (res.y >= 1.0)
+    {
+        nor = calcNormal(pos);
+        occ = 0.5 + 0.5 * nor.y;
+        col = float3(0.1, 0.1, 0.1);
+    }
+    else
+    {
+        nor = calcNormal(pos);
+        occ = 0.5 + 0.5 * nor.y;
+        col = float3(0.1, 0.05, 0.05);
+    }
 
-        // material        
-        if (res.y > 1.5)
-        {
-            nor = float3(0.0, 1.0, 0.0);
-            occ = 1.0;
-            col = 0.05 * float3(1.0, 1.0, 1.0);
-            col *= 0.7 + 0.3 * checkersGradBox(pos.xz * 1.0);
-        }
-        else
-        {
-            nor = calcNormal(pos);
-            occ = 0.5 + 0.5 * nor.y;
-            col = float3(0.1,0.1,0.1);
-        }
+    // lighting
+    occ *= calcAO(pos, nor);
 
-        // lighting
-        occ *= calcAO(pos, nor);
+    float3 lig = normalize(float3(0, 0.5, 1)); //z,y,x
+    float3 hal = normalize(lig - rd);
+    float amb = clamp(0.5 + 0.5 * nor.y, 0.0, 1.0);
+    float dif = clamp(dot(nor, lig), 0.0, 1.0);
+    float bac = clamp(dot(nor, normalize(float3(-lig.x, 0.0, -lig.z))), 0.0, 1.0) * clamp(1.0 - pos.y, 0.0, 1.0);
 
-        float3 lig = normalize(float3(-1, 0.5, 0.));//z,y,x
-        float3 hal = normalize(lig - rd);
-        float amb = clamp(0.5 + 0.5 * nor.y, 0.0, 1.0);
-        float dif = clamp(dot(nor, lig), 0.0, 1.0);
-        float bac = clamp(dot(nor, normalize(float3(-lig.x, 0.0, -lig.z))), 0.0, 1.0) * clamp(1.0 - pos.y, 0.0, 1.0);
+    float sha = calcSoftshadow(pos, lig);
+    sha = sha * sha;
 
-        float sha = calcSoftshadow(pos, lig);
-        sha = sha * sha;
-
-        float spe = pow(clamp(dot(nor, hal), 0.0, 1.0), 36.0) *
+    float spe = pow(clamp(dot(nor, hal), 0.0, 1.0), 36.0) *
                     dif * sha *
                     (0.04 + 0.96 * pow(clamp(1.0 + dot(hal, rd), 0.0, 1.0), 5.0));
-        col *= 5.0;
-        col *= float3(0.2, 0.3, 0.4) * amb * occ + 1.6 * float3(1.0, 0.9, 0.75) * dif * sha;
-        col += float3(2.8, 2.2, 1.8) * spe * 3.0;
-    }
+    col *= 5.0;
+    col *= float3(0.2, 0.3, 0.4) * amb * occ + 1.6 * float3(1.0, 0.9, 0.75) * dif * sha;
+    col += float3(2.8, 2.2, 1.8) * spe * 3.0;
     
     return col;
 }
@@ -154,7 +162,7 @@ float3 render(in float3 ro, in float3 rd)
 float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
 {
     // camera	
-    float3 ro = float3(-2.0 * cos(0.1 * iTime), 0.2, 2.0 * sin(0.1 * iTime));
+    float3 ro = float3(2.0 * sin(0.2 * iTime), 0.2, 2.0 * cos(0.2 * iTime));
     float3 ta = float3(0.0, 0.0, 0.0);
     // camera-to-world transformation
     float3 cw = normalize(ta - ro);
@@ -162,9 +170,11 @@ float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
     float3 cv = (cross(cu, cw));
 
     // render
-    float3 tot = float3(0.0, 0.0, 0.0); //final color
+    float3 tot = float3(0.0, 0.0, 0.0); //total color
 #if AA>1
+    //AAが2以上の場合は、サブピクセルをAA*AA分だけサンプリング(加算)して、その平均を取る
     for (int m = 0; m < AA; m++)
+    {
         for (int n = 0; n < AA; n++)
         {
             // pixel coordinates
@@ -182,11 +192,12 @@ float4 main(float4 i_pos : SV_POSITION, float2 i_uv : TEXCOORD) : SV_TARGET
             float3 col = render(ro, rd);
 
 		    // gamma (yes, before accumulation)
-            col = pow(col, float3(0.4545,.4545,.4545));
+            col = pow(col, float3(.4545, .4545, .4545));
 
             tot += col;
 #if AA>1
         }
+    }
     tot /= float(AA * AA);
 #endif
     
