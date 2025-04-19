@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 0
+#if 1
 #include"framework.h"
 void gmain()
 {
@@ -685,6 +685,63 @@ void gmain()
 	}
 }
 #endif
+//円と四角形の当たり判定 その２
+#if 0
+#include"framework.h"
+#include"float2.h"
+
+float sdRect(float2 p, float2 b)
+{
+	float2 d = float2(abs(p.x) - b.x,abs(p.y)-b.y);
+	//return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+}
+
+void gmain()
+{
+	window("Math", 1270, 720, win, 300);
+	//四角形
+	float rx=width/2, ry=height/2, rw = 200, rh = 100;
+	//円。ループ中でマウス位置をセットする
+	float cx,cy,cr = 25;
+	//メインループ
+	while (!quit())
+	{
+		getInputState();
+		if (isTrigger(KEY_ESC)) closeWindow();
+
+		//clear
+		beginMsaaRender();
+
+		//------------------------------------
+		//円の位置
+		cx = mouseX;
+		cy = mouseY;
+		//四角形の位置
+		static float rad = 0;
+		//rad += 0.01f;
+		rx = width/2 + sin(rad)*100;
+		//「円の中心」と「四角形の輪郭」までの距離
+		float x = abs(cx - rx) - rw / 2;
+		float y = abs(cy - ry) - rh / 2;
+		float d = sqrt(pow(max(x , 0.0f), 2) + pow(max(y, 0.0f), 2)) + min(max(x, y), 0.0f);
+		fontColor(1, 1, 1);
+		print("d:%f", d);
+		//触れていたら色を変える
+		if (d<=cr)
+			stroke(1, 0.3f, 0.3f);
+		else
+			stroke(1, 1, 1);
+		strokeWeight(3);
+		noFill();
+		circle(cx, cy, cr * 2 - 3);
+		rect(rx, ry, rw, rh);
+		//------------------------------------
+
+		//present
+		endMsaaRender();
+	}
+}
+#endif
 //成す角 デカルト座標
 #if 0
 #include"framework.h"
@@ -968,8 +1025,8 @@ void gmain()
 	}
 }
 #endif
-//rayMarching
-#if 1
+//rayMarching説明
+#if 0
 
 #define SPHERE
 #define FLOOR
