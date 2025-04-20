@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 1
+#if 0
 #include"framework.h"
 void gmain()
 {
@@ -514,7 +514,6 @@ void gmain()
 //円と線分の当たり判定
 #if 0
 #include"framework.h"
-#include"float2.h"
 void gmain()
 {
 	window("Math", 1600, 900, win, 300);
@@ -592,7 +591,6 @@ void gmain()
 //円と四角形の当たり判定
 #if 0
 #include"framework.h"
-#include"float2.h"
 
 bool circle_segment
 (
@@ -688,21 +686,36 @@ void gmain()
 //円と四角形の当たり判定 その２
 #if 0
 #include"framework.h"
-#include"float2.h"
 
-float sdRect(float2 p, float2 b)
+struct CIRCLE {
+	float x, y, r;
+	void draw(){ circle(x, y, r * 2); }
+};
+struct RECTANGLE {
+	float x, y, w, h;
+	void draw() { rect(x, y, w, h); }
+};
+//Signed Distance Circle_Rect
+float sdCircleRect(const CIRCLE& c, const RECTANGLE& r)
 {
-	float2 d = float2(abs(p.x) - b.x,abs(p.y)-b.y);
-	//return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+	//矩形の中心から円の中心までのx距離の絶対値-矩形の幅の半分
+	float dx = abs(c.x - r.x) - r.w / 2;
+	//矩形の中心から円の中心までのy距離の絶対値-矩形の高さの半分
+	float dy = abs(c.y - r.y) - r.h / 2;
+	//円の中心から矩形の輪郭までの距離
+	float d = sqrt( pow(max(dx, 0.0f), 2.0f) + pow(max(dy, 0.0f), 2.0f) )//円の中心が矩形の外側にある時の距離 
+		+ min(max(dx, dy), 0.0f);//円の中心が矩形の内側にある時の距離
+	return d;
 }
 
 void gmain()
 {
 	window("Math", 1270, 720, win, 300);
+	setMousePos(width/2, height/2 - 100);
 	//四角形
-	float rx=width/2, ry=height/2, rw = 200, rh = 100;
+	RECTANGLE rect = { width / 2,height / 2,200.0f,100.0f };
 	//円。ループ中でマウス位置をセットする
-	float cx,cy,cr = 25;
+	CIRCLE circle = { 0,0,25.0f };
 	//メインループ
 	while (!quit())
 	{
@@ -714,27 +727,21 @@ void gmain()
 
 		//------------------------------------
 		//円の位置
-		cx = mouseX;
-		cy = mouseY;
-		//四角形の位置
-		static float rad = 0;
-		//rad += 0.01f;
-		rx = width/2 + sin(rad)*100;
+		circle.x = mouseX;
+		circle.y = mouseY;
 		//「円の中心」と「四角形の輪郭」までの距離
-		float x = abs(cx - rx) - rw / 2;
-		float y = abs(cy - ry) - rh / 2;
-		float d = sqrt(pow(max(x , 0.0f), 2) + pow(max(y, 0.0f), 2)) + min(max(x, y), 0.0f);
-		fontColor(1, 1, 1);
-		print("d:%f", d);
+		float d = sdCircleRect(circle, rect);
 		//触れていたら色を変える
-		if (d<=cr)
-			stroke(1, 0.3f, 0.3f);
-		else
-			stroke(1, 1, 1);
-		strokeWeight(3);
+		d <= circle.r ? stroke(Red) : stroke(Yellow);
 		noFill();
-		circle(cx, cy, cr * 2 - 3);
-		rect(rx, ry, rw, rh);
+		strokeWeight(2);
+		//描画
+		circle.draw();
+		rect.draw();
+		//debug
+		fontColor(1, 1, 1);
+		fontSize(25);
+		print("d:%.2f", d);
 		//------------------------------------
 
 		//present
@@ -845,7 +852,6 @@ void gmain() {
 //成す角 スクリーン座標
 #if 0
 #include"framework.h"
-#include"float2.h"
 void gmain()
 {
 	window("Math", 1920, 1080, full);
@@ -921,21 +927,15 @@ void gmain()
 }
 #endif
 //Favorite color
-#if 0
+#if 1
 #include"framework.h"
-#include"float2.h"
 void gmain()
 {
-	window("graffiti", 1920, 1080, full);
 	//clearColor(0.8f, 0.8f, 0.8f);
+	window("graffiti", 1920, 1080, full);
 	float cx = width / 2;
 	float cy = height / 2;
-	float color[][3] = {
-		239 / 255.f, 87 / 255.f, 108 / 255.f,//red
-		0 / 255.f, 191 / 255.f, 160 / 255.f,//green
-		16 / 255.f, 120 / 255.f, 151 / 255.f,//blue
-		180 / 255.f, 180 / 255.f, 37 / 255.f,//yellow
-	};
+	COLOR color[4] = { Red,Green,Blue,Yellow };
 	//メインループ
 	while (!quit())
 	{
@@ -946,16 +946,23 @@ void gmain()
 		//clear
 		beginMsaaRender();
 
-		strokeWeight(5);
 		for (int i = 0; i < 4; ++i) {
-			stroke(color[i][0], color[i][1], color[i][2]);
+			strokeWeight(10); stroke(color[i]);
 			line(cx - 200, cy - 300 + 200 * i, cx + 200, cy - 300 + 200 * i);
+			noFill(); 
+			circle(100*(i+1), height / 2, 201);
+			noStroke();
+			fill(color[i]); 
+			circle(100*(i+1), height / 2 + 200, 201);
 		}
 
-		//present
+		circle(100, height - 100, 150);
+
 		fontSize(25);
-		fontColor(0.5f,0.5f,0.5f);
+		fontColor(Green);
 		debugPrint();
+
+		//present
 		cursor();
 		endMsaaRender();
 	}
@@ -964,7 +971,6 @@ void gmain()
 //キャラがWASDキーを押した方向に回転しながら進む
 #if 0
 #include"framework.h"
-#include"float2.h"
 void gmain()
 {
 	window("Math", 1920, 1080, full, 300);
