@@ -58,6 +58,9 @@
     <ClInclude Include="float2.h">
       <Filter>lib</Filter>
     </ClInclude>
+    <ClInclude Include="COLOR.h">
+      <Filter>lib</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="PixelShader.hlsl">

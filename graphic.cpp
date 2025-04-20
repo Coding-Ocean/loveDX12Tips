@@ -14,6 +14,7 @@
 #include"graphic.h"
 #include"window.h"
 #include"input.h"
+#include"COLOR.h"
 
 //グローバル変数-----------------------------------------------------------------
 // デバイス
@@ -1350,6 +1351,20 @@ void noStroke()
 	//輪郭線なし
 	StrokeWeight = 0;
 }
+//僕の好きな色
+extern COLOR Red{ 239 / 255.f, 87 / 255.f, 108 / 255.f };
+extern COLOR Green{ 0 / 255.f, 191 / 255.f, 160 / 255.f };
+extern COLOR Blue{ 26 / 255.f, 130 / 255.f, 161 / 255.f };
+extern COLOR Yellow{ 180 / 255.f, 180 / 255.f, 37 / 255.f };
+void fill(const COLOR& c, float a)
+{
+	FillR = c.r; FillG = c.g; FillB = c.b; FillA = a;
+}
+void stroke(const COLOR& c, float a)
+{
+	StrokeR = c.r; StrokeG = c.g; StrokeB = c.b; StrokeA = a;
+}
+
 //点
 void point(float px, float py)
 {
@@ -1629,6 +1644,10 @@ float FONTR = 0, FONTG = 0, FONTB = 0, FONTA = 1;
 void fontColor(float r, float g, float b, float a)
 {
 	FONTR = r; FONTG = g; FONTB = b; FONTA = a;
+}
+void fontColor(const COLOR& c,float a)
+{
+	FONTR = c.r; FONTG = c.g; FONTB = c.b; FONTA = a;
 }
 float FONT_SHADOW_R = 0, FONT_SHADOW_G = 0, FONT_SHADOW_B = 0, FONT_SHADOW_A = 0;
 void fontShadowColor(float r, float g, float b, float a)

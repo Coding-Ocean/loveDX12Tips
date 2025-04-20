@@ -6,6 +6,7 @@
 #include"input.h"
 #include"timer.h"
 #include"float2.h"
+#include"COLOR.h"
 
 #define win true
 #define full false

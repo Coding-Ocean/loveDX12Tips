@@ -142,6 +142,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BIN_FILE12.h" />
+    <ClInclude Include="COLOR.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="float2.h" />
     <ClInclude Include="framework.h" />

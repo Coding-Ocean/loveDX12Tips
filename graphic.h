@@ -37,6 +37,9 @@ void noFill();
 void stroke(float r, float g, float b, float a = 1);
 void strokeWeight(float sw);
 void noStroke();
+extern struct COLOR Red,Green,Blue,Yellow;
+void stroke(const COLOR&, float a = 1);
+void fill(const COLOR&, float a = 1);
 //image
 void imageColor(float r, float g, float b, float a=1);
 int textureWidth(int idx);
@@ -60,6 +63,7 @@ constexpr ULONG EN = 0;
 void fontFace(const char* fontname, unsigned charset);
 void fontSize(int size);
 void fontColor(float r, float g, float b, float a=1);
+void fontColor(const COLOR& c, float a=1);
 void fontShadowColor(float r, float g, float b, float a);
 void fontRectModeCorner();
 void fontRectModeCenter();
