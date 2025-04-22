@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 0
+#if 1
 #include"framework.h"
 void gmain()
 {
@@ -453,11 +453,11 @@ void gmain()
 
 		//clear
 		beginMsaaRender();
-		backgroundRect(0.9f, 0.8f, 0.8f);
+		backgroundRect();
 
 
-		fill(1, 1, 1); strokeWeight(5);
-		circle(width / 2, height / 2, radius * 2);
+		fill(1, 1, 1); strokeWeight(0);
+		circle(width / 2+300, height / 2, radius * 2);
 
 		if (isTrigger(KEY_W))radius += 1;
 		if (isTrigger(KEY_S))radius -= 1;
@@ -504,6 +504,7 @@ void gmain()
 		fontRectModeCorner();
 		debugPrint();
 		print("radius:%.2f", radius);
+		print("diameter:%.2f", radius*2);
 
 		//present
 		cursor();
@@ -927,7 +928,7 @@ void gmain()
 }
 #endif
 //Favorite color
-#if 1
+#if 0
 #include"framework.h"
 void gmain()
 {

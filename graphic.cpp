@@ -1594,7 +1594,7 @@ void circle(float px, float py, float diameter)
 	int idx = 0;
 	if		(diameter <=  10) { idx = 0; }
 	else if (diameter <=  40) { idx = 1; }
-	else if (diameter <= 200) { idx = 2; }
+	else if (diameter <= 100) { idx = 2; }
 	else if (diameter <= 800) { idx = 3; }
 	else					  { idx = 4; }
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[2] = {
