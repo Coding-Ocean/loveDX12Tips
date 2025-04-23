@@ -759,10 +759,13 @@ void createIndexBufferView(ComPtr<ID3D12Resource>& indexBuffer, UINT sizeInBytes
 	indexBufferView.SizeInBytes = sizeInBytes;
 	indexBufferView.Format = DXGI_FORMAT_R16_UINT;
 }
+#include<sstream>
 UINT createConstantBufferView(ComPtr<ID3D12Resource>& constantBuffer)
 {
 	if (CurrentCbvTbvIdx >= MaxCbvTbvIdxs) {
-		MessageBoxA(hwnd(), "ディスクリプタヒープが足りません", "Error", 0);
+		std::stringstream ss;
+		ss << MaxCbvTbvIdxs << "より大きな数を指定してください";
+		MessageBoxA(hwnd(), ss.str().c_str(),"ディスクリプタヒープが足りません",  0);
 		exit(1);
 	}
 	D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};

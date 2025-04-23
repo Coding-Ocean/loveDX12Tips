@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 1
+#if 0
 #include"framework.h"
 void gmain()
 {
@@ -246,7 +246,7 @@ void gmain()
 }
 #endif
 //デカルト座標でグラフを表示するサンプル
-#if 0
+#if 1
 #include"framework.h"
 //2次関数
 float quadratic(float x)
@@ -256,7 +256,7 @@ float quadratic(float x)
 //ゲームメイン
 void gmain()
 {
-	window("Math", 720, 720, full);
+	window("Math", 1080, 1080, full,2500);
 	//原点の位置（スクリーン座標）
 	float ox = width / 2;
 	float oy = height / 2;
