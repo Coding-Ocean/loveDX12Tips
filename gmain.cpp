@@ -1,5 +1,5 @@
 //画像切り取り、分割、描画サンプル
-#if 0
+#if 1
 #include"framework.h"
 void gmain()
 {
@@ -246,7 +246,7 @@ void gmain()
 }
 #endif
 //デカルト座標でグラフを表示するサンプル
-#if 1
+#if 0
 #include"framework.h"
 //2次関数
 float quadratic(float x)
@@ -842,7 +842,7 @@ void gmain() {
 		print("マウスでベクトルの先端をつかんで動かせる");
 		print("内積:a.x * b.x + a.y * b.y = |a||b|cosθ = %f", dp);
 		print("外積:a.x * b.y - a.y * b.x = |a||b|sinθ = %f", cp);
-		print("なす角:atan2(内積,外積) = %.1f",angleAB*180/3.1415926f);
+		print("なす角:atan2(外積,内積) = %.1f",angleAB*180/3.1415926f);
 
 		imageColor(1, 1, 1, 0.5f);
 		cursor();
@@ -1194,4 +1194,3 @@ void gmain() {
 	}
 }
 #endif
-
